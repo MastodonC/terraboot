@@ -54,9 +54,9 @@
 
 (def subnet-types [:public :private])
 
-(def cidr-block { :public {:a "172.20.0.0/24"
-                           :b "172.20.1.0/24"
-                           :c "172.20.2.0/24"}
+(def cidr-block {:public {:a "172.20.0.0/24"
+                          :b "172.20.1.0/24"
+                          :c "172.20.2.0/24"}
                  :private {:a "172.20.8.0/24"
                            :b "172.20.9.0/24"
                            :c "172.20.10.0/24"}
@@ -120,7 +120,6 @@
                              :protocol -1
                              :cidr_blocks [all-external]
                              })
-
 
             (security-group "vpn" {:vpc_id (id-of "aws_vpc" vpc-name)}
                             {:from_port 22
