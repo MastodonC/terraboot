@@ -43,6 +43,7 @@
                        s)))
 
 (def json-options {:key-fn name :pretty true})
+
 (defn to-json [tfmap]
   (json/generate-string tfmap json-options))
 
@@ -83,11 +84,16 @@
          rule])))))
 
 (defn aws-instance [name spec]
-  (resource "aws_instance" name (merge-in {:tags {:Name name}
-                                           :instance_type "t2.micro"
-                                           :key_name "ops"
-                                           :monitoring true}
-                                          spec)))
+  (let [default-sgs ["allow_outbound"]
+        default-sg-ids (map (partial id-of "aws_security_group") default-sgs)
+        ]
+    (resource "aws_instance" name (-> {:tags {:Name name}
+                                       :instance_type "t2.micro"
+                                       :key_name "ops"
+                                       :monitoring true
+                                       }
+                                      (merge-in spec)
+                                      (update-in [:vpc_security_group_ids] concat default-sg-ids)))))
 
 (def all-external "0.0.0.0/0")
 
@@ -109,7 +115,7 @@
                                  :subnet_id (id-of "aws_subnet" "public-b")
                                  :ami "ami-bc5b48d0"
                                  :vpc_security_group_ids [(id-of "aws_security_group" "vpn")
-                                                          (id-of "aws_security_group" "allow_outbound")]
+                                                          ]
                                  :associate_public_ip_address true
                                  })
 
@@ -144,7 +150,7 @@
                       {:vpc_id (id-of "aws_vpc" vpc-name)})
 
             (resource "aws_route_table" "public" {:tags { :Name "public"}
-                                                  :vpc_id (id-of "aws_vpc" vpc-name) })
+                                                  :vpc_id (id-of "aws_vpc" vpc-name)})
 
             ;; Public Subnets
             (resource-seq
