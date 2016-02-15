@@ -146,8 +146,8 @@ write_files:
                dh dh2048.pem
                server 10.20.0.0 255.255.255.0
                ifconfig-pool-persist ipp.txt
-               push "route {{RangeStart}} 255.255.0.0"
-               push "dhcp-option DNS {{FallbackDNS}}"
+               push "route {{range-start}} 255.255.0.0"
+               push "dhcp-option DNS {{fallback-dns}}"
                push "dhcp-option DOMAIN eu-central-1.compute.internal"
                keepalive 10 120
                tls-auth ta.key 0

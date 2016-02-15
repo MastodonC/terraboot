@@ -1,7 +1,9 @@
 (ns terraboot.core
   (:require [clojure.string :as string]
             [cheshire.core :as json]
-            [clojure.pprint :refer [pprint]]))
+            [stencil.core :as mustache]
+            [clojure.pprint :refer [pprint]]
+            ))
 
 (letfn [(merge-in* [a b]
           (if (map? a)
@@ -63,19 +65,66 @@
 (defn stringify [& args]
   (apply str (map name args)))
 
-(defn security-group [name spec]
-  (resource "aws_security_group" name
-            (merge {:Name name}
-                   spec)))
+(defn security-group [name spec & rules]
+  (merge-in
+   (resource "aws_security_group" name
+             (merge {:name name
+                     :tags {:Name name}}
+                    spec))
+   (resource-seq
+    (for [rule rules]
+      (let [defaults {:protocol "tcp"
+                      :type "ingress"
+                      :security_group_id (id-of "aws_security_group" name)}
+            rule (merge defaults rule)
+            suffix (str (hash rule))]
+        ["aws_security_group_rule"
+         (stringify name "-" suffix)
+         rule]))
+    )))
+
+(def sg
+  )
+
+(defn aws-instance [name spec]
+  (resource "aws_instance" name (merge-in {:tags {:Name name}
+                                           :instance_type "t2.micro"
+                                           :key_name "ops"
+                                           :monitoring true}
+                                          spec)))
 
 (def vpc-name "sandpit")
 
 (def region "eu-central-1")
 
+(defn from-template [template-name vars]
+  (mustache/render-file template-name vars))
+
 (def infra (merge-in
             (resource "aws_vpc" vpc-name
                       {:tags {:Name vpc-name}
                        :cidr_block "172.20.0.0/20"})
+
+            #_(aws-instance "VPN" {
+                                 ;; :user_data
+
+
+                                 #_(from-template "vpn-config" {:range-start "172.20.0.0"
+                                                              :fallback-dns "172.20.0.2"})
+                                 :subnet_id (id-of "aws_subnet" "public-a")
+                                 :ami "ami-bc5b48d0"
+                                 })
+
+            (security-group "allow_external_http_https" {}
+                            {:from_port 80
+                             :to_port 80
+                             :cidr_blocks ["0.0.0.0/0"]
+                             }
+                            {:protocol "udp"
+                             :from_port 443
+                             :to_port 443
+                             :cidr_blocks ["0.0.0.0/0"]})
+
 
             (resource "aws_internet_gateway" vpc-name
                       {:vpc_id (id-of "aws_vpc" vpc-name)})
@@ -124,8 +173,7 @@
                                                                      :subnet_id (id-of "aws_subnet" subnet-name)
                                                                      }]
                          ])
-                      )))
-            ))
+                      )))))
 
 
 (defn -main []
