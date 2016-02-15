@@ -83,22 +83,18 @@
             (resource "aws_route_table" "public" {:tags { :Name "public"}
                                                   :vpc_id (id-of "aws_vpc" vpc-name) })
 
-            (resource-seq
-             (for [az azs
-                   subnet-type [:public :private]]
-               (let [subnet-name (stringify subnet-type "-" az)]
-                 ["aws_subnet" subnet-name {:tags {:Name subnet-name}
-                                            :vpc_id (id-of "aws_vpc" vpc-name)
-                                            :cidr_block (get-in cidr-block [subnet-type az])
-                                            :availability_zone (stringify region az)
-                                            }])))
-
+            ;; Public Subnets
             (resource-seq
              (apply concat
                     (for [az azs]
                       (let [subnet-name (stringify "public" "-" az)
                             nat-eip (stringify subnet-name "-nat")]
-                        [["aws_route_table_association" subnet-name {:route_table_id (id-of "aws_route_table" "public")
+                        [["aws_subnet" subnet-name {:tags {:Name subnet-name}
+                                            :vpc_id (id-of "aws_vpc" vpc-name)
+                                            :cidr_block (get-in cidr-block [:public az])
+                                            :availability_zone (stringify region az)
+                                                    }]
+                         ["aws_route_table_association" subnet-name {:route_table_id (id-of "aws_route_table" "public")
                                                                      :subnet_id (id-of "aws_subnet" subnet-name)
                                                                      }]
                          ["aws_nat_gateway" subnet-name {:allocation_id (id-of "aws_eip" nat-eip)
@@ -107,12 +103,18 @@
                          ["aws_eip" nat-eip {:vpc true}]])
                       )))
 
+            ;; Private Subnets
             (resource-seq
              (apply concat
                     (for [az azs]
                       (let [subnet-name (stringify "private-" az)
                             public-subnet-name (stringify "public-" az)]
-                        [["aws_route_table" subnet-name {:tags {:Name subnet-name}
+                        [["aws_subnet" subnet-name {:tags {:Name subnet-name}
+                                            :vpc_id (id-of "aws_vpc" vpc-name)
+                                            :cidr_block (get-in cidr-block [:private az])
+                                            :availability_zone (stringify region az)
+                                                    }]
+                         ["aws_route_table" subnet-name {:tags {:Name subnet-name}
                                                          :vpc_id (id-of "aws_vpc" vpc-name)
                                                          :route {:cidr_block "0.0.0.0/0"
                                                                  :nat_gateway_id (id-of "aws_nat_gateway" public-subnet-name)}}
