@@ -80,8 +80,7 @@
             suffix (str (hash rule))]
         ["aws_security_group_rule"
          (stringify name "-" suffix)
-         rule]))
-    )))
+         rule])))))
 
 (defn aws-instance [name spec]
   (resource "aws_instance" name (merge-in {:tags {:Name name}
@@ -109,8 +108,19 @@
                                                                          :fallback-dns "172.20.0.2"})
                                  :subnet_id (id-of "aws_subnet" "public-b")
                                  :ami "ami-bc5b48d0"
-                                 :vpc_security_group_ids [(id-of "aws_security_group" "vpn")]
+                                 :vpc_security_group_ids [(id-of "aws_security_group" "vpn")
+                                                          (id-of "aws_security_group" "allow_outbound")]
+                                 :associate_public_ip_address true
                                  })
+
+            (security-group "allow_outbound" {:vpc_id (id-of "aws_vpc" vpc-name)}
+                            {:type "egress"
+                             :from_port 0
+                             :to_port 0
+                             :protocol -1
+                             :cidr_blocks [all-external]
+                             })
+
 
             (security-group "vpn" {:vpc_id (id-of "aws_vpc" vpc-name)}
                             {:from_port 22
