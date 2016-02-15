@@ -83,15 +83,14 @@
          rule]))
     )))
 
-(def sg
-  )
-
 (defn aws-instance [name spec]
   (resource "aws_instance" name (merge-in {:tags {:Name name}
                                            :instance_type "t2.micro"
                                            :key_name "ops"
                                            :monitoring true}
                                           spec)))
+
+(def all-external "0.0.0.0/0")
 
 (def vpc-name "sandpit")
 
@@ -105,26 +104,32 @@
                       {:tags {:Name vpc-name}
                        :cidr_block "172.20.0.0/20"})
 
-            #_(aws-instance "VPN" {
-                                 ;; :user_data
-
-
-                                 #_(from-template "vpn-config" {:range-start "172.20.0.0"
-                                                              :fallback-dns "172.20.0.2"})
-                                 :subnet_id (id-of "aws_subnet" "public-a")
+            (aws-instance "vpn" {
+                                 :user_data (from-template "vpn-config" {:range-start "172.20.0.0"
+                                                                         :fallback-dns "172.20.0.2"})
+                                 :subnet_id (id-of "aws_subnet" "public-b")
                                  :ami "ami-bc5b48d0"
+                                 :vpc_security_group_ids [(id-of "aws_security_group" "vpn")]
                                  })
 
-            (security-group "allow_external_http_https" {}
+            (security-group "vpn" {:vpc_id (id-of "aws_vpc" vpc-name)}
+                            {:from_port 22
+                             :to_port 22
+                             :cidr_blocks [all-external]}
+                            {:from_port 1194
+                             :to_port 1194
+                             :protocol "udp"
+                             :cidr_blocks [all-external]}
+                            )
+
+            (security-group "allow_external_http_https" {:vpc_id (id-of "aws_vpc" vpc-name)}
                             {:from_port 80
                              :to_port 80
                              :cidr_blocks ["0.0.0.0/0"]
                              }
-                            {:protocol "udp"
-                             :from_port 443
+                            {:from_port 443
                              :to_port 443
                              :cidr_blocks ["0.0.0.0/0"]})
-
 
             (resource "aws_internet_gateway" vpc-name
                       {:vpc_id (id-of "aws_vpc" vpc-name)})
@@ -174,7 +179,6 @@
                                                                      }]
                          ])
                       )))))
-
 
 (defn -main []
   (to-file infra "vpc/vpc.tf"))
