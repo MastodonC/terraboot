@@ -48,17 +48,17 @@
   (println "Outputing to" file-name)
   (json/generate-stream tfmap (clojure.java.io/writer file-name) json-options))
 
-(def azs [:a :b :c])
+(def azs [:a :b])
 
 (def subnet-types [:public :private])
 
 (def cidr-block { :public {:a "172.20.0.0/24"
                            :b "172.20.1.0/24"
                            :c "172.20.2.0/24"}
-                  :private {:a "172.20.8.0/24"
-                            :b "172.20.9.0/24"
-                            :c "172.20.10.0/24"}
-                  })
+                 :private {:a "172.20.8.0/24"
+                           :b "172.20.9.0/24"
+                           :c "172.20.10.0/24"}
+                 })
 
 (defn stringify [& args]
   (apply str (map name args)))
@@ -70,6 +70,8 @@
 
 (def vpc-name "sandpit")
 
+(def region "eu-central-1")
+
 (def infra (merge-in
             (resource "aws_vpc" vpc-name
                       {:tags {:Name vpc-name}
@@ -78,17 +80,51 @@
             (resource "aws_internet_gateway" vpc-name
                       {:vpc_id (id-of "aws_vpc" vpc-name)})
 
+            (resource "aws_route_table" "public" {:tags { :Name "public"}
+                                                  :vpc_id (id-of "aws_vpc" vpc-name) })
+
             (resource-seq
              (for [az azs
-                   subnet-type subnet-types]
-               (let [subnet-name (stringify vpc-name "-" subnet-type "-" az)]
+                   subnet-type [:public :private]]
+               (let [subnet-name (stringify subnet-type "-" az)]
                  ["aws_subnet" subnet-name {:tags {:Name subnet-name}
                                             :vpc_id (id-of "aws_vpc" vpc-name)
                                             :cidr_block (get-in cidr-block [subnet-type az])
-                                           }])))
+                                            :availability_zone (stringify region az)
+                                            }])))
 
+            (resource-seq
+             (apply concat
+                    (for [az azs]
+                      (let [subnet-name (stringify "public" "-" az)
+                            nat-eip (stringify subnet-name "-nat")]
+                        [["aws_route_table_association" subnet-name {:route_table_id (id-of "aws_route_table" "public")
+                                                                     :subnet_id (id-of "aws_subnet" subnet-name)
+                                                                     }]
+                         ["aws_nat_gateway" subnet-name {:allocation_id (id-of "aws_eip" nat-eip)
+                                                         :subnet_id  (id-of "aws_subnet" subnet-name)}]
 
+                         ["aws_eip" nat-eip {:vpc true}]])
+                      )))
+
+            (resource-seq
+             (apply concat
+                    (for [az azs]
+                      (let [subnet-name (stringify "private-" az)
+                            public-subnet-name (stringify "public-" az)]
+                        [["aws_route_table" subnet-name {:tags {:Name subnet-name}
+                                                         :vpc_id (id-of "aws_vpc" vpc-name)
+                                                         :route {:cidr_block "0.0.0.0/0"
+                                                                 :nat_gateway_id (id-of "aws_nat_gateway" public-subnet-name)}}
+
+                          ]
+                         ["aws_route_table_association" subnet-name {:route_table_id (id-of "aws_route_table" subnet-name)
+                                                                     :subnet_id (id-of "aws_subnet" subnet-name)
+                                                                     }]
+                         ])
+                      )))
             ))
+
 
 (defn -main []
   (to-file infra "vpc/vpc.tf"))
