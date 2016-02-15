@@ -1,0 +1,8 @@
+[Unit]
+Before=dcos.target
+[Service]
+Type=oneshot
+StandardOutput=journal+console
+StandardError=journal+console
+ExecStartPre=/usr/bin/mkdir -p /etc/profile.d
+ExecStart=/usr/bin/ln -sf /opt/mesosphere/environment.export /etc/profile.d/dcos.sh
