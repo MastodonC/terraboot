@@ -2,8 +2,7 @@
   (:require [clojure.string :as string]
             [cheshire.core :as json]
             [stencil.core :as mustache]
-            [clojure.pprint :refer [pprint]]
-            ))
+            [clojure.pprint :refer [pprint]]))
 
 (letfn [(merge-in* [a b]
           (if (map? a)
@@ -85,13 +84,11 @@
 
 (defn aws-instance [name spec]
   (let [default-sgs ["allow_outbound"]
-        default-sg-ids (map (partial id-of "aws_security_group") default-sgs)
-        ]
+        default-sg-ids (map (partial id-of "aws_security_group") default-sgs)]
     (resource "aws_instance" name (-> {:tags {:Name name}
                                        :instance_type "t2.micro"
                                        :key_name "ops"
-                                       :monitoring true
-                                       }
+                                       :monitoring true}
                                       (merge-in spec)
                                       (update-in [:vpc_security_group_ids] concat default-sg-ids)))))
 
@@ -159,9 +156,9 @@
                       (let [subnet-name (stringify "public" "-" az)
                             nat-eip (stringify subnet-name "-nat")]
                         [["aws_subnet" subnet-name {:tags {:Name subnet-name}
-                                            :vpc_id (id-of "aws_vpc" vpc-name)
-                                            :cidr_block (get-in cidr-block [:public az])
-                                            :availability_zone (stringify region az)
+                                                    :vpc_id (id-of "aws_vpc" vpc-name)
+                                                    :cidr_block (get-in cidr-block [:public az])
+                                                    :availability_zone (stringify region az)
                                                     }]
                          ["aws_route_table_association" subnet-name {:route_table_id (id-of "aws_route_table" "public")
                                                                      :subnet_id (id-of "aws_subnet" subnet-name)
@@ -179,9 +176,9 @@
                       (let [subnet-name (stringify "private-" az)
                             public-subnet-name (stringify "public-" az)]
                         [["aws_subnet" subnet-name {:tags {:Name subnet-name}
-                                            :vpc_id (id-of "aws_vpc" vpc-name)
-                                            :cidr_block (get-in cidr-block [:private az])
-                                            :availability_zone (stringify region az)
+                                                    :vpc_id (id-of "aws_vpc" vpc-name)
+                                                    :cidr_block (get-in cidr-block [:private az])
+                                                    :availability_zone (stringify region az)
                                                     }]
                          ["aws_route_table" subnet-name {:tags {:Name subnet-name}
                                                          :vpc_id (id-of "aws_vpc" vpc-name)
