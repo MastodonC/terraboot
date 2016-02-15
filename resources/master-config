@@ -200,4 +200,4 @@
     /etc/mesosphere/roles/aws_master
 - "content": ""
   "path": |-
-    /etc/mesosphere/roles/aws\n"
+    /etc/mesosphere/roles/aws
