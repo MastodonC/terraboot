@@ -50,17 +50,6 @@
   (println "Outputing to" file-name)
   (json/generate-stream tfmap (clojure.java.io/writer file-name) json-options))
 
-(def azs [:a :b])
-
-(def subnet-types [:public :private])
-
-(def cidr-block {:public {:a "172.20.0.0/24"
-                          :b "172.20.1.0/24"
-                          :c "172.20.2.0/24"}
-                 :private {:a "172.20.8.0/24"
-                           :b "172.20.9.0/24"
-                           :c "172.20.10.0/24"}
-                 })
 
 (defn stringify [& args]
   (apply str (map name args)))
@@ -95,6 +84,8 @@
 (def all-external "0.0.0.0/0")
 
 (def region "eu-central-1")
+
+(def azs [:a :b])
 
 (defn from-template [template-name vars]
   (mustache/render-file template-name vars))

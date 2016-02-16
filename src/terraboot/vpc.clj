@@ -3,6 +3,16 @@
 
 (def vpc-name "sandpit")
 
+(def subnet-types [:public :private])
+
+(def cidr-block {:public {:a "172.20.0.0/24"
+                          :b "172.20.1.0/24"
+                          :c "172.20.2.0/24"}
+                 :private {:a "172.20.8.0/24"
+                           :b "172.20.9.0/24"
+                           :c "172.20.10.0/24"}
+                 })
+
 (def vpc-vpn-infra
   (merge-in
             (resource "aws_vpc" vpc-name
