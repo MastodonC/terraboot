@@ -89,3 +89,6 @@
 
 (defn from-template [template-name vars]
   (mustache/render-file template-name vars))
+
+(defn snippet [path]
+  (slurp (clojure.java.io/resource path)))
