@@ -122,6 +122,3 @@
                                  ["aws_route_table_association" subnet-name {:route_table_id (id-of "aws_route_table" subnet-name)
                                                                              :subnet_id (id-of "aws_subnet" subnet-name)
                                                                              }]])))))))
-
-(defn -main []
-  (to-file vpc-vpn-infra "vpc/vpc.tf"))
