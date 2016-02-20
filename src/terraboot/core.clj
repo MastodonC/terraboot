@@ -76,7 +76,7 @@
         default-sg-ids (map (partial id-of "aws_security_group") default-sgs)]
     (resource "aws_instance" name (-> {:tags {:Name name}
                                        :instance_type "t2.micro"
-                                       :key_name "ops"
+                                       :key_name "ops-terraboot"
                                        :monitoring true}
                                       (merge-in spec)
                                       (update-in [:vpc_security_group_ids] concat default-sg-ids)))))
