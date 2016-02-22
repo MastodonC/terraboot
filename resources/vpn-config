@@ -8,27 +8,6 @@ users:
 write_files:
     - content:  |
                 {{ta-key}}
-                #
-                # 2048 bit OpenVPN static key
-                #
-                -----BEGIN OpenVPN Static key V1-----
-                1be3541feaa018cc8df37b2679aa21ee
-                0358f56a92e6d756e3368e9da65112b6
-                9eea622ce1ad3ef2802b125cdc4e0b44
-                80cb17e05b1a76811f83ad56676410ea
-                9e768118e00b0b0d8f078da223c047e1
-                0c2d598f0564c6ebac5f729551a5b12c
-                eea775ea676ef62d8c1e1aae6f027c97
-                f9dbf01d32800176dbb0112a719fa00e
-                4fb70bdbc2725c0eaa83c5c1c2290327
-                70425e774d75736e50b46598ae3c24ad
-                70a1d36dbfe626e5c0e21628c7b89383
-                b0a3d6e1767b87db1b98c4d6362388f8
-                6a16a8265d69bb8eca8830c50ded5581
-                49cfdea99148f8cee43c58f4ceb7c14f
-                39eb0282b6a28226884dc5c1fd964b7f
-                6f76f8a76bd200eaf7b572e98752f1d2
-                -----END OpenVPN Static key V1-----
       permissions: '600'
       path: /etc/openvpn/ta.key
     - content:  |
@@ -36,78 +15,15 @@ write_files:
       permissions: '644'
       path: /etc/openvpn/ca.crt
     - content:  |
-                -----BEGIN PRIVATE KEY-----
-                MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDQHafkCMf1Wmf4
-                /2XpXshcC/1Tf/uoDoJNHPGpDJA9uPHozJbNIYlcJ0h4OOEQBUP66ys4UkLGhfDR
-                svF/un4LjBs1jYfyZZ6RRjzoM8C4i1Yu+oacqdVJlzZ/Uip7v0i9c2mQOUwC2Oaw
-                ijWqecmJT49AHN71SzQJxIfSuNx35UltvJyXOAbRPlj9TUUAng5MmqyXYUQlcUOS
-                H9O0I30tG9o++zVMQr1ctx1r51n9HDfzZRvPY3BI1EMmoas4a/awcbmvEesKYVTL
-                PnXHHDk7H/DcLbyq1qAx+JcrwNROFQ2ungFWe4RY7M4Ei/0G+f47FHW22ILAn5GE
-                W5l6gtXbAgMBAAECggEASjjZYLVVAwbsH9yOLw2zrUhFX5s8WDJcfD3/XcfyRWEJ
-                PXqBqcT1JR2Jdf7rHXiTRxDKCDsmP4ETYuZLxL7xJxMfvRitzGA7jhobrMCQUgC3
-                iuekTIkxXR6FvCDEr/+HZLGdi2cz2awbkgionRT0MHlkYHwrdBYPCBDEU/3D+ynx
-                QwVkV7cXdP8ICEtROI16vXpYKOds/uFh3RbsZIRVoZQ8g7/Lqr65UQZ+3p5rhmbr
-                H5SBdrL19d8ssLR7fzxysF42aK0dKwhnpSXA6w4URDBU71+mSWo3q3aB0lJVafVG
-                UqUgUPUq0Dgq9JUI4S3iNP4W/AEhn1Duk4xfR26B0QKBgQDnYQC76y00qYfp1YGK
-                YBo+bFI8eD/OFQFZQln694ieiq0zO+lVz/aj8tP07q9DyUVoU7vVtMHoyxJaYVLb
-                wLX2XarymcuIUx4pYOJCpY2iLc4N8hsEoek1169f0ZAoFtmudkbGKwnxsvy7xelm
-                JvkTlKnps8pgAbN53TqG2kLpQwKBgQDmQvFxns54FAk55jp9N040rN6a3iFdHEBI
-                yQ49SiauPvXUt91LgdXJTrn3PnptIwso4jQfQ1wdNP8YsMqV/YhwOu7sEmvmkzt5
-                KdUx1zsz6kwUfW/Pfr3CQ2++venro+i63PTgFdFH71Jhu2BzhFpiyCXJEqPJvQV1
-                1K63ZCdriQKBgAJnfqN1QSX/8PqcDlmKwBsP8xbPxRH2I+pyhw7VjaTgGgajQ7xx
-                icWQW2V7KXUR3VfFLvl8hFtP6OPpiPvhl8J0nLcio/vJqVGSwSciI0OhKDf64Q7+
-                Q7ccg6UCP3Y7Lo3iir+6aMMLMhcdalx2YTYz4EQeaybuPZgxlU8ba4CTAoGATwAG
-                wHnA0tfk9nVz+cQA0/e/hBjUD5MCxzYb6ZFIRh4Zz7qpdR99jsyw5xALhugwCv3Y
-                7iT5NJgbMYhuaRmMNx0xHdOQK5K2I/LjT29Nw5kOMzV6KBGO31itvR6BZDRfQ8VN
-                SpiRrgGBHUDhbaCqNhv/QsZfZXaxqeSncQousCkCgYAqEovR5pBHXznF2iVUbv4G
-                sfpKnDOwx36jxyc37Gv4db0QLCWWwFQPRadR8+KNe2qPt2qreR/rXWRX9J5YK8S0
-                Mdular23JbsGxlVbO1GiSPlde89usdPT3jKLtdeEYP5AHy+Myf/Rds/MI8o7NaAx
-                mmA+8WTB1MLkqb8j9EyAcA==
-                -----END PRIVATE KEY-----
+                {{vpn-key}}
       permissions: '600'
       path: /etc/openvpn/mesos-vpn-gw.key
     - content:  |
-                -----BEGIN CERTIFICATE-----
-                MIIFGjCCBAKgAwIBAgIBATANBgkqhkiG9w0BAQsFADCBmTELMAkGA1UEBhMCVUsx
-                DzANBgNVBAcTBkxvbmRvbjETMBEGA1UEChMKTWFzdG9kb24gQzEUMBIGA1UECxML
-                RGV2ZWxvcG1lbnQxFjAUBgNVBAMTDU1hc3RvZG9uIEMgQ0ExEDAOBgNVBCkTB0Vh
-                c3lSU0ExJDAiBgkqhkiG9w0BCQEWFXN1cHBvcnRAbWFzdG9kb25jLmNvbTAeFw0x
-                NTAyMjQxMTI0MzJaFw0yNTAyMjExMTI0MzJaMIGYMQswCQYDVQQGEwJVSzEPMA0G
-                A1UEBxMGTG9uZG9uMRMwEQYDVQQKEwpNYXN0b2RvbiBDMRQwEgYDVQQLEwtEZXZl
-                bG9wbWVudDEVMBMGA1UEAxMMbWVzb3MtdnBuLWd3MRAwDgYDVQQpEwdFYXN5UlNB
-                MSQwIgYJKoZIhvcNAQkBFhVzdXBwb3J0QG1hc3RvZG9uYy5jb20wggEiMA0GCSqG
-                SIb3DQEBAQUAA4IBDwAwggEKAoIBAQDQHafkCMf1Wmf4/2XpXshcC/1Tf/uoDoJN
-                HPGpDJA9uPHozJbNIYlcJ0h4OOEQBUP66ys4UkLGhfDRsvF/un4LjBs1jYfyZZ6R
-                RjzoM8C4i1Yu+oacqdVJlzZ/Uip7v0i9c2mQOUwC2OawijWqecmJT49AHN71SzQJ
-                xIfSuNx35UltvJyXOAbRPlj9TUUAng5MmqyXYUQlcUOSH9O0I30tG9o++zVMQr1c
-                tx1r51n9HDfzZRvPY3BI1EMmoas4a/awcbmvEesKYVTLPnXHHDk7H/DcLbyq1qAx
-                +JcrwNROFQ2ungFWe4RY7M4Ei/0G+f47FHW22ILAn5GEW5l6gtXbAgMBAAGjggFq
-                MIIBZjAJBgNVHRMEAjAAMBEGCWCGSAGG+EIBAQQEAwIGQDA0BglghkgBhvhCAQ0E
-                JxYlRWFzeS1SU0EgR2VuZXJhdGVkIFNlcnZlciBDZXJ0aWZpY2F0ZTAdBgNVHQ4E
-                FgQUvvykwmaamqfqV9D9cFVTIIfys/owgc4GA1UdIwSBxjCBw4AUUtoNIPbsUui8
-                X+xVz/Kb4nvgPqShgZ+kgZwwgZkxCzAJBgNVBAYTAlVLMQ8wDQYDVQQHEwZMb25k
-                b24xEzARBgNVBAoTCk1hc3RvZG9uIEMxFDASBgNVBAsTC0RldmVsb3BtZW50MRYw
-                FAYDVQQDEw1NYXN0b2RvbiBDIENBMRAwDgYDVQQpEwdFYXN5UlNBMSQwIgYJKoZI
-                hvcNAQkBFhVzdXBwb3J0QG1hc3RvZG9uYy5jb22CCQDQeJJFF+RL9jATBgNVHSUE
-                DDAKBggrBgEFBQcDATALBgNVHQ8EBAMCBaAwDQYJKoZIhvcNAQELBQADggEBABuY
-                rlWiClDP+17jSzjsj6884pFcwBUaWu0DhCY16d4qu0ToL+OQePpoO1ACAStblQSE
-                2j13Vq9IqJcx8/BpWSkH4uADR+n7oDCU+1wxWBDp1++Don+ti+Db6QWe238aa94s
-                nZRZh+LvSkha1dWvqEtoTF3AJPzHT0NZp7x2/mHk5RtMJqNVJi73Rd632q/yx89L
-                X8ogM/MDUYl4tu7NBhAeC4L6TfNJi69NAgAK9wjpQy52yC+E7K1gS4gVsaVJeKXu
-                AULrbh9fy1pkh81UlC/cjLkjvkrenpH/sNRwDaS6o5we0dor5X9mlqwnZSu78wUn
-                jn017zq7T7ap7U1vxa0=
-                -----END CERTIFICATE-----
+                {{vpn-cert}}
       permissions: '644'
       path: /etc/openvpn/mesos-vpn-gw.crt
     - content:  |
-                -----BEGIN DH PARAMETERS-----
-                MIIBCAKCAQEAtISOtABwisbhlIrCbq5fcpbltJ5p0R66wvzPsfFOOnMPyg3buKlJ
-                50vSQZRPllH1x/8spigReIEo9jpSPcn/RrszSLO74LWOhGFQ8fXjlgIaRYbxafoZ
-                QXvjvn/NhTetHqmqAbDUR3zx2s7kHuHxbF0wK9cAqZjKXLIbfcSkQtFy+JqsqJBT
-                ZHzkU2iVsrwkNq3XmlfmafCG9/nqs944JVGRyh+jfYiL1AXdAzNGwJ5rRhsp4E3c
-                ItHbq+yJXn7Ofmcb4bdJ53qxlLkdjbiBIGmkGhoQmDCmpQWqsckzg2LHvmozDGb9
-                o7SqcN6xu/A+8y0CEQwASocIXhxx4tQegwIBAg==
-                -----END DH PARAMETERS-----
+                {{dh-param}}
       permissions: '600'
       path: /etc/openvpn/dh2048.pem
     - content: |
