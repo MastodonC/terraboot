@@ -9,23 +9,23 @@ users:
         - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDAwiUsxT0KzWp6X/JRHA1/hqZSKJ9YWUOUWmvIvvJkC3S1RauRiq9Vuf98bYfzPuwyEIcJocGlcJdKslTcDoPnoulDpBCnciL3FP86oMvjM1SBGOlfAH/6KoDsp6KqgidtWyf69LAPvK8Rpvla3iDHnTuIapAnScwv2DvE+QY1XxK4fzd5CW1gAc89OdsY1lA/IizZN2T6G4cAul1VVn4HONKGujNBfMMDARr9CRhH2xA7MuTeS+NUr76Xysv+oqCU4The1tbodRItHJVv2I9Zo14fQxboWR8IaNyatRlZT+rZC0e+SGyNlxhr7PDaNjhhSU47we+UVPWXao7PC3kF elise@roc-bird.local
 write_files:
     - content:  |
-                {{ta-key}}
+{{ta-key}}
       permissions: '600'
       path: /etc/openvpn/ta.key
     - content:  |
-                {{ca-cert}}
+{{ca-cert}}
       permissions: '644'
       path: /etc/openvpn/ca.crt
     - content:  |
-                {{vpn-key}}
+{{vpn-key}}
       permissions: '600'
       path: /etc/openvpn/mesos-vpn-gw.key
     - content:  |
-                {{vpn-cert}}
+{{vpn-cert}}
       permissions: '644'
       path: /etc/openvpn/mesos-vpn-gw.crt
     - content:  |
-                {{dh-param}}
+{{dh-param}}
       permissions: '600'
       path: /etc/openvpn/dh2048.pem
     - content: |
