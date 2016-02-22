@@ -1,0 +1,200 @@
+#cloud-config
+"coreos":
+  "units":
+  - "command": |-
+      stop
+    "mask": !!bool |-
+      true
+    "name": |-
+      etcd.service
+  - "command": |-
+      stop
+    "mask": !!bool |-
+      true
+    "name": |-
+      update-engine.service
+  - "command": |-
+      stop
+    "mask": !!bool |-
+      true
+    "name": |-
+      locksmithd.service
+  - "command": |-
+      stop
+    "name": |-
+      systemd-resolved.service
+  - "command": |-
+      start
+    "content": |
+      [Unit]
+      Description=Formats the /var/lib ephemeral drive
+      Before=var-lib.mount dbus.service
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/bin/bash -c "(blkid -t TYPE=ext4 | grep xvdb) || (/usr/sbin/mkfs.ext4 -F /dev/xvdb)"
+    "name": |-
+      format-var-lib-ephemeral.service
+  - "command": |-
+      start
+    "content": |-
+      [Unit]
+      Description=Mount /var/lib
+      Before=dbus.service
+      [Mount]
+      What=/dev/xvdb
+      Where=/var/lib
+      Type=ext4
+    "name": |-
+      var-lib.mount
+  - "command": |-
+      start
+    "content": |
+      [Unit]
+      Before=dcos.target
+      [Service]
+      Type=oneshot
+      StandardOutput=journal+console
+      StandardError=journal+console
+      ExecStartPre=/usr/bin/mkdir -p /etc/profile.d
+      ExecStart=/usr/bin/ln -sf /opt/mesosphere/environment.export /etc/profile.d/dcos.sh
+    "name": |-
+      dcos-link-env.service
+  - "content": |
+      [Unit]
+      Description=Download the DCOS
+      After=network-online.target
+      Wants=network-online.target
+      ConditionPathExists=!/opt/mesosphere/
+      [Service]
+      EnvironmentFile=/etc/mesosphere/setup-flags/bootstrap-id
+      Type=oneshot
+      StandardOutput=journal+console
+      StandardError=journal+console
+      ExecStartPre=/usr/bin/curl --fail --retry 20 --continue-at - --location --silent --show-error --verbose --output /tmp/bootstrap.tar.xz https://downloads.mesosphere.com/dcos/stable/bootstrap/${BOOTSTRAP_ID}.bootstrap.tar.xz
+      ExecStartPre=/usr/bin/mkdir -p /opt/mesosphere
+      ExecStart=/usr/bin/tar -axf /tmp/bootstrap.tar.xz -C /opt/mesosphere
+      ExecStartPost=-/usr/bin/rm -f /tmp/bootstrap.tar.xz
+    "name": |-
+      dcos-download.service
+  - "command": |-
+      start
+    "content": |-
+      [Unit]
+      Description=Prep the Pkgpanda working directories for this host.
+      Requires=dcos-download.service
+      After=dcos-download.service
+      [Service]
+      Type=oneshot
+      StandardOutput=journal+console
+      StandardError=journal+console
+      EnvironmentFile=/opt/mesosphere/environment
+      ExecStart=/opt/mesosphere/bin/pkgpanda setup --no-block-systemd
+      [Install]
+      WantedBy=multi-user.target
+    "enable": !!bool |-
+      true
+    "name": |-
+      dcos-setup.service
+  - "command": |-
+      start
+    "content": |-
+      [Unit]
+      Description=Signal CloudFormation Success
+      After=dcos.target
+      Requires=dcos.target
+      ConditionPathExists=!/var/lib/dcos-cfn-signal
+      [Service]
+      Type=simple
+      Restart=on-failure
+      StartLimitInterval=0
+      RestartSec=15s
+      EnvironmentFile=/opt/mesosphere/environment
+      EnvironmentFile=/opt/mesosphere/etc/cloudenv
+      Environment="AWS_CFN_SIGNAL_THIS_RESOURCE=SlaveServerGroup"
+      ExecStartPre=/bin/ping -c1 leader.mesos
+      ExecStartPre=/opt/mesosphere/bin/cfn-signal
+      ExecStart=/usr/bin/touch /var/lib/dcos-cfn-signal
+    "name": |-
+      dcos-cfn-signal.service
+  "update":
+    "reboot-strategy": |-
+      off
+"write_files":
+- "content": |
+    {
+      "environment": {
+        "PROVIDER": "aws"
+      }
+    }
+  "path": |-
+    /etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json
+- "content": |
+    AWS_REGION=eu-central-1
+    AWS_STACK_ID=arn:aws:cloudformation:eu-central-1:165664414043:stack/witan-production/4faef210-d029-11e5-91a2-500c52a6cefe
+    AWS_STACK_NAME=witan-production
+    AWS_IAM_MASTER_ROLE_NAME=witan-production-MasterRole-BD3UQVJJBON
+    AWS_IAM_SLAVE_ROLE_NAME=witan-production-SlaveRole-173MJXXXLJXYY
+    AWS_ACCESS_KEY_ID=AKIAJT254WNI2YV7NBMA
+    AWS_SECRET_ACCESS_KEY=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
+    ZOOKEEPER_CLUSTER_SIZE=3
+  "path": |-
+    /etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/cloudenv
+- "content": |
+    MESOS_CLUSTER=witan-production
+  "path": |-
+    /etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/mesos-master-provider
+- "content": |
+    EXHIBITOR_BACKEND=AWS_S3
+    AWS_REGION=eu-central-1
+    AWS_S3_BUCKET=witan-production-exhibitors3bucket-ei8ratmz0ym7
+    AWS_S3_PREFIX=witan-production
+  "path": |-
+    /etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/exhibitor
+- "content": |
+    com.netflix.exhibitor.s3.access-key-id=AKIAJT254WNI2YV7NBMA
+    com.netflix.exhibitor.s3.access-secret-key=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
+  "path": |-
+    /etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/exhibitor.properties
+- "content": |
+    MASTER_SOURCE=exhibitor
+    EXHIBITOR_ADDRESS=internal-witan-pro-Internal-KIJPTA3IMQ1N-1673275547.eu-central-1.elb.amazonaws.com
+    RESOLVERS=10.64.0.2
+  "path": |-
+    /etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/dns_config
+- "content": |-
+    arn:aws:cloudformation:eu-central-1:165664414043:stack/witan-production/4faef210-d029-11e5-91a2-500c52a6cefe
+  "path": |-
+    /etc/mesosphere/cluster-id
+  "permissions": |-
+    0644
+- "content": |
+    https://downloads.mesosphere.com/dcos/stable
+  "owner": |-
+    root
+  "path": |-
+    /etc/mesosphere/setup-flags/repository-url
+  "permissions": !!int |-
+    420
+- "content": |
+    BOOTSTRAP_ID=299269a7aa9e23a1edc94de3f2375356b2942af8
+  "owner": |-
+    root
+  "path": |-
+    /etc/mesosphere/setup-flags/bootstrap-id
+  "permissions": !!int |-
+    420
+- "content": |-
+    ["dcos-config--setup_7660c4e993820a3dea2c017b37c7eeb93151b1da", "dcos-detect-ip--setup_7660c4e993820a3dea2c017b37c7eeb93151b1da", "dcos-metadata--setup_7660c4e993820a3dea2c017b37c7eeb93151b1da"]
+  "owner": |-
+    root
+  "path": |-
+    /etc/mesosphere/setup-flags/cluster-packages.json
+  "permissions": !!int |-
+    420
+- "content": ""
+  "path": |-
+    /etc/mesosphere/roles/slave
+- "content": ""
+  "path": |-
+    /etc/mesosphere/roles/aws
