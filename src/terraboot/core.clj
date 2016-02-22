@@ -2,6 +2,7 @@
   (:require [clojure.string :as string]
             [cheshire.core :as json]
             [stencil.core :as mustache]
+            [clj-yaml.core :as yaml]
             [clojure.pprint :refer [pprint]]))
 
 (letfn [(merge-in* [a b]

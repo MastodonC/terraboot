@@ -6,6 +6,7 @@
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [cheshire "5.5.0"]
                  [stencil "0.5.0"]
-                 [me.raynes/conch "0.8.0"]]
+                 [me.raynes/conch "0.8.0"]
+                 [clj-yaml "0.4.0"]]
   :jvm-opts ["-Xmx2048m"]
   :main terraboot.infra/-main)
