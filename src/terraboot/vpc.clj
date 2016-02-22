@@ -81,11 +81,14 @@
                                      :cidr_blocks [all-external]})
 
                     (resource "aws_internet_gateway" vpc-name
-                              {})
-                    (resource "aws_route_table" "public" {:tags { :Name "public"}
-                                                          :vpc_id (id-of "aws_vpc" vpc-name)})
-                    ;; Public Subnets
+                              {:tags {:Name "main"}})
 
+                    (resource "aws_route_table" "public" {:tags { :Name "public"}
+                                                          :route { :cidr_block all-external
+                                                                  :gateway_id (id-of "aws_internet_gateway" vpc-name)}
+                                                          :vpc_id (id-of "aws_vpc" vpc-name)})
+
+                    ;; Public Subnets
                     (resource-seq
                      (apply concat
                             (for [az azs]
@@ -115,7 +118,7 @@
                                                             :availability_zone (stringify region az)
                                                             }]
                                  ["aws_route_table" subnet-name {:tags {:Name subnet-name}
-                                                                 :route {:cidr_block "0.0.0.0/0"
+                                                                 :route {:cidr_block all-external
                                                                          :nat_gateway_id (id-of "aws_nat_gateway" public-subnet-name)}}
 
                                   ]
