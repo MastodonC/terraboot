@@ -1,7 +1,29 @@
 (ns terraboot.vpc
-  (:require [terraboot.core :refer :all]))
+  (:require [terraboot.core :refer :all]
+            [clojure.string :as string]))
 
 (def vpc-name "sandpit")
+
+(def vpc-cidr-block "172.20.0.0/20")
+
+(defn cidr-start
+  [cidr-block]
+  (first (string/split cidr-block #"/")))
+
+(defn parse-ip
+  [ipv4]
+  (mapv #(Integer/parseInt %) (string/split ipv4 #"\.")))
+
+(defn reconstitute-ip
+  [ip-map]
+  (string/join "." ip-map))
+
+(defn fallback-dns
+  "this assumes dns is always 2 up from start of range"
+  [cidr-block]
+  (let [parsed-ip (parse-ip (cidr-start cidr-block))
+        second (+ 2 (last parsed-ip))]
+    (reconstitute-ip (conj (vec (drop-last parsed-ip)) second))))
 
 (def subnet-types [:public :private])
 
@@ -35,13 +57,13 @@
   (merge-in
             (resource "aws_vpc" vpc-name
                       {:tags {:Name vpc-name}
-                       :cidr_block "172.20.0.0/20"})
+                       :cidr_block vpc-cidr-block})
 
 
             (in-vpc vpc-name
                     (aws-instance "vpn" {
-                                         :user_data (from-template "vpn-config" {:range-start "172.20.0.0"
-                                                                                 :fallback-dns "172.20.0.2"
+                                         :user_data (from-template "vpn-config" {:range-start (cidr-start vpc-cidr-block)
+                                                                                 :fallback-dns (fallback-dns vpc-cidr-block)
                                                                                  :ta-key (snippet "vpn-keys/ta.key")
                                                                                  :ca-cert (snippet "vpn-keys/ca.crt")
                                                                                  :vpn-key (snippet "vpn-keys/mesos-vpn-gw.key")
@@ -79,6 +101,23 @@
                                      :to_port 1194
                                      :protocol "udp"
                                      :cidr_blocks [all-external]})
+
+                    (security-group "allow-all-tcp-within-public-subnet" {}
+                                    {:from_port 0
+                                     :to_port 65535
+                                     :cidr_blocks (vals (:public cidr-block))})
+
+                    (security-group "allow-all-udp-within-public-subnet" {}
+                                    {:from_port 0
+                                     :to_port 65535
+                                     :protocol "udp"
+                                     :cidr_blocks (vals (:public cidr-block))})
+
+                    (security-group "allow-icmp-within-public-subnet" {}
+                                    {:from_port 0
+                                     :to_port 65535
+                                     :protocol "udp"
+                                     :cidr_blocks (vals (:public cidr-block))})
 
                     (resource "aws_internet_gateway" vpc-name
                               {:tags {:Name "main"}})
