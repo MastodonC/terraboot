@@ -101,13 +101,8 @@
 
             (in-vpc vpc-name
                     (aws-instance "vpn" {
-                                         :user_data (from-template "vpn-config" {:range-start (cidr-start vpc-cidr-block)
-                                                                                 :fallback-dns (fallback-dns vpc-cidr-block)
-                                                                                 :ta-key (snippet "vpn-keys/ta.key")
-                                                                                 :ca-cert (snippet "vpn-keys/ca.crt")
-                                                                                 :vpn-key (snippet "vpn-keys/mesos-vpn-gw.key")
-                                                                                 :vpn-cert (snippet "vpn-keys/mesos-vpn-gw.crt")
-                                                                                 :dh-param (snippet "vpn-keys/dh2048.pem")})
+                                         :user_data (vpn-user-data {:range-start (cidr-start vpc-cidr-block)
+                                                                    :fallback-dns (fallback-dns vpc-cidr-block)})
                                          :subnet_id (id-of "aws_subnet" "public-b")
                                          :ami "ami-bc5b48d0"
                                          :vpc_security_group_ids [(id-of "aws_security_group" "vpn")
