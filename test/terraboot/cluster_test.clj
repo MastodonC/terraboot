@@ -4,18 +4,19 @@
             [expectations :refer :all]
             [clj-yaml.core :as yaml]))
 
-(def from-cloud-config
+(def master-from-cloud-config
   (yaml/parse-string
    (mesos-master-user-data {})))
 
-(def from-user-data
+(def master-from-user-data
   (yaml/parse-string
    (slurp (clojure.java.io/resource "user-data/master-config"))))
 
-(expect (get-in from-cloud-config [:coreos :units])
-        (get-in from-user-data [:coreos :units]))
+(expect (get-in master-from-cloud-config [:coreos :units])
+        (get-in master-from-user-data [:coreos :units]))
 
-(expect (:write_files from-cloud-config)
-        (:write_files from-user-data))
-#_(expect from-cloud-config
-        from-user-data)
+(expect (:write_files master-from-cloud-config)
+        (:write_files master-from-user-data))
+
+(expect master-from-cloud-config
+        master-from-user-data)
