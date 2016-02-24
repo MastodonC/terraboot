@@ -63,34 +63,28 @@
                           "sysctl -w net.ipv4.ip_forward=1"
                           "iptables -t nat -A POSTROUTING -s 10.20.0.0/24 -o eth0 -j MASQUERADE"
                           "service openvpn restart"]
-                 :files { "/etc/openvpn/ta.key"
-                         {:content (snippet "vpn-keys/ta.key")
-                          :permissions "600"}
-
-                         "/etc/openvpn/ca.crt"
-                         {:content (snippet "vpn-keys/ca.crt")
-                          :permissions "644"}
-
-                         "/etc/openvpn/mesos-vpn-gw.key"
-                         {:content (snippet "vpn-keys/mesos-vpn-gw.key")
-                          :permissions "600"}
-
-                         "/etc/openvpn/mesos-vpn-gw.crt"
-                         {:content (snippet "vpn-keys/mesos-vpn-gw.crt")
-                          :permissions "644"}
-
-                         "/etc/openvpn/dh2048.pem"
-                         {:content (snippet "vpn-keys/dh2048.pem")
-                          :permissions "600"}
-
-                         "/etc/openvpn/server.conf"
-                         {:content (from-template "server.conf" vars)
-                          :permissions "644"}
-
-                         "/etc/sysctl.d/99-ip-forwarding.conf"
-                         {:content "net.ipv4.ip_forward = 1\n"
-                          :permissions "644"}
-                         }}))
+                 :write_files [{:path "/etc/openvpn/ta.key"
+                                :content (snippet "vpn-keys/ta.key")
+                                :permissions "600"}
+                               {:path "/etc/openvpn/ca.crt"
+                                :content (snippet "vpn-keys/ca.crt")
+                                :permissions "644"}
+                               {:path "/etc/openvpn/mesos-vpn-gw.key"
+                                :content (snippet "vpn-keys/mesos-vpn-gw.key")
+                                :permissions "600"}
+                               {:path "/etc/openvpn/mesos-vpn-gw.crt"
+                                :content (snippet "vpn-keys/mesos-vpn-gw.crt")
+                                :permissions "644"}
+                               {:path "/etc/openvpn/dh2048.pem"
+                                :content (snippet "vpn-keys/dh2048.pem")
+                                :permissions "600"}
+                               {:path "/etc/openvpn/server.conf"
+                                :content (from-template "server.conf" vars)
+                                :permissions "644"}
+                               {:path "/etc/sysctl.d/99-ip-forwarding.conf"
+                                :content "net.ipv4.ip_forward = 1\n"
+                                :permissions "644"}]
+                 }))
 
 (def vpc-vpn-infra
   (merge-in
