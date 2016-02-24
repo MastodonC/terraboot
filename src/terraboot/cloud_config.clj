@@ -16,5 +16,5 @@
   (-> m
       (assoc :write_files (files->write-files files))
       (dissoc :files)
-      yaml/generate-string
+      (yaml/generate-string :dumper-options {:flow-style :block})
       (add-beginning "#cloud-config\n")))
