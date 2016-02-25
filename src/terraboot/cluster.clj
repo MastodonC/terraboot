@@ -62,6 +62,15 @@
                                            {:path "/etc/mesosphere/roles/aws"
                                             :content ""}]})))
 
+(defn mesos-public-slave-user-data
+  [vars]
+  (cloud-config (merge-with (comp vec concat)
+                            (mesos-instance-user-data vars)
+                            {:write_files [{:path "/etc/mesosphere/roles/slave_public"
+                                            :content ""}
+                                           {:path "/etc/mesosphere/roles/aws"
+                                            :content ""}]})))
+
 (defn cluster-infra
   [vpc-name cluster-number]
 
