@@ -66,7 +66,9 @@
       (let [defaults {:protocol "tcp"
                       :type "ingress"
                       :security_group_id (id-of "aws_security_group" name)}
-            rule (merge defaults rule)
+            port (:port rule)
+            port-to-port-range (fn [rule] (if port (-> (assoc rule :from_port port :to_port port) (dissoc :port)) rule))
+            rule (merge defaults (port-to-port-range rule))
             suffix (str (hash rule))]
         ["aws_security_group_rule"
          (stringify name "-" suffix)
@@ -82,6 +84,16 @@
                                       (merge-in spec)
                                       (update-in [:vpc_security_group_ids] concat default-sg-ids)))))
 
+(defn elb [name spec]
+  (resource "aws_elb" name (-> {:listeners [{:instance_port 80
+                                             :lb_port 80
+                                             :instance_protocol "http"
+                                             :lb_protocol "http"}
+                                            {:instance_port 443
+                                             :instance_protocol "http"
+                                             :lb_port 443
+                                             :lb_protocol "http"}
+                                            (merge-in spec)]})))
 (def all-external "0.0.0.0/0")
 
 (def region "eu-central-1")
