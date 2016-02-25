@@ -18,17 +18,17 @@
                  :write_files [{:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json"
                                 :content (snippet "system-files/pkginfo.json")}
                                {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/cloudenv"
-                                :content (snippet "system-files/cloudenv")}
+                                :content (from-template "system-files/cloudenv" vars)}
                                {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/mesos-master-provider"
-                                :content "MESOS_CLUSTER=witan-production\n"}
+                                :content (str "MESOS_CLUSTER=" (:cluster-name vars) "\n")}
                                {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/exhibitor"
-                                :content (snippet "system-files/exhibitor")}
+                                :content (from-template "system-files/exhibitor" vars)}
                                {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/exhibitor.properties"
-                                :content (snippet "system-files/exhibitor.properties")}
+                                :content (from-template "system-files/exhibitor.properties" vars)}
                                {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/dns_config"
-                                :content (snippet "system-files/dns_config")}
+                                :content (from-template "system-files/dns_config" vars)}
                                {:path "/etc/mesosphere/cluster-id"
-                                :content "arn:aws:cloudformation:eu-central-1:165664414043:stack/witan-production/4faef210-d029-11e5-91a2-500c52a6cefe"
+                                :content (:cluster-id vars)
                                 :permissions "0644"}
                                {:path "/etc/mesosphere/setup-flags/repository-url"
                                 :content "https://downloads.mesosphere.com/dcos/stable\n"

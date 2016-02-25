@@ -1,8 +1,8 @@
-AWS_REGION=eu-central-1
-AWS_STACK_ID=arn:aws:cloudformation:eu-central-1:165664414043:stack/witan-production/4faef210-d029-11e5-91a2-500c52a6cefe
-AWS_STACK_NAME=witan-production
-AWS_IAM_MASTER_ROLE_NAME=witan-production-MasterRole-BD3UQVJJBON
-AWS_IAM_SLAVE_ROLE_NAME=witan-production-SlaveRole-173MJXXXLJXYY
-AWS_ACCESS_KEY_ID=AKIAJT254WNI2YV7NBMA
-AWS_SECRET_ACCESS_KEY=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
+AWS_REGION={{aws-region}}
+AWS_STACK_ID={{cluster-id}}
+AWS_STACK_NAME={{cluster-name}}
+AWS_IAM_MASTER_ROLE_NAME={{master-role}}
+AWS_IAM_SLAVE_ROLE_NAME={{slave-role}}
+AWS_ACCESS_KEY_ID={{aws-access-key}}
+AWS_SECRET_ACCESS_KEY={{aws-secret-access-key}}
 ZOOKEEPER_CLUSTER_SIZE=3

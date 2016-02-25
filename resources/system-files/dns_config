@@ -1,3 +1,3 @@
 MASTER_SOURCE=exhibitor
-EXHIBITOR_ADDRESS=internal-witan-pro-Internal-KIJPTA3IMQ1N-1673275547.eu-central-1.elb.amazonaws.com
-RESOLVERS=10.64.0.2
+EXHIBITOR_ADDRESS={{internal-lb-dns}}
+RESOLVERS={{fallback-dns}}

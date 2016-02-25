@@ -1,4 +1,4 @@
 EXHIBITOR_BACKEND=AWS_S3
-AWS_REGION=eu-central-1
-AWS_S3_BUCKET=witan-production-exhibitors3bucket-ei8ratmz0ym7
-AWS_S3_PREFIX=witan-production
+AWS_REGION={{aws-region}}
+AWS_S3_BUCKET={{exhibitor-s3-bucket}}
+AWS_S3_PREFIX={{cluster-name}}
