@@ -98,7 +98,8 @@
     (resource "aws_instance" name (-> {:tags {:Name name}
                                        :instance_type "t2.micro"
                                        :key_name "ops-terraboot"
-                                       :monitoring true}
+                                       :monitoring true
+                                       :subnet_id (id-of "aws_subnet" "private-a")}
                                       (merge-in spec)
                                       (update-in [:vpc_security_group_ids] concat default-sg-ids)))))
 
