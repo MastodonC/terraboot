@@ -28,7 +28,8 @@
                                                                      "IpAddress"
                                                                      {"aws:SourceIp" [(output-of "aws_eip" "public-a-nat" "public_ip")
                                                                                       (output-of "aws_eip" "public-b-nat" "public_ip")
-                                                                                      ]
+                                                                                      (output-of "aws_eip" "logstash" "public_ip")
+                                                                                      "87.115.98.26/32"]
                                                                       }}}]})
               :cluster_config {:instance_count 2,
                                :instance_type "t2.small.elasticsearch"}
@@ -39,26 +40,38 @@
               :snapshot_options { :automated_snapshot_start_hour 23}})
 
    (in-vpc vpc_name
-           (merge-in
-            (security-group "logstash" {}
-                            {:port 12201
-                             :source_security_group_id (id-of "aws_security_group" "sends_gelf")})
-            (security-group "sends_gelf" {})
-            (aws-instance "logstash" {
-                                      :user_data ubuntu-user-data
-                                      :ami "ami-9b9c86f7"
-                                      :vpc_security_group_ids [(id-of "aws_security_group" "logstash")]
-                                      :associate_public_ip_address true
-                                      :subnet_id (id-of "aws_subnet" "public-a")
-                                      })
+           (security-group "logstash" {}
+                           {:port 12201
+                            :protocol "udp"
+                            :source_security_group_id (id-of "aws_security_group" "sends_gelf")}
+                           {:port 12201
+                            :protocol "udp"
+                            :cidr_blocks ["52.29.162.148/32"
+                                          "52.29.163.57/32"
+                                          "52.29.97.114/32"
+                                          "87.115.98.26/32"]})
 
-            (aws-instance "kibana" {
-                                    :user_data ubuntu-user-data
-                                    :ami "ami-9b9c86f7"
-                                    :vpc_security_group_ids [(id-of "aws_security_group" "kibana")]
-                                    :subnet_id (id-of "aws_subnet" "public-a")
-                                    })
-            (security-group "kibana" {}
-                            )
+           (resource "aws_eip" "logstash"
+                     {:vpc true
+                      :instance (id-of "aws_instance" "logstash")})
 
-            ))))
+           (security-group "sends_gelf" {})
+           (aws-instance "logstash" {:ami "ami-9b9c86f7"
+                                     :vpc_security_group_ids [(id-of "aws_security_group" "logstash")
+                                                              (id-of "aws_security_group" "allow_ssh")
+                                                              ]
+                                     :associate_public_ip_address true
+                                     :subnet_id (id-of "aws_subnet" "public-a")
+                                     })
+
+           (aws-instance "kibana" {
+
+                                   :ami "ami-9b9c86f7"
+                                   :vpc_security_group_ids [(id-of "aws_security_group" "kibana")]
+                                   :subnet_id (id-of "aws_subnet" "public-a")
+                                   })
+
+           (security-group "kibana" {}
+                           )
+
+           )))

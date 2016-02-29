@@ -96,6 +96,11 @@
                             :cidr_blocks [all-external]
                             })
 
+           (security-group "allow_ssh" {}
+                           {:port 22
+                            :cidr_blocks [all-external]
+                            })
+
            (security-group "allow_external_http_https" {}
                            {:from_port 80
                             :to_port 80
@@ -175,7 +180,4 @@
                          ]
                         ["aws_route_table_association" subnet-name {:route_table_id (id-of "aws_route_table" subnet-name)
                                                                     :subnet_id (id-of "aws_subnet" subnet-name)
-                                                                    }]]))))
-
-
-           )))
+                                                                    }]])))))))
