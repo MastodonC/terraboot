@@ -36,24 +36,6 @@
                            :c "172.20.10.0/24"}
                  })
 
-(defn add-to-every-value-map
-  [map key value]
-  (reduce-kv (fn [m k v]
-               (assoc m k (assoc v key value))) {} map))
-
-(defn in-vpc
-  [vpc-name & resources]
-  (let [vpc-id (id-of "aws_vpc" vpc-name)]
-    (apply merge-in
-           (map
-            (apply comp
-                   (map #(partial (fn [type resource] (update-in resource [:resource type] (fn [spec] (add-to-every-value-map spec :vpc_id vpc-id)))) %)
-                        ["aws_security_group"
-                         "aws_internet_gateway"
-                         "aws_subnet"
-                         "aws_route_table"]))
-            resources))))
-
 (defn vpn-user-data [vars]
   (cloud-config {:package_update true
                  :packages ["openvpn"]

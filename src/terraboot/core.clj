@@ -42,6 +42,24 @@
   (apply merge-in (map (partial apply resource)
                        s)))
 
+(defn add-to-every-value-map
+  [map key value]
+  (reduce-kv (fn [m k v]
+               (assoc m k (assoc v key value))) {} map))
+
+(defn in-vpc
+  [vpc-name & resources]
+  (let [vpc-id (id-of "aws_vpc" vpc-name)]
+    (apply merge-in
+           (map
+            (apply comp
+                   (map #(partial (fn [type resource] (update-in resource [:resource type] (fn [spec] (add-to-every-value-map spec :vpc_id vpc-id)))) %)
+                        ["aws_security_group"
+                         "aws_internet_gateway"
+                         "aws_subnet"
+                         "aws_route_table"]))
+            resources))))
+
 (def json-options {:key-fn name :pretty true})
 
 (defn to-json [tfmap]
