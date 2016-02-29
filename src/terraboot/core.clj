@@ -49,16 +49,17 @@
 
 (defn in-vpc
   [vpc-name & resources]
-  (let [vpc-id (id-of "aws_vpc" vpc-name)]
+  (let [vpc-id (id-of "aws_vpc" vpc-name)
+        add-to-resources-if-present (fn [resources type]
+                                      (if (get-in resources [:resource type])
+                                        (update-in [:resource "aws_security_group"] (fn [spec] (add-to-every-value-map spec :vpc_id vpc-id)))
+                                        resources))]
     (apply merge-in
-           (map
-            (apply comp
-                   (map #(partial (fn [type resource] (update-in resource [:resource type] (fn [spec] (add-to-every-value-map spec :vpc_id vpc-id)))) %)
-                        ["aws_security_group"
-                         "aws_internet_gateway"
-                         "aws_subnet"
-                         "aws_route_table"]))
-            resources))))
+           (-> resources
+               (add-to-resources-if-present "aws_security_group")
+               (add-to-resources-if-present "aws_internet_gateway")
+               (add-to-resources-if-present "aws_subnet")
+               (add-to-resources-if-present "aws_route_table")))))
 
 (def json-options {:key-fn name :pretty true})
 
@@ -84,6 +85,7 @@
       (let [defaults {:protocol "tcp"
                       :type "ingress"
                       :security_group_id (id-of "aws_security_group" name)}
+            _ (println rule)
             port (:port rule)
             port-to-port-range (fn [rule] (if port (-> (assoc rule :from_port port :to_port port) (dissoc :port)) rule))
             rule (merge defaults (port-to-port-range rule))
