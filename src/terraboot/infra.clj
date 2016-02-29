@@ -1,12 +1,15 @@
 (ns terraboot.infra
-    (:require [terraboot.core :refer :all]
-              [terraboot.vpc :as vpc]
-              [me.raynes.conch :refer [with-programs]]))
+  (:require [terraboot.core :refer :all]
+            [terraboot.vpc :refer [vpc-vpn-infra vpc-name]]
+            [terraboot.cluster :refer [cluster-infra]]
+            [me.raynes.conch :refer [with-programs]]))
 
 (def infra-path "infra/")
 
 (defn generate-json []
-  (to-file vpc/vpc-vpn-infra (str infra-path "vpc.tf")))
+  (do
+    (to-file vpc-vpn-infra (str infra-path "vpc.tf"))
+    (to-file (cluster-infra vpc-name "production") (str infra-path "cluster.tf"))))
 
 ;; Possible extra option: to make directory a parameter
 (defn -main [action]

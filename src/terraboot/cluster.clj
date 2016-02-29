@@ -72,7 +72,98 @@
                                             :content ""}]})))
 
 (defn cluster-infra
-  [vpc-name cluster-number]
+  [vpc-name cluster-name]
+  (in-vpc vpc-name
+          (security-group "admin-security-group" {}
+                          {:from_port 0
+                           :to_port 65535
+                           :cidr_blocks (vec (vals (:public vpc/cidr-block)))}
+                          {:from_port 0
+                           :to_port 65535
+                           :protocol "udp"
+                           :cidr_blocks (vec (vals (:public vpc/cidr-block)))}
+                          {:from_port 0
+                           :to_port 65535
+                           :protocol "udp"
+                           :cidr_blocks (vec (vals (:public vpc/cidr-block)))})
 
+          (security-group "lb-security-group" {}
+                          {:port 2181
+                           :source_security_group_id (id-of "aws_security_group" "slave-security-group")})
+
+          (security-group "master-security-group" {}
+                          {:port 5050
+                           :source_security_group_id (id-of "aws_security_group" "lb-security-group")}
+                          {:port 80
+                           :source_security_group_id (id-of "aws_security_group" "lb-security-group")}
+                          {:port 8080
+                           :source_security_group_id (id-of "aws_security_group" "lb-security-group")}
+                          {:port 8181
+                           :source_security_group_id (id-of "aws_security_group" "lb-security-group")}
+                          {:port 2181
+                           :source_security_group_id (id-of "aws_security_group" "lb-security-group")}
+                          {:FromPort 0
+                           :ToPort 65535
+                           :protocol -1
+                           :source_security_group_id (id-of "aws_security_group" "public-slave-security-group")}
+                          {:FromPort 0
+                           :ToPort 65535
+                           :protocol -1
+                           :source_security_group_id (id-of "aws_security_group" "slave-security-group")}
+                          )
+
+          (security-group "public-slave-security-group" {}
+                          {:FromPort 0
+                           :ToPort 65535
+                           :protocol -1
+                           :source_security_group_id (id-of "aws_security_group" "master-security-group")}
+                          {:FromPort 0
+                           :toPort 21
+                           :cidr_block [all-external]}
+                          {:FromPort 0
+                           :toPort 21
+                           :protocol "udp"
+                           :cidr_block [all-external]}
+                          {:port 22
+                           :cidr_block [vpc/vpc-cidr-block]}
+                          {:FromPort 23
+                           :ToPort 5050
+                           :cidr_block [all-external]}
+                          {:FromPort 23
+                           :ToPort 5050
+                           :protocol "udp"
+                           :cidr_block [all-external]}
+                          {:FromPort 5052
+                           :ToPort 65535
+                           :cidr_block [all-external]}
+                          {:FromPort 5052
+                           :ToPort 65535
+                           :protocol "udp"
+                           :cidr_block [all-external]}
+                          {:FromPort 0
+                           :ToPort 65535
+                           :protocol -1
+                           :source_security_group_id (id-of "aws_security_group" "public-slave-security-group")}
+                          {:FromPort 0
+                           :ToPort 65535
+                           :protocol -1
+                           :source_security_group_id (id-of "aws_security_group" "slave-security-group")})
+
+          (security-group "slave-security-group" {}
+                          {:FromPort 0
+                           :ToPort 65535
+                           :protocol -1
+                           :source_security_group_id (id-of "aws_security_group" "public-slave-security-group")}
+                          {:FromPort 0
+                           :ToPort 65535
+                           :protocol -1
+                           :source_security_group_id (id-of "aws_security_group" "slave-security-group")}
+                          {:FromPort 0
+                           :ToPort 65535
+                           :protocol -1
+                           :source_security_group_id (id-of "aws_security_group" "master-security-group")}
+                          {:port 2181
+                           :source_security_group_id (id-of "aws_security_group" "lb-security-group")})
+          )
 
   )
