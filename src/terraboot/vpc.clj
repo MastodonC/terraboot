@@ -1,6 +1,7 @@
 (ns terraboot.vpc
   (:require [terraboot.core :refer :all]
             [terraboot.cloud-config :refer [cloud-config]]
+            [terraboot.elasticsearch :refer [elasticsearch-cluster]]
             [clojure.string :as string]))
 
 (def vpc-name "sandpit")
@@ -74,6 +75,7 @@
              {:tags {:Name vpc-name}
               :cidr_block vpc-cidr-block})
 
+   (elasticsearch-cluster "elasticsearch" {:vpc_name vpc-name})
 
    (in-vpc vpc-name
            (aws-instance "vpn" {
