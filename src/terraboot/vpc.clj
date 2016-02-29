@@ -141,7 +141,7 @@
            (resource-seq
             (apply concat
                    (for [az azs]
-                     (let [subnet-name (stringify "public" "-" az)
+                     (let [subnet-name (stringify "public-" az)
                            nat-eip (stringify subnet-name "-nat")]
                        [["aws_subnet" subnet-name {:tags {:Name subnet-name}
                                                    :cidr_block (get-in cidr-block [:public az])
@@ -173,4 +173,7 @@
                          ]
                         ["aws_route_table_association" subnet-name {:route_table_id (id-of "aws_route_table" subnet-name)
                                                                     :subnet_id (id-of "aws_subnet" subnet-name)
-                                                                    }]])))))))
+                                                                    }]]))))
+
+
+           )))
