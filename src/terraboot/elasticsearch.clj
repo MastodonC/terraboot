@@ -29,7 +29,9 @@
                                                                      {"aws:SourceIp" [(output-of "aws_eip" "public-a-nat" "public_ip")
                                                                                       (output-of "aws_eip" "public-b-nat" "public_ip")
                                                                                       (output-of "aws_eip" "logstash" "public_ip")
-                                                                                      "87.115.98.26/32"]
+                                                                                      "87.115.98.26/32" ; Tom
+                                                                                      "146.200.166.70" ; Elise
+                                                                                      ]
                                                                       }}}]})
               :cluster_config {:instance_count 2,
                                :instance_type "t2.small.elasticsearch"}
