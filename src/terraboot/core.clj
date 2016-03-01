@@ -193,6 +193,9 @@
       (merge-in asg-config (elb name (spec :elb)))
       asg-config)))
 
+(defn policy [data]
+  (to-json data))
+
 (def all-external "0.0.0.0/0")
 
 (def region "eu-central-1")
