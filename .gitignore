@@ -9,6 +9,5 @@ pom.xml.asc
 /.nrepl-port
 .hgignore
 .hg/
-/infra/creds.tf
-/infra/vpc.tf
+/infra/*.tf
 
