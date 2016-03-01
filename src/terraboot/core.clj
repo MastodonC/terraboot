@@ -5,6 +5,7 @@
             [clj-yaml.core :as yaml]
             [clojure.pprint :refer [pprint]]))
 
+(def account-id "12345")
 (letfn [(merge-in* [a b]
           (if (map? a)
             (merge-with merge-in* a b)
@@ -104,15 +105,94 @@
                                       (update-in [:vpc_security_group_ids] concat default-sg-ids)))))
 
 (defn elb [name spec]
-  (resource "aws_elb" name (-> {:listeners [{:instance_port 80
-                                             :lb_port 80
-                                             :instance_protocol "http"
-                                             :lb_protocol "http"}
-                                            {:instance_port 443
-                                             :instance_protocol "http"
-                                             :lb_port 443
-                                             :lb_protocol "http"}
-                                            (merge-in spec)]})))
+  (let [defaults {:cert_name false
+                  :instances []
+                  :health_check_url "/"
+                  :lb_protocol "http"}
+        spec (merge-in defaults spec)
+        {:keys [health_check_url
+                lb_protocol
+                instances
+                cert_name]} spec
+        secure_protocol (if (= lb_protocol "http")
+                          "https"
+                          "ssl")
+        default-listener {:instance_port 80
+                          :instance_protocol lb_protocol
+                          :lb_port 80
+                          :lb_protocol lb_protocol}
+
+        listeners (if cert_name
+                    [default-listener {
+                                       :instance_port 80
+                                       :instance_protocol lb_protocol
+                                       :lb_port 443
+                                       :lb_protocol secure_protocol
+                                       :ssl_certificate_id (str "arn:aws:iam::" account-id ":server-certificate/" cert_name)}]
+                    [default-listener])
+        ]
+    (let [elb-sg (str "elb_" name)
+          allow-sg (str "allow_elb_" name)]
+      (merge-in (security-group allow-sg {}
+                                {:port 80
+                                 :source_security_group_id (id-of "aws_security_group" elb-sg)
+                                 })
+                (security-group elb-sg {})
+                (resource "aws_elb" name {:subnets []
+                                          :security_groups [(id-of "aws_security_group" elb-sg)
+                                                            (id-of "aws_security_group" "allow_external_http_https")
+                                                            (id-of "aws_security_group" "allow_outbound")]
+                                          :listener listeners
+                                          :instances instances
+                                          :health_check {:healthy_threshold 2
+                                                         :unhealthy_threshold 2
+                                                         :timeout 3
+                                                         :target (str "HTTP:80" health_check_url)
+                                                         :interval 5}
+                                          :cross_zone_load_balancing true
+                                          :idle_timeout 60
+                                          :connection_draining true
+                                          :connection_draining_timeout 60
+                                          :tags {:Name name}})))))
+
+(defn asg [name {:keys [] :as spec}]
+  (let [sgs (spec :sgs)
+        elb? (spec :elb)
+        sgs (if elb?
+              (conj sgs (str "allow_elb_" name))
+              sgs)
+
+        asg-config
+        (merge-in
+         (resource "aws_launch_configuration" name
+                   {:name_prefix (str name "-")
+                    :image_id (spec :image_id)
+                    :instance_type (spec :instance_type)
+                    :user_data (spec :user_data)
+                    :lifecycle { :create_before_destroy true }
+                    :key_name (get spec :key_name "ops-terraboot")
+                    :security_groups (map #(id-of "aws_security_group" %) sgs)})
+
+         (resource "aws_autoscaling_group" name
+                   {:vpc_zone_identifier []
+                    :name name
+                    :max_size (spec :max_size)
+                    :min_size (spec :min_size)
+                    :health_check_type (spec :health_check_type)
+                    :health_check_grace_period (spec :health_check_grace_period)
+                    :launch_configuration (output-of "aws_launch_configuration" name "name")
+                    :lifecycle { :create_before_destroy true }
+                    :load_balancers (if elb? [(output-of "aws_elb" name "name")]
+                                        [])
+                    :tag {
+                          :key "Name"
+                          :value "autoscale-#{name}"
+                          :propagate_at_launch true
+                          }}))]
+    (if (spec :elb)
+      (merge-in asg-config (elb name (spec :elb)))
+      asg-config)))
+
 (def all-external "0.0.0.0/0")
 
 (def region "eu-central-1")
