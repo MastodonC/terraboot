@@ -154,27 +154,27 @@
                                           :connection_draining_timeout 60
                                           :tags {:Name name}})))))
 
-(defn asg [name {:keys [] :as spec}]
-  (let [sgs (spec :sgs)
-        elb? (spec :elb)
+(defn asg [name {:keys [sgs image_id user_data instance_type subnets] :as spec}]
+  (let [elb? (spec :elb)
         sgs (if elb?
               (conj sgs (str "allow_elb_" name))
               sgs)
+
 
         asg-config
         (merge-in
          (resource "aws_launch_configuration" name
                    (merge {:name_prefix (str name "-")
-                           :image_id (spec :image_id)
-                           :instance_type (spec :instance_type)
-                           :user_data (spec :user_data)
+                           :image_id image_id
+                           :instance_type instance_type
+                           :user_data user_data
                            :lifecycle { :create_before_destroy true }
                            :key_name (get spec :key_name "ops-terraboot")
                            :security_groups (map #(id-of "aws_security_group" %) sgs)}
                           (spec :block-device)))
 
          (resource "aws_autoscaling_group" name
-                   {:vpc_zone_identifier []
+                   {:vpc_zone_identifier subnets
                     :name name
                     :max_size (spec :max_size)
                     :min_size (spec :min_size)
@@ -189,7 +189,7 @@
                           :value "autoscale-#{name}"
                           :propagate_at_launch true
                           }}))]
-    (if (spec :elb)
+    (if elb?
       (merge-in asg-config (elb name (spec :elb)))
       asg-config)))
 
