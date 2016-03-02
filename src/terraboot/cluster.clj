@@ -3,6 +3,8 @@
             [terraboot.vpc :as vpc]
             [terraboot.cloud-config :refer [cloud-config]]))
 
+(def current-coreos-ami "ami-07f1ec6b")
+
 (defn mesos-instance-user-data [vars]
   {:coreos {:units [{:name "etcd.service" :command "stop" :mask true}
                     {:name "update-engine.service" :command "stop" :mask true}
@@ -73,6 +75,35 @@
 
 (defn exhibitor-bucket-name [cluster-name]
   (str cluster-name "-exhibitor-s3-bucket"))
+
+(defn exhibitor-bucket-policy [cluster-name]
+  (let [bucket-arn (arn-of "aws_s3_bucket" (exhibitor-bucket-name cluster-name))]
+    (policy {"Action" ["s3:AbortMultipartUpload",
+                       "s3:DeleteObject",
+                       "s3:GetBucketAcl",
+                       "s3:GetBucketPolicy",
+                       "s3:GetObject",
+                       "s3:GetObjectAcl",
+                       "s3:ListBucket",
+                       "s3:ListBucketMultipartUploads",
+                       "s3:ListMultipartUploadParts",
+                       "s3:PutObject",
+                       "s3:PutObjectAcl"]
+             "Resource" [bucket-arn
+                         (str bucket-arn "/*")]})))
+
+(def auto-scaling-policy
+  (policy {"Action" ["ec2:DescribeKeyPairs",
+                     "ec2:DescribeSubnets",
+                     "autoscaling:DescribeLaunchConfigurations",
+                     "autoscaling:UpdateAutoScalingGroup",
+                     "autoscaling:DescribeAutoScalingGroups",
+                     "autoscaling:DescribeScalingActivities",
+                     "elasticloadbalancing:DescribeLoadBalancers"]}))
+
+(def default-assume-policy
+  (policy {"Action" "sts:AssumeRole"
+           "Principal" {"Service" ["ec2.amazonaws.com"]}}))
 
 (defn cluster-infra
   [vpc-name cluster-name]
@@ -169,7 +200,7 @@
                            {:port 2181
                             :source_security_group_id (id-of "aws_security_group" "lb-security-group")})
 
-           (resource "aws_s3_bucket" "exhibitor-s3-bucket" {:bucket (exhibitor-bucket-name cluster-name)})
+           (resource "aws_s3_bucket" (exhibitor-bucket-name cluster-name) {:bucket (exhibitor-bucket-name cluster-name)})
 
            (resource "aws_iam_access_key" "host-key" {:user (id-of "aws_iam_user" "mesos-user")})
 
@@ -178,32 +209,82 @@
            (resource "aws_iam_user_policy" "mesos-user-policy-s3"
                      {:name "mesos-user-policy-s3"
                       :user (id-of "aws_iam_user" "mesos-user")
-                      :policy (policy {"Statement" {"Action" ["s3:AbortMultipartUpload",
-                                                              "s3:DeleteObject",
-                                                              "s3:GetBucketAcl",
-                                                              "s3:GetBucketPolicy",
-                                                              "s3:GetObject",
-                                                              "s3:GetObjectAcl",
-                                                              "s3:ListBucket",
-                                                              "s3:ListBucketMultipartUploads",
-                                                              "s3:ListMultipartUploadParts",
-                                                              "s3:PutObject",
-                                                              "s3:PutObjectAcl"]
-                                                    "Effect" "Allow"
-                                                    "Resource" [(str "arn:aws:s3:::" (exhibitor-bucket-name cluster-name) "/*")
-                                                                (str "arn:aws:s3:::" (exhibitor-bucket-name cluster-name))]}})})
+                      :policy (exhibitor-bucket-policy cluster-name)})
            (resource "aws_iam_user_policy" "mesos-user-policy-ec2"
                      {:name "mesos-user-policy-ec2"
                       :user (id-of "aws_iam_user" "mesos-user")
-                      :policy (policy {"Statement" {"Action" ["ec2:DescribeKeyPairs",
-                                                              "ec2:DescribeSubnets",
-                                                              "autoscaling:DescribeLaunchConfigurations",
-                                                              "autoscaling:UpdateAutoScalingGroup",
-                                                              "autoscaling:DescribeAutoScalingGroups",
-                                                              "autoscaling:DescribeScalingActivities",
-                                                              "elasticloadbalancing:DescribeLoadBalancers"]
-                                                    "Effect" "Allow"
-                                                    "Resource" "*"}})})
+                      :policy auto-scaling-policy})
+
+           (resource "aws_iam_role" "master-role"
+                     {:name "master-role"
+                      :assume_role_policy default-assume-policy
+                      :path "/"})
+
+           (resource "aws_iam_role_policy" "master-s3"
+                     {:name "master-s3"
+                      :role (id-of "aws_iam_role" "master-role")
+                      :policy (exhibitor-bucket-policy cluster-name)})
+
+           (resource "aws_iam_role_policy" "master-auto-scaling-policy"
+                     {:name "master-auto-scaling-policy"
+                      :role (id-of "aws_iam_role" "master-role")
+                      :policy auto-scaling-policy})
+
+           (resource "aws_iam_role" "slave-role"
+                     {:name "slave-role"
+                      :assume_role_policy default-assume-policy})
+
+           (resource "aws_iam_policy_attachment" "amazon-s3"
+                     {:name "managed-amazon-s3-policy"
+                      :roles [(id-of "aws_iam_role" "slave-role")]
+                      :policy_arn "arn:aws:iam::aws:policy/AmazonS3FullAccess"})
+
+           (resource "aws_iam_policy_attachment" "cloudwatch"
+                     {:name "managed-cloudwatch-policy"
+                      :roles [(id-of "aws_iam_role" "slave-role")]
+                      :policy_arn  "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"})
+
+           (resource "aws_iam_role_policy" "slave-eip-policy"
+                     {:name "slave-eip-policy"
+                      :role (id-of "aws_iam_role" "slave-role")
+                      :policy (policy {"Action" ["ec2:AssociateAddress"]})})
+           (resource "aws_iam_role_policy" "slave-cloudwatch-policy"
+                     {:name "slave-cloudwatch-policy"
+                      :role (id-of "aws_iam_role" "slave-role")
+                      :policy (policy { "Action" ["cloudwatch:GetMetricStatistics",
+                                                  "cloudwatch:ListMetrics",
+                                                  "cloudwatch:PutMetricData",
+                                                  "EC2:DescribeTags" ]
+                                       "Condition" {"Bool" { "aws:SecureTransport" "true"}}
+                                       })})
+
+           #_(asg "master-group"
+                  {:image_id current-coreos-ami
+                   :instance_type "m4.xlarge"
+                   :sgs ["master-security-group", "admin-security-group"]
+                   :user-data (mesos-master-user-data {:aws-region region
+                                                       :cluster-name cluster-name
+                                                       :cluster-id "some-unique-id"
+                                                       :server-group "MasterServerGroup"
+                                                       :master-role (id-of "aws_iam_role" "master-role")
+                                                       :slave-role (id-of "aws_iam_role" "slave-role")
+                                                       :aws-access-key (id-of "aws_iam_access_key" "host-key")
+                                                       :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
+                                                       :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
+                                                       :internal-lb-dns (id-of "aws_elb" "master-group")
+                                                       :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
+                   :block-device {:ebs_block_device {:device_name "/dev/xvda" :volume_size 20}}
+                   :max_size 5
+                   :min_size 3
+                   :health_check_type "ELB"
+                   :health_check_grace_period 20
+                   :elb {:health_check {:healthy_threshold 2
+                                        :unhealthy_threshold 3
+                                        :target "HTTP:5050/health"
+                                        :timeout 5
+                                        :interval 30}
+                         :subnets [(id-of "aws_subnet" "public-a")
+                                   (id-of "aws_subnet" "public-b")]}})
 
 
            ))

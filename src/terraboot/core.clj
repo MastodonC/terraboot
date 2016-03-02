@@ -25,6 +25,9 @@
 (defn id-of [type name]
   (output-of type name "id"))
 
+(defn arn-of [type name]
+  (output-of type name "arn"))
+
 (defn resource [type name spec]
   {:resource
    {type
@@ -107,13 +110,13 @@
 (defn elb [name spec]
   (let [defaults {:cert_name false
                   :instances []
-                  :health_check_url "/"
                   :lb_protocol "http"}
         spec (merge-in defaults spec)
-        {:keys [health_check_url
+        {:keys [health_check
                 lb_protocol
                 instances
-                cert_name]} spec
+                cert_name
+                subnets]} spec
         secure_protocol (if (= lb_protocol "http")
                           "https"
                           "ssl")
@@ -138,17 +141,13 @@
                                  :source_security_group_id (id-of "aws_security_group" elb-sg)
                                  })
                 (security-group elb-sg {})
-                (resource "aws_elb" name {:subnets []
+                (resource "aws_elb" name {:subnets subnets
                                           :security_groups [(id-of "aws_security_group" elb-sg)
                                                             (id-of "aws_security_group" "allow_external_http_https")
                                                             (id-of "aws_security_group" "allow_outbound")]
                                           :listener listeners
                                           :instances instances
-                                          :health_check {:healthy_threshold 2
-                                                         :unhealthy_threshold 2
-                                                         :timeout 3
-                                                         :target (str "HTTP:80" health_check_url)
-                                                         :interval 5}
+                                          :health_check health_check
                                           :cross_zone_load_balancing true
                                           :idle_timeout 60
                                           :connection_draining true
@@ -165,13 +164,14 @@
         asg-config
         (merge-in
          (resource "aws_launch_configuration" name
-                   {:name_prefix (str name "-")
-                    :image_id (spec :image_id)
-                    :instance_type (spec :instance_type)
-                    :user_data (spec :user_data)
-                    :lifecycle { :create_before_destroy true }
-                    :key_name (get spec :key_name "ops-terraboot")
-                    :security_groups (map #(id-of "aws_security_group" %) sgs)})
+                   (merge {:name_prefix (str name "-")
+                           :image_id (spec :image_id)
+                           :instance_type (spec :instance_type)
+                           :user_data (spec :user_data)
+                           :lifecycle { :create_before_destroy true }
+                           :key_name (get spec :key_name "ops-terraboot")
+                           :security_groups (map #(id-of "aws_security_group" %) sgs)}
+                          (spec :block-device)))
 
          (resource "aws_autoscaling_group" name
                    {:vpc_zone_identifier []
@@ -193,8 +193,11 @@
       (merge-in asg-config (elb name (spec :elb)))
       asg-config)))
 
-(defn policy [data]
-  (to-json data))
+(defn policy [statement]
+  (let [default-policy {"Version" "2012-10-17"
+                        "Statement" {"Effect" "Allow"
+                                     "Resource" "*"}}]
+    (to-json (merge default-policy {"Statement" statement}))))
 
 (def all-external "0.0.0.0/0")
 
