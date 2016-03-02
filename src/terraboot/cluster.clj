@@ -248,6 +248,7 @@
                      {:name "slave-eip-policy"
                       :role (id-of "aws_iam_role" "slave-role")
                       :policy (policy {"Action" ["ec2:AssociateAddress"]})})
+
            (resource "aws_iam_role_policy" "slave-cloudwatch-policy"
                      {:name "slave-cloudwatch-policy"
                       :role (id-of "aws_iam_role" "slave-role")
@@ -258,33 +259,33 @@
                                        "Condition" {"Bool" { "aws:SecureTransport" "true"}}
                                        })})
 
-           #_(asg "master-group"
-                  {:image_id current-coreos-ami
-                   :instance_type "m4.xlarge"
-                   :sgs ["master-security-group", "admin-security-group"]
-                   :user-data (mesos-master-user-data {:aws-region region
-                                                       :cluster-name cluster-name
-                                                       :cluster-id "some-unique-id"
-                                                       :server-group "MasterServerGroup"
-                                                       :master-role (id-of "aws_iam_role" "master-role")
-                                                       :slave-role (id-of "aws_iam_role" "slave-role")
-                                                       :aws-access-key (id-of "aws_iam_access_key" "host-key")
-                                                       :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
-                                                       :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
-                                                       :internal-lb-dns (id-of "aws_elb" "master-group")
-                                                       :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
-                   :block-device {:ebs_block_device {:device_name "/dev/xvda" :volume_size 20}}
-                   :max_size 5
-                   :min_size 3
-                   :health_check_type "ELB"
-                   :health_check_grace_period 20
-                   :elb {:health_check {:healthy_threshold 2
-                                        :unhealthy_threshold 3
-                                        :target "HTTP:5050/health"
-                                        :timeout 5
-                                        :interval 30}
-                         :subnets [(id-of "aws_subnet" "public-a")
-                                   (id-of "aws_subnet" "public-b")]}})
+           (asg "master-group"
+                {:image_id current-coreos-ami
+                 :instance_type "m4.xlarge"
+                 :sgs ["master-security-group", "admin-security-group"]
+                 :user_data (mesos-master-user-data {:aws-region region
+                                                     :cluster-name cluster-name
+                                                     :cluster-id "some-unique-id"
+                                                     :server-group "MasterServerGroup"
+                                                     :master-role (id-of "aws_iam_role" "master-role")
+                                                     :slave-role (id-of "aws_iam_role" "slave-role")
+                                                     :aws-access-key (id-of "aws_iam_access_key" "host-key")
+                                                     :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
+                                                     :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
+                                                     :internal-lb-dns (id-of "aws_elb" "master-group")
+                                                     :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
+                 :block-device {:ebs_block_device {:device_name "/dev/xvda" :volume_size 20}}
+                 :max_size 5
+                 :min_size 3
+                 :health_check_type "ELB"
+                 :health_check_grace_period 20
+                 :elb {:health_check {:healthy_threshold 2
+                                      :unhealthy_threshold 3
+                                      :target "HTTP:5050/health"
+                                      :timeout 5
+                                      :interval 30}
+                       :subnets [(id-of "aws_subnet" "public-a")
+                                 (id-of "aws_subnet" "public-b")]}})
 
 
            ))
