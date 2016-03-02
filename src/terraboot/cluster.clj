@@ -264,6 +264,7 @@
                   {:image_id current-coreos-ami
                    :instance_type "m4.xlarge"
                    :sgs ["master-security-group", "admin-security-group"]
+                   :role "master-role"
                    :user_data (mesos-master-user-data {:aws-region region
                                                        :cluster-name cluster-name
                                                        :cluster-id "some-unique-id"
@@ -292,6 +293,7 @@
                   {:image_id current-coreos-ami
                    :instance_type "m4.xlarge"
                    :sgs ["public-slave-security-group"]
+                   :role "slave-role"
                    :user_data (mesos-public-slave-user-data {:aws-region region
                                                              :cluster-name cluster-name
                                                              :cluster-id "some-unique-id"

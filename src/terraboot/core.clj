@@ -154,7 +154,7 @@
                                           :connection_draining_timeout 60
                                           :tags {:Name name}})))))
 
-(defn asg [name {:keys [sgs image_id user_data instance_type subnets] :as spec}]
+(defn asg [name {:keys [sgs image_id user_data instance_type subnets role] :as spec}]
   (let [elb? (spec :elb)
         sgs (if elb?
               (conj sgs (str "allow_elb_" name))
@@ -163,10 +163,15 @@
 
         asg-config
         (merge-in
+         (resource "aws_iam_instance_profile" name
+                   {:name (str name "-profile")
+                    :roles [(id-of "aws_iam_role" role)]})
+
          (resource "aws_launch_configuration" name
                    (merge {:name_prefix (str name "-")
                            :image_id image_id
                            :instance_type instance_type
+                           :iam_instance_profile (id-of "aws_iam_instance_profile" name)
                            :user_data user_data
                            :lifecycle { :create_before_destroy true }
                            :key_name (get spec :key_name "ops-terraboot")
