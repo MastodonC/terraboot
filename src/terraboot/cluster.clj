@@ -107,7 +107,8 @@
 
 (defn cluster-infra
   [vpc-name cluster-name]
-  (let [public-subnets (mapv #(id-of "aws_subnet" (stringify "public-" %)) azs)]
+  (let [public-subnets (mapv #(id-of "aws_subnet" (stringify "public-" %)) azs)
+        private-subnets (mapv #(id-of "aws_subnet" (stringify "private-" %)) azs) ]
     (merge-in
      (in-vpc vpc-name
              (security-group "admin-security-group" {}
@@ -303,7 +304,7 @@
                                                              :aws-access-key (id-of "aws_iam_access_key" "host-key")
                                                              :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
                                                              :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
-                                                             :internal-lb-dns (id-of "aws_elb" "master-group")
+                                                             :internal-lb-dns (id-of "aws_elb" "master-group") ;; may need to change
                                                              :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
                    :block-device {:ebs_block_device {:device_name "/dev/xvda" :volume_size 20}}
                    :max_size 3
@@ -318,4 +319,27 @@
                                         :interval 30}
                          :subnets public-subnets}})
 
+             (asg "slave-group"
+                  {:image_id current-coreos-ami
+                   :instance_type "m4.xlarge"
+                   :sgs ["slave-security-group"]
+                   :role "slave-role"
+                   :user_data (mesos-slave-user-data {:aws-region region
+                                                      :cluster-name cluster-name
+                                                      :cluster-id "some-unique-id"
+                                                      :server-group "SlaveServerGroup"
+                                                      :master-role (id-of "aws_iam_role" "master-role")
+                                                      :slave-role (id-of "aws_iam_role" "slave-role")
+                                                      :aws-access-key (id-of "aws_iam_access_key" "host-key")
+                                                      :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
+                                                      :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
+                                                      :internal-lb-dns (id-of "aws_elb" "master-group") ;; may need to change
+                                                      :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
+                   :block-device {:ebs_block_device {:device_name "/dev/xvda" :volume_size 20}}
+                   :max_size 3
+                   :min_size 3
+                   :health_check_type "EC2" ;; or "ELB"?
+                   :health_check_grace_period 20
+                   :subnets private-subnets
+                   })
              ))))
