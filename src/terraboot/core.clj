@@ -202,7 +202,7 @@
   (let [default-policy {"Version" "2012-10-17"
                         "Statement" {"Effect" "Allow"
                                      "Resource" "*"}}]
-    (to-json (merge default-policy {"Statement" statement}))))
+    (to-json (merge-in default-policy {"Statement" statement}))))
 
 (def all-external "0.0.0.0/0")
 
