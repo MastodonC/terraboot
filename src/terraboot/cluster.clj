@@ -102,8 +102,10 @@
                      "elasticloadbalancing:DescribeLoadBalancers"]}))
 
 (def default-assume-policy
-  (policy {"Action" "sts:AssumeRole"
-           "Principal" {"Service" ["ec2.amazonaws.com"]}}))
+  (to-json {"Statement" [{"Action" ["sts:AssumeRole"]
+                          "Effect" "Allow"
+                          "Principal" {"Service" ["ec2.amazonaws.com"]}}]
+            "Version" "2012-10-17" }))
 
 (defn cluster-infra
   [vpc-name cluster-name]
