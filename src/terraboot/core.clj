@@ -116,7 +116,8 @@
                 lb_protocol
                 instances
                 cert_name
-                subnets]} spec
+                subnets
+                sgs]} spec
         secure_protocol (if (= lb_protocol "http")
                           "https"
                           "ssl")
@@ -125,42 +126,29 @@
                           :lb_port 80
                           :lb_protocol lb_protocol}
 
-        listeners (if cert_name
-                    [default-listener {
-                                       :instance_port 80
-                                       :instance_protocol lb_protocol
-                                       :lb_port 443
-                                       :lb_protocol secure_protocol
-                                       :ssl_certificate_id (str "arn:aws:iam::" account-id ":server-certificate/" cert_name)}]
-                    [default-listener])
-        ]
-    (let [elb-sg (str "elb_" name)
-          allow-sg (str "allow_elb_" name)]
-      (merge-in (security-group allow-sg {}
-                                {:port 80
-                                 :source_security_group_id (id-of "aws_security_group" elb-sg)
-                                 })
-                (security-group elb-sg {})
-                (resource "aws_elb" name {:subnets subnets
-                                          :security_groups [(id-of "aws_security_group" elb-sg)
-                                                            (id-of "aws_security_group" "allow_external_http_https")
-                                                            (id-of "aws_security_group" "allow_outbound")]
-                                          :listener listeners
-                                          :instances instances
-                                          :health_check health_check
-                                          :cross_zone_load_balancing true
-                                          :idle_timeout 60
-                                          :connection_draining true
-                                          :connection_draining_timeout 60
-                                          :tags {:Name name}})))))
+        default-listeners (if cert_name
+                            [default-listener {
+                                               :instance_port 80
+                                               :instance_protocol lb_protocol
+                                               :lb_port 443
+                                               :lb_protocol secure_protocol
+                                               :ssl_certificate_id (str "arn:aws:iam::" account-id ":server-certificate/" cert_name)}]
+                            [default-listener])
+        listeners (concat default-listeners (:listeners spec))
+        elb-security-groups        (map #(id-of "aws_security_group" %) sgs)]
+    (resource "aws_elb" name {:subnets subnets
+                              :security_groups elb-security-groups
+                              :listener listeners
+                              :instances instances
+                              :health_check health_check
+                              :cross_zone_load_balancing true
+                              :idle_timeout 60
+                              :connection_draining true
+                              :connection_draining_timeout 60
+                              :tags {:Name name}})))
 
 (defn asg [name {:keys [sgs image_id user_data instance_type subnets role] :as spec}]
   (let [elb? (spec :elb)
-        sgs (if elb?
-              (conj sgs (str "allow_elb_" name))
-              sgs)
-
-
         asg-config
         (merge-in
          (resource "aws_iam_instance_profile" name

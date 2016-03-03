@@ -107,6 +107,12 @@
                           "Principal" {"Service" ["ec2.amazonaws.com"]}}]
             "Version" "2012-10-17" }))
 
+(defn elb-listener [{:keys [port lb_port protocol lb_protocol]}]
+  {:instance_port port
+   :instance_protocol protocol
+   :lb_port (or lb_port port)
+   :lb_protocol (or lb_protocol protocol)})
+
 (defn cluster-infra
   [vpc-name cluster-name]
   (let [public-subnets (mapv #(id-of "aws_subnet" (stringify "public-" %)) azs)
@@ -263,11 +269,14 @@
                                          "Condition" {"Bool" { "aws:SecureTransport" "true"}}
                                          })})
 
-             (asg "master-group"
+             (asg "MasterServerGroup"
                   {:image_id current-coreos-ami
                    :instance_type "m4.xlarge"
                    :sgs ["master-security-group", "admin-security-group"]
                    :role "master-role"
+                   :tags {:Key "role"
+                          :PropagateAtLaunch "true"
+                          :Value "mesos-master"}
                    :user_data (mesos-master-user-data {:aws-region region
                                                        :cluster-name cluster-name
                                                        :cluster-id "some-unique-id"
@@ -277,7 +286,7 @@
                                                        :aws-access-key (id-of "aws_iam_access_key" "host-key")
                                                        :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
                                                        :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
-                                                       :internal-lb-dns (id-of "aws_elb" "master-group")
+                                                       :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
                    :block-device {:ebs_block_device {:device_name "/dev/xvda" :volume_size 20}}
                    :max_size 5
@@ -290,13 +299,36 @@
                                         :target "HTTP:5050/health"
                                         :timeout 5
                                         :interval 30}
-                         :subnets public-subnets}})
+                         :subnets public-subnets
+                         :sgs ["lb-security-group"
+                               "admin-security-group"]}})
 
-             (asg "public-slave-group"
+             (elb "InternalMasterLoadBalancer"
+                  {:listeners [(elb-listener {:port 5050 :protocol "HTTP"})
+                               (elb-listener {:port 2181 :protocol "TCP"})
+                               (elb-listener {:port 8181 :protocol "HTTP"})
+                               (elb-listener {:port 8080 :protocol "HTTP"})]
+                   :health_check {:healthy_threshold 2
+                                  :unhealthy_threshold 3
+                                  :target "HTTP:5050/health"
+                                  :timeout 5
+                                  :interval 30}
+                   :subnets public-subnets
+                   :sgs ["lb-security-group"
+                         "admin-security-group"
+                         "slave-security-group"
+                         "public-slave-security-group"
+                         "master-security-group"]
+                   })
+
+             (asg "PublicSlaveServerGroup"
                   {:image_id current-coreos-ami
                    :instance_type "m4.xlarge"
                    :sgs ["public-slave-security-group"]
                    :role "slave-role"
+                   :tags {:Key "role"
+                          :PropagateAtLaunch "true"
+                          :Value "mesos-slave"}
                    :user_data (mesos-public-slave-user-data {:aws-region region
                                                              :cluster-name cluster-name
                                                              :cluster-id "some-unique-id"
@@ -306,7 +338,7 @@
                                                              :aws-access-key (id-of "aws_iam_access_key" "host-key")
                                                              :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
                                                              :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
-                                                             :internal-lb-dns (id-of "aws_elb" "master-group") ;; may need to change
+                                                             :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                                              :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
                    :block-device {:ebs_block_device {:device_name "/dev/xvda" :volume_size 20}}
                    :max_size 3
@@ -319,13 +351,17 @@
                                         :target "HTTP:80/"
                                         :timeout 5
                                         :interval 30}
-                         :subnets public-subnets}})
+                         :subnets public-subnets
+                         :sgs ["public-slave-security-group"]}})
 
-             (asg "slave-group"
+             (asg "SlaveServerGroup"
                   {:image_id current-coreos-ami
                    :instance_type "m4.xlarge"
-                   :sgs ["slave-security-group"]
+                   :sgs ["slave-security-group"                         ]
                    :role "slave-role"
+                   :tags {:Key "role"
+                          :PropagateAtLaunch "true"
+                          :Value "mesos-slave"}
                    :user_data (mesos-slave-user-data {:aws-region region
                                                       :cluster-name cluster-name
                                                       :cluster-id "some-unique-id"
@@ -335,7 +371,7 @@
                                                       :aws-access-key (id-of "aws_iam_access_key" "host-key")
                                                       :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
                                                       :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
-                                                      :internal-lb-dns (id-of "aws_elb" "master-group") ;; may need to change
+                                                      :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                                       :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
                    :block-device {:ebs_block_device {:device_name "/dev/xvda" :volume_size 20}}
                    :max_size 3
