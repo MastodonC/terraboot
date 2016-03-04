@@ -127,10 +127,7 @@
                               :to_port 65535
                               :protocol "udp"
                               :cidr_blocks (vec (vals (:public vpc/cidr-block)))}
-                             {:from_port 0
-                              :to_port 65535
-                              :protocol "udp"
-                              :cidr_blocks (vec (vals (:public vpc/cidr-block)))})
+                             )
 
              (security-group "lb-security-group" {}
                              {:port 2181
@@ -147,21 +144,12 @@
                               :source_security_group_id (id-of "aws_security_group" "lb-security-group")}
                              {:port 2181
                               :source_security_group_id (id-of "aws_security_group" "lb-security-group")}
-                             {:from_port 0
-                              :to_port 65535
-                              :protocol -1
-                              :source_security_group_id (id-of "aws_security_group" "public-slave-security-group")}
-                             {:from_port 0
-                              :to_port 65535
-                              :protocol -1
-                              :source_security_group_id (id-of "aws_security_group" "slave-security-group")}
+                             {:allow-all-sg (id-of "aws_security_group" "public-slave-security-group")}
+                             {:allow-all-sg (id-of "aws_security_group" "slave-security-group")}
                              )
 
              (security-group "public-slave-security-group" {}
-                             {:from_port 0
-                              :to_port 65535
-                              :protocol -1
-                              :source_security_group_id (id-of "aws_security_group" "master-security-group")}
+                             {:allow-all-sg (id-of "aws_security_group" "master-security-group")}
                              {:from_port 0
                               :to_port 21
                               :cidr_blocks [all-external]}
@@ -185,28 +173,13 @@
                               :to_port 65535
                               :protocol "udp"
                               :cidr_blocks [all-external]}
-                             {:from_port 0
-                              :to_port 65535
-                              :protocol -1
-                              :source_security_group_id (id-of "aws_security_group" "public-slave-security-group")}
-                             {:from_port 0
-                              :to_port 65535
-                              :protocol -1
-                              :source_security_group_id (id-of "aws_security_group" "slave-security-group")})
+                             {:allow-all-sg (id-of "aws_security_group" "public-slave-security-group")}
+                             {:allow-all-sg (id-of "aws_security_group" "slave-security-group")})
 
              (security-group "slave-security-group" {}
-                             {:from_port 0
-                              :to_port 65535
-                              :protocol -1
-                              :source_security_group_id (id-of "aws_security_group" "public-slave-security-group")}
-                             {:from_port 0
-                              :to_port 65535
-                              :protocol -1
-                              :source_security_group_id (id-of "aws_security_group" "slave-security-group")}
-                             {:from_port 0
-                              :to_port 65535
-                              :protocol -1
-                              :source_security_group_id (id-of "aws_security_group" "master-security-group")}
+                             {:allow-all-sg (id-of "aws_security_group" "public-slave-security-group")}
+                             {:allow-all-sg (id-of "aws_security_group" "slave-security-group")}
+                             {:allow-all-sg (id-of "aws_security_group" "master-security-group")}
                              {:port 2181
                               :source_security_group_id (id-of "aws_security_group" "lb-security-group")})
 
