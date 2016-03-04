@@ -88,9 +88,23 @@
       (let [defaults {:protocol "tcp"
                       :type "ingress"
                       :security_group_id (id-of "aws_security_group" name)}
-            port (:port rule)
-            port-to-port-range (fn [rule] (if port (-> (assoc rule :from_port port :to_port port) (dissoc :port)) rule))
-            rule (merge defaults (port-to-port-range rule))
+
+            port-to-port-range (fn [rule] (if-let [port (:port rule)]
+                                            (-> rule
+                                                (assoc :from_port port :to_port port)
+                                                (dissoc :port))
+                                            rule))
+
+            allow-all-sg (fn [rule] (if-let [allow-all-sg-id (:allow-all-sg rule)]
+                                      (-> rule
+                                          (assoc :from_port 0 :to_port 0)
+                                          (assoc :protocol -1)
+                                          (assoc :source_security_group_id allow-all-sg-id)
+                                          (dissoc :allow-all-sg))
+                                      rule))
+            rule (-> (merge defaults rule)
+                     port-to-port-range
+                     allow-all-sg)
             suffix (str (hash rule))]
         ["aws_security_group_rule"
          (stringify name "-" suffix)
