@@ -246,7 +246,7 @@
              (asg "MasterServerGroup"
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"
-                   :sgs ["master-security-group", "admin-security-group"]
+                   :sgs ["master-security-group" "admin-security-group"]
                    :role "master-role"
                    :public_ip true
                    :tags {:Key "role"
@@ -333,7 +333,7 @@
              (asg "SlaveServerGroup"
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"
-                   :sgs ["slave-security-group"                         ]
+                   :sgs ["slave-security-group"]
                    :role "slave-role"
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
