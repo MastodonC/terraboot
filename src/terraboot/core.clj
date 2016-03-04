@@ -162,16 +162,16 @@
                     :roles [(id-of "aws_iam_role" role)]})
 
          (resource "aws_launch_configuration" name
-                   (merge {:name_prefix (str name "-")
-                           :image_id image_id
-                           :instance_type instance_type
-                           :iam_instance_profile (id-of "aws_iam_instance_profile" name)
-                           :user_data user_data
-                           :lifecycle { :create_before_destroy true }
-                           :key_name (get spec :key_name "ops-terraboot")
-                           :security_groups (map #(id-of "aws_security_group" %) sgs)
-                           :associate_public_ip_address (or public_ip false)}
-                          (spec :block-device)))
+                   {:name_prefix (str name "-")
+                    :image_id image_id
+                    :instance_type instance_type
+                    :iam_instance_profile (id-of "aws_iam_instance_profile" name)
+                    :user_data user_data
+                    :lifecycle { :create_before_destroy true }
+                    :key_name (get spec :key_name "ops-terraboot")
+                    :security_groups (map #(id-of "aws_security_group" %) sgs)
+                    :associate_public_ip_address (or public_ip false)}
+                   )
 
          (resource "aws_autoscaling_group" name
                    {:vpc_zone_identifier subnets

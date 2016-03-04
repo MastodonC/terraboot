@@ -290,7 +290,7 @@
                                                        :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
                                                        :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
-                   :block-device {:ebs_block_device {:device_name "/dev/xvda" :volume_size 20}}
+                   ;;:block-device {:ebs_block_device {:device_name "/dev/xvda" :volume_size 20}}
                    :max_size 5
                    :min_size 3
                    :health_check_type "ELB"
@@ -343,7 +343,7 @@
                                                              :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
                                                              :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                                              :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
-                   :block-device {:ebs_block_device {:device_name "/dev/xvda" :volume_size 20}}
+                   ;; :block-device {:ebs_block_device {:device_name "/dev/xvda" :volume_size 20}}
                    :max_size 3
                    :min_size 1
                    :health_check_type "ELB"
@@ -376,7 +376,7 @@
                                                       :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
                                                       :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                                       :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
-                   :block-device {:ebs_block_device {:device_name "/dev/xvda" :volume_size 20}}
+                   ;; :block-device {:ebs_block_device {:device_name "/dev/xvda" :volume_size 20}}
                    :max_size 3
                    :min_size 3
                    :health_check_type "EC2" ;; or "ELB"?
