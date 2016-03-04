@@ -267,7 +267,7 @@
                    :min_size 3
                    :health_check_type "ELB"
                    :health_check_grace_period 20
-                   :ebs_block_device {:device_name "/dev/xvda" :volume_size 20}
+                   :root_block_device {:volume_size 20}
                    :subnets public-subnets
                    :elb {:health_check {:healthy_threshold 2
                                         :unhealthy_threshold 3
@@ -316,7 +316,7 @@
                                                              :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
                                                              :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                                              :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
-                   :ebs_block_device {:device_name "/dev/xvda" :volume_size 20}
+                   :root_block_device {:volume_size 20}
                    :max_size 3
                    :min_size 1
                    :health_check_type "ELB"
@@ -350,7 +350,7 @@
                                                       :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                                       :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
 
-                   :ebs_block_device {:device_name "/dev/xvda" :volume_size 20}
+                   ;; :root_block_device {:volume_size 20}
                    :max_size 3
                    :min_size 3
                    :health_check_type "EC2" ;; or "ELB"?
