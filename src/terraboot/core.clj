@@ -210,7 +210,7 @@
                                         [])
                     :tag {
                           :key "Name"
-                          :value "autoscale-#{name}"
+                          :value (str "autoscale-" name)
                           :propagate_at_launch true
                           }}))]
     (if elb?
