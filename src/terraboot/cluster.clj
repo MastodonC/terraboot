@@ -245,7 +245,7 @@
 
              (asg "MasterServerGroup"
                   {:image_id current-coreos-ami
-                   :instance_type "m4.xlarge"
+                   :instance_type "m4.large"
                    :sgs ["master-security-group", "admin-security-group"]
                    :role "master-role"
                    :public_ip true
@@ -263,9 +263,9 @@
                                                        :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
                                                        :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
-                   :max_size 5
-                   :min_size 3
-                   :health_check_type "ELB"
+                   :max_size 2
+                   :min_size 2
+                   :health_check_type "EC2"
                    :health_check_grace_period 20
                    :root_block_device {:volume_size 20}
                    :subnets public-subnets
@@ -298,7 +298,7 @@
 
              (asg "PublicSlaveServerGroup"
                   {:image_id current-coreos-ami
-                   :instance_type "m4.xlarge"
+                   :instance_type "m4.large"
                    :sgs ["public-slave-security-group"]
                    :role "slave-role"
                    :public_ip true
@@ -317,9 +317,9 @@
                                                              :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                                              :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
                    :root_block_device {:volume_size 20}
-                   :max_size 3
+                   :max_size 2
                    :min_size 1
-                   :health_check_type "ELB"
+                   :health_check_type "EC2"
                    :health_check_grace_period 20
                    :subnets public-subnets
                    :elb {:health_check {:healthy_threshold 2
@@ -332,7 +332,7 @@
 
              (asg "SlaveServerGroup"
                   {:image_id current-coreos-ami
-                   :instance_type "m4.xlarge"
+                   :instance_type "m4.large"
                    :sgs ["slave-security-group"                         ]
                    :role "slave-role"
                    :tags {:Key "role"
@@ -351,8 +351,8 @@
                                                       :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
 
                    ;; :root_block_device {:volume_size 20}
-                   :max_size 3
-                   :min_size 3
+                   :max_size 2
+                   :min_size 2
                    :health_check_type "EC2" ;; or "ELB"?
                    :health_check_grace_period 20
                    :subnets private-subnets
