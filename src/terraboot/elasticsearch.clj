@@ -22,6 +22,7 @@
                                                                     "Resource" "arn:aws:es:eu-central-1:165664414043:domain/elasticsearch/*",
                                                                     ;; There is currently a bug which means 'Resource' needs adding after there
                                                                     ;; cluster is created or it will constantly say it needs to change.
+                                                                    ;; https://github.com/hashicorp/terraform/issues/5067
                                                                     "Effect" "Allow",
                                                                     "Condition"
                                                                     {
