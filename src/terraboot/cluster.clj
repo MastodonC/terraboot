@@ -269,11 +269,13 @@
                                          "Condition" {"Bool" { "aws:SecureTransport" "true"}}
                                          })})
 
+
              (asg "MasterServerGroup"
                   {:image_id current-coreos-ami
                    :instance_type "m4.xlarge"
                    :sgs ["master-security-group", "admin-security-group"]
                    :role "master-role"
+                   :public_ip true
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
                           :Value "mesos-master"}
@@ -326,6 +328,7 @@
                    :instance_type "m4.xlarge"
                    :sgs ["public-slave-security-group"]
                    :role "slave-role"
+                   :public_ip true
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
                           :Value "mesos-slave"}

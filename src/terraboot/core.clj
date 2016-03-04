@@ -147,7 +147,13 @@
                               :connection_draining_timeout 60
                               :tags {:Name name}})))
 
-(defn asg [name {:keys [sgs image_id user_data instance_type subnets role] :as spec}]
+(defn asg [name {:keys [sgs
+                        image_id
+                        user_data
+                        instance_type
+                        subnets
+                        role
+                        public_ip] :as spec}]
   (let [elb? (spec :elb)
         asg-config
         (merge-in
@@ -163,7 +169,8 @@
                            :user_data user_data
                            :lifecycle { :create_before_destroy true }
                            :key_name (get spec :key_name "ops-terraboot")
-                           :security_groups (map #(id-of "aws_security_group" %) sgs)}
+                           :security_groups (map #(id-of "aws_security_group" %) sgs)
+                           :associate_public_ip_address (or public_ip false)}
                           (spec :block-device)))
 
          (resource "aws_autoscaling_group" name
