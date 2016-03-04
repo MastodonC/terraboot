@@ -167,8 +167,13 @@
                         instance_type
                         subnets
                         role
-                        public_ip] :as spec}]
+                        public_ip
+                        ebs_block_device] :as spec}]
   (let [elb? (spec :elb)
+        add-disk-if-present (fn [ebs_block_device map]
+                              (if ebs_block_device
+                                (assoc map :ebs_block_device ebs_block_device)
+                                map))
         asg-config
         (merge-in
          (resource "aws_iam_instance_profile" name
@@ -176,15 +181,16 @@
                     :roles [(id-of "aws_iam_role" role)]})
 
          (resource "aws_launch_configuration" name
-                   {:name_prefix (str name "-")
-                    :image_id image_id
-                    :instance_type instance_type
-                    :iam_instance_profile (id-of "aws_iam_instance_profile" name)
-                    :user_data user_data
-                    :lifecycle { :create_before_destroy true }
-                    :key_name (get spec :key_name "ops-terraboot")
-                    :security_groups (map #(id-of "aws_security_group" %) sgs)
-                    :associate_public_ip_address (or public_ip false)}
+                   (add-disk-if-present ebs_block_device
+                                        {:name_prefix (str name "-")
+                                         :image_id image_id
+                                         :instance_type instance_type
+                                         :iam_instance_profile (id-of "aws_iam_instance_profile" name)
+                                         :user_data user_data
+                                         :lifecycle { :create_before_destroy true }
+                                         :key_name (get spec :key_name "ops-terraboot")
+                                         :security_groups (map #(id-of "aws_security_group" %) sgs)
+                                         :associate_public_ip_address (or public_ip false)} )
                    )
 
          (resource "aws_autoscaling_group" name
