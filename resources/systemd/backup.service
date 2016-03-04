@@ -1,0 +1,7 @@
+[Unit]
+Description=Backup of cassandra database
+
+[Service]
+Type=oneshot
+Environment=AWS_CONFIG_FILE=/home/core/.aws/config
+ExecStart=/home/core/cassandra-backup/backup-witan.sh
