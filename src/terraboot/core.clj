@@ -174,6 +174,7 @@
                               (if ebs_block_device
                                 (assoc map :ebs_block_device ebs_block_device)
                                 map))
+        root_block_device (get spec :root_block_device {})
         asg-config
         (merge-in
          (resource "aws_iam_instance_profile" name
@@ -190,7 +191,10 @@
                                          :lifecycle { :create_before_destroy true }
                                          :key_name (get spec :key_name "ops-terraboot")
                                          :security_groups (map #(id-of "aws_security_group" %) sgs)
-                                         :associate_public_ip_address (or public_ip false)} )
+                                         :associate_public_ip_address (or public_ip false)
+                                         :root_block_device root_block_device}
+
+                                        )
                    )
 
          (resource "aws_autoscaling_group" name
