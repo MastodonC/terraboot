@@ -6,6 +6,8 @@
             [clojure.pprint :refer [pprint]]))
 
 (def account-id "12345")
+(def default-sgs ["allow_outbound" "allow_ssh"])
+
 (letfn [(merge-in* [a b]
           (if (map? a)
             (merge-with merge-in* a b)
@@ -111,8 +113,7 @@
          rule])))))
 
 (defn aws-instance [name spec]
-  (let [default-sgs ["allow_outbound"]
-        default-sg-ids (map (partial id-of "aws_security_group") default-sgs)]
+  (let [default-sg-ids (map (partial id-of "aws_security_group") default-sgs)]
     (resource "aws_instance" name (-> {:tags {:Name name}
                                        :instance_type "t2.micro"
                                        :key_name "ops-terraboot"
@@ -175,6 +176,8 @@
                                 (assoc map :ebs_block_device ebs_block_device)
                                 map))
         root_block_device (get spec :root_block_device {})
+
+        security-groups (map #(id-of "aws_security_group" %) (concat default-sgs sgs))
         asg-config
         (merge-in
          (resource "aws_iam_instance_profile" name
@@ -190,7 +193,7 @@
                                          :user_data user_data
                                          :lifecycle { :create_before_destroy true }
                                          :key_name (get spec :key_name "ops-terraboot")
-                                         :security_groups (map #(id-of "aws_security_group" %) sgs)
+                                         :security_groups security-groups
                                          :associate_public_ip_address (or public_ip false)
                                          :root_block_device root_block_device}
 
