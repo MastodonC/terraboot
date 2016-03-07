@@ -113,7 +113,7 @@
    :lb_port (or lb_port port)
    :lb_protocol (or lb_protocol protocol)})
 
-(def default-number-of-master-instances 2)
+(def default-number-of-master-instances 3)
 
 (defn cluster-infra
   [vpc-name cluster-name]
@@ -292,7 +292,7 @@
                                (elb-listener {:port 8080 :protocol "HTTP"})]
                    :health_check {:healthy_threshold 2
                                   :unhealthy_threshold 3
-                                  :target "HTTP:5050/health"
+                                  :target "HTTP:8181/exhibitor/v1/cluster/status"
                                   :timeout 5
                                   :interval 30}
                    :subnets public-subnets
