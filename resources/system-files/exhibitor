@@ -1,4 +1,4 @@
 EXHIBITOR_BACKEND=AWS_S3
-AWS_REGION={{aws-region}}
-AWS_S3_BUCKET={{exhibitor-s3-bucket}}
-AWS_S3_PREFIX={{cluster-name}}
+AWS_REGION=${aws-region}
+AWS_S3_BUCKET=${exhibitor-s3-bucket}
+AWS_S3_PREFIX=${cluster-name}

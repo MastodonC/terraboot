@@ -5,7 +5,7 @@
 
 (def current-coreos-ami "ami-07f1ec6b")
 
-(defn mesos-instance-user-data [vars]
+(defn mesos-instance-user-data []
   {:coreos {:units [{:name "etcd.service" :command "stop" :mask true}
                     {:name "update-engine.service" :command "stop" :mask true}
                     {:name "locksmithd.service" :command "stop" :mask true}
@@ -15,22 +15,22 @@
                     {:name "dcos-link-env.service" :command "start" :content (snippet "systemd/dcos-link-env.service")}
                     {:name "dcos-download.service" :content (snippet "systemd/dcos-download.service")}
                     {:name "dcos-setup.service" :command "start" :content (clojure.string/trim-newline (snippet "systemd/dcos-setup.service")) :enable true}
-                    {:name "dcos-cfn-signal.service" :command "start" :content (clojure.string/trim-newline (from-template "systemd/dcos-cfn-signal.service" vars))}]
+                    {:name "dcos-cfn-signal.service" :command "start" :content (clojure.string/trim-newline (snippet "systemd/dcos-cfn-signal.service"))}]
             :update {:reboot-strategy "off"}}
    :write_files [{:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json"
                   :content (snippet "system-files/pkginfo.json")}
                  {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/cloudenv"
-                  :content (from-template "system-files/cloudenv" vars)}
+                  :content (snippet "system-files/cloudenv")}
                  {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/mesos-master-provider"
-                  :content (str "MESOS_CLUSTER=" (:cluster-name vars) "\n")}
+                  :content (str "MESOS_CLUSTER=${cluster-name}\n")}
                  {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/exhibitor"
-                  :content (from-template "system-files/exhibitor" vars)}
+                  :content (snippet "system-files/exhibitor")}
                  {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/exhibitor.properties"
-                  :content (from-template "system-files/exhibitor.properties" vars)}
+                  :content (snippet "system-files/exhibitor.properties")}
                  {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/dns_config"
-                  :content (from-template "system-files/dns_config" vars)}
+                  :content (snippet "system-files/dns_config")}
                  {:path "/etc/mesosphere/cluster-id"
-                  :content (:cluster-id vars)
+                  :content "${cluster-id}"
                   :permissions "0644"}
                  {:path "/etc/mesosphere/setup-flags/repository-url"
                   :content "https://downloads.mesosphere.com/dcos/stable\n"
@@ -45,9 +45,9 @@
                   :owner "root"
                   :permissions 420}]})
 
-(defn mesos-master-user-data [vars]
+(defn mesos-master-user-data []
   (cloud-config (merge-with (comp vec concat)
-                            (mesos-instance-user-data vars)
+                            (mesos-instance-user-data)
                             {:write_files [{:path "/etc/mesosphere/roles/master"
                                             :content ""}
                                            {:path "/etc/mesosphere/roles/aws_master"
@@ -56,18 +56,18 @@
                                             :content ""}]})))
 
 (defn mesos-slave-user-data
-  [vars]
+  []
   (cloud-config (merge-with (comp vec concat)
-                            (mesos-instance-user-data vars)
+                            (mesos-instance-user-data)
                             {:write_files [{:path "/etc/mesosphere/roles/slave"
                                             :content ""}
                                            {:path "/etc/mesosphere/roles/aws"
                                             :content ""}]})))
 
 (defn mesos-public-slave-user-data
-  [vars]
+  []
   (cloud-config (merge-with (comp vec concat)
-                            (mesos-instance-user-data vars)
+                            (mesos-instance-user-data)
                             {:write_files [{:path "/etc/mesosphere/roles/slave_public"
                                             :content ""}
                                            {:path "/etc/mesosphere/roles/aws"
@@ -242,19 +242,19 @@
                                          "Condition" {"Bool" { "aws:SecureTransport" "true"}}
                                          })})
 
-             (resource "template_file" "master-server-group-user-data"
-                       {:template (mesos-master-user-data {:aws-region region
-                                                           :cluster-name cluster-name
-                                                           :cluster-id (str vpc-name "-" cluster-name)
-                                                           :server-group "MasterServerGroup"
-                                                           :master-role (id-of "aws_iam_role" "master-role")
-                                                           :slave-role (id-of "aws_iam_role" "slave-role")
-                                                           :aws-access-key (id-of "aws_iam_access_key" "host-key")
-                                                           :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
-                                                           :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
-                                                           :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
-                                                           :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
-                        :vars {:BOOTSTRAP_ID "${BOOTSTRAP_ID}"}
+             (resource "template_file" "master-user-data"
+                       {:template (mesos-master-user-data)
+                        :vars {:aws-region region
+                               :cluster-name cluster-name
+                               :cluster-id (str vpc-name "-" cluster-name)
+                               :server-group "MasterServerGroup"
+                               :master-role (id-of "aws_iam_role" "master-role")
+                               :slave-role (id-of "aws_iam_role" "slave-role")
+                               :aws-access-key (id-of "aws_iam_access_key" "host-key")
+                               :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
+                               :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
+                               :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
+                               :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)}
                         })
 
              (asg "MasterServerGroup"
@@ -266,7 +266,7 @@
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
                           :Value "mesos-master"}
-                   :user_data (output-of "template_file" "master-server-group-user-data" "rendered")
+                   :user_data (output-of "template_file" "master-user-data" "rendered")
                    :max_size 2
                    :min_size 2
                    :health_check_type "EC2"
@@ -300,6 +300,21 @@
                          "master-security-group"]
                    })
 
+             (resource "template_file" "public-slave-user-data"
+                       {:template (mesos-public-slave-user-data)
+                        :vars {:aws-region region
+                               :cluster-name cluster-name
+                               :cluster-id (str vpc-name "-" cluster-name)
+                               :server-group "PublicSlaveServerGroup"
+                               :master-role (id-of "aws_iam_role" "master-role")
+                               :slave-role (id-of "aws_iam_role" "slave-role")
+                               :aws-access-key (id-of "aws_iam_access_key" "host-key")
+                               :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
+                               :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
+                               :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
+                               :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)}
+                        })
+
              (asg "PublicSlaveServerGroup"
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"
@@ -309,17 +324,7 @@
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
                           :Value "mesos-slave"}
-                   :user_data (mesos-public-slave-user-data {:aws-region region
-                                                             :cluster-name cluster-name
-                                                             :cluster-id "some-unique-id"
-                                                             :server-group "PublicSlaveServerGroup"
-                                                             :master-role (id-of "aws_iam_role" "master-role")
-                                                             :slave-role (id-of "aws_iam_role" "slave-role")
-                                                             :aws-access-key (id-of "aws_iam_access_key" "host-key")
-                                                             :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
-                                                             :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
-                                                             :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
-                                                             :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
+                   :user_data (output-of "template_file" "public-slave-user-data" "rendered")
                    :root_block_device {:volume_size 20}
                    :max_size 2
                    :min_size 1
@@ -334,6 +339,21 @@
                          :subnets public-subnets
                          :sgs ["public-slave-security-group"]}})
 
+             (resource "template_file" "slave-user-data"
+                       {:template (mesos-slave-user-data)
+                        :vars {:aws-region region
+                               :cluster-name cluster-name
+                               :cluster-id "some-unique-id"
+                               :server-group "SlaveServerGroup"
+                               :master-role (id-of "aws_iam_role" "master-role")
+                               :slave-role (id-of "aws_iam_role" "slave-role")
+                               :aws-access-key (id-of "aws_iam_access_key" "host-key")
+                               :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
+                               :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
+                               :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
+                               :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)}
+                        })
+
              (asg "SlaveServerGroup"
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"
@@ -342,18 +362,7 @@
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
                           :Value "mesos-slave"}
-                   :user_data (mesos-slave-user-data {:aws-region region
-                                                      :cluster-name cluster-name
-                                                      :cluster-id "some-unique-id"
-                                                      :server-group "SlaveServerGroup"
-                                                      :master-role (id-of "aws_iam_role" "master-role")
-                                                      :slave-role (id-of "aws_iam_role" "slave-role")
-                                                      :aws-access-key (id-of "aws_iam_access_key" "host-key")
-                                                      :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
-                                                      :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
-                                                      :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
-                                                      :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
-
+                   :user_data  (output-of "template_file" "public-slave-user-data" "rendered")
                    ;; :root_block_device {:volume_size 20}
                    :max_size 2
                    :min_size 2
