@@ -254,6 +254,7 @@
                                                            :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
                                                            :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                                            :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
+                        :vars {:BOOTSTRAP_ID "${BOOTSTRAP_ID}"}
                         })
 
              (asg "MasterServerGroup"
