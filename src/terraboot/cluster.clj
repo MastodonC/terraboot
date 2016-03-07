@@ -133,7 +133,13 @@
 
              (security-group "lb-security-group" {}
                              {:port 2181
-                              :source_security_group_id (id-of "aws_security_group" "slave-security-group")})
+                              :source_security_group_id (id-of "aws_security_group" "slave-security-group")}
+                             {:type "egress"
+                              :from_port 0
+                              :to_port 0
+                              :protocol -1
+                              :cidr_blocks [all-external]
+                              })
 
              (security-group "master-security-group" {}
                              {:port 5050
