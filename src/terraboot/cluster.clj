@@ -242,6 +242,19 @@
                                          "Condition" {"Bool" { "aws:SecureTransport" "true"}}
                                          })})
 
+             (resource "template_file" "master-server-group-user-data"
+                       {:template (mesos-master-user-data {:aws-region region
+                                                           :cluster-name cluster-name
+                                                           :cluster-id (str vpc-name "-" cluster-name)
+                                                           :server-group "MasterServerGroup"
+                                                           :master-role (id-of "aws_iam_role" "master-role")
+                                                           :slave-role (id-of "aws_iam_role" "slave-role")
+                                                           :aws-access-key (id-of "aws_iam_access_key" "host-key")
+                                                           :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
+                                                           :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
+                                                           :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
+                                                           :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
+                        })
 
              (asg "MasterServerGroup"
                   {:image_id current-coreos-ami
@@ -252,17 +265,7 @@
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
                           :Value "mesos-master"}
-                   :user_data (mesos-master-user-data {:aws-region region
-                                                       :cluster-name cluster-name
-                                                       :cluster-id "some-unique-id"
-                                                       :server-group "MasterServerGroup"
-                                                       :master-role (id-of "aws_iam_role" "master-role")
-                                                       :slave-role (id-of "aws_iam_role" "slave-role")
-                                                       :aws-access-key (id-of "aws_iam_access_key" "host-key")
-                                                       :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
-                                                       :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
-                                                       :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
-                                                       :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)})
+                   :user_data (output-of "template_file" "master-server-group-user-data" "rendered")
                    :max_size 2
                    :min_size 2
                    :health_check_type "EC2"
