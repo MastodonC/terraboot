@@ -5,4 +5,4 @@ AWS_IAM_MASTER_ROLE_NAME=${master-role}
 AWS_IAM_SLAVE_ROLE_NAME=${slave-role}
 AWS_ACCESS_KEY_ID=${aws-access-key}
 AWS_SECRET_ACCESS_KEY=${aws-secret-access-key}
-ZOOKEEPER_CLUSTER_SIZE=3
+ZOOKEEPER_CLUSTER_SIZE=${number-of-masters}

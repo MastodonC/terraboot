@@ -113,6 +113,8 @@
    :lb_port (or lb_port port)
    :lb_protocol (or lb_protocol protocol)})
 
+(def default-number-of-master-instances 2)
+
 (defn cluster-infra
   [vpc-name cluster-name]
   (let [public-subnets (mapv #(id-of "aws_subnet" (stringify "public-" %)) azs)
@@ -254,7 +256,8 @@
                                :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
                                :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
                                :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
-                               :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)}
+                               :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
+                               :number-of-masters default-number-of-master-instances}
                         })
 
              (asg "MasterServerGroup"
@@ -268,7 +271,7 @@
                           :Value "mesos-master"}
                    :user_data (output-of "template_file" "master-user-data" "rendered")
                    :max_size 2
-                   :min_size 2
+                   :min_size default-number-of-master-instances
                    :health_check_type "EC2"
                    :health_check_grace_period 20
                    :root_block_device {:volume_size 20}
@@ -312,7 +315,8 @@
                                :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
                                :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
                                :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
-                               :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)}
+                               :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
+                               :number-of-masters default-number-of-master-instances}
                         })
 
              (asg "PublicSlaveServerGroup"
@@ -351,7 +355,8 @@
                                :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
                                :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
                                :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
-                               :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)}
+                               :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
+                               :number-of-masters default-number-of-master-instances}
                         })
 
              (asg "SlaveServerGroup"
