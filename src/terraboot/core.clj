@@ -170,8 +170,7 @@
                         role
                         public_ip
                         ebs_block_device] :as spec}]
-  (let [elb? (spec :elb)
-        add-disk-if-present (fn [ebs_block_device map]
+  (let [add-disk-if-present (fn [ebs_block_device map]
                               (if ebs_block_device
                                 (assoc map :ebs_block_device ebs_block_device)
                                 map))
@@ -209,16 +208,14 @@
                     :health_check_grace_period (spec :health_check_grace_period)
                     :launch_configuration (output-of "aws_launch_configuration" name "name")
                     :lifecycle { :create_before_destroy true }
-                    :load_balancers (if elb? [(output-of "aws_elb" name "name")]
-                                        [])
+                    :load_balancers (mapv #(output-of "aws_elb" (:name %) "name") (:elb spec))
                     :tag {
                           :key "Name"
                           :value (str "autoscale-" name)
                           :propagate_at_launch true
                           }}))]
-    (if elb?
-      (merge-in asg-config (elb name (spec :elb)))
-      asg-config)))
+    (merge-in asg-config
+              (apply merge-in (map #(elb (:name %) %) (spec :elb))))))
 
 (defn policy [statement]
   (let [default-policy {"Version" "2012-10-17"

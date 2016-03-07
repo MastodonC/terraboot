@@ -270,38 +270,38 @@
                           :PropagateAtLaunch "true"
                           :Value "mesos-master"}
                    :user_data (output-of "template_file" "master-user-data" "rendered")
-                   :max_size 2
+                   :max_size default-number-of-master-instances
                    :min_size default-number-of-master-instances
                    :health_check_type "EC2"
                    :health_check_grace_period 20
                    :root_block_device {:volume_size 20}
                    :subnets public-subnets
-                   :elb {:health_check {:healthy_threshold 2
-                                        :unhealthy_threshold 3
-                                        :target "HTTP:5050/health"
-                                        :timeout 5
-                                        :interval 30}
-                         :subnets public-subnets
-                         :sgs ["lb-security-group"
-                               "admin-security-group"]}})
-
-             (elb "InternalMasterLoadBalancer"
-                  {:listeners [(elb-listener {:port 5050 :protocol "HTTP"})
-                               (elb-listener {:port 2181 :protocol "TCP"})
-                               (elb-listener {:port 8181 :protocol "HTTP"})
-                               (elb-listener {:port 8080 :protocol "HTTP"})]
-                   :health_check {:healthy_threshold 2
-                                  :unhealthy_threshold 3
-                                  :target "HTTP:8181/exhibitor/v1/cluster/status"
-                                  :timeout 5
-                                  :interval 30}
-                   :subnets public-subnets
-                   :sgs ["lb-security-group"
-                         "admin-security-group"
-                         "slave-security-group"
-                         "public-slave-security-group"
-                         "master-security-group"]
-                   })
+                   :elb [{:name "MasterServerGroup"
+                          :health_check {:healthy_threshold 2
+                                         :unhealthy_threshold 3
+                                         :target "HTTP:5050/health"
+                                         :timeout 5
+                                         :interval 30}
+                          :subnets public-subnets
+                          :sgs ["lb-security-group"
+                                "admin-security-group"]}
+                         {:name "InternalMasterLoadBalancer"
+                          :listeners [(elb-listener {:port 5050 :protocol "HTTP"})
+                                      (elb-listener {:port 2181 :protocol "TCP"})
+                                      (elb-listener {:port 8181 :protocol "HTTP"})
+                                      (elb-listener {:port 8080 :protocol "HTTP"})]
+                          :health_check {:healthy_threshold 2
+                                         :unhealthy_threshold 3
+                                         :target "HTTP:8181/exhibitor/v1/cluster/status"
+                                         :timeout 5
+                                         :interval 30}
+                          :subnets public-subnets
+                          :sgs ["lb-security-group"
+                                "admin-security-group"
+                                "slave-security-group"
+                                "public-slave-security-group"
+                                "master-security-group"]
+                          }]})
 
              (resource "template_file" "public-slave-user-data"
                        {:template (mesos-public-slave-user-data)
@@ -335,13 +335,14 @@
                    :health_check_type "EC2"
                    :health_check_grace_period 20
                    :subnets public-subnets
-                   :elb {:health_check {:healthy_threshold 2
-                                        :unhealthy_threshold 2
-                                        :target "HTTP:80/"
-                                        :timeout 5
-                                        :interval 30}
-                         :subnets public-subnets
-                         :sgs ["public-slave-security-group"]}})
+                   :elb [{:name "PublicSlaveServerGroup"
+                          :health_check {:healthy_threshold 2
+                                         :unhealthy_threshold 2
+                                         :target "HTTP:80/"
+                                         :timeout 5
+                                         :interval 30}
+                          :subnets public-subnets
+                          :sgs ["public-slave-security-group"]}]})
 
              (resource "template_file" "slave-user-data"
                        {:template (mesos-slave-user-data)
@@ -374,5 +375,6 @@
                    :health_check_type "EC2" ;; or "ELB"?
                    :health_check_grace_period 20
                    :subnets private-subnets
+                   :elb []
                    })
              ))))
