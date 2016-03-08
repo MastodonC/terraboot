@@ -22,6 +22,7 @@
 (expect master-from-cloud-config
         master-from-user-data)
 
+
 (def slave-from-user-data
   (yaml/parse-string
    (slurp (clojure.java.io/resource "user-data/slave-config"))))
@@ -30,8 +31,8 @@
   (yaml/parse-string
    (mesos-slave-user-data)))
 
-#_(expect (get-in slave-from-cloud-config [:coreos :units])
-          (get-in slave-from-user-data [:coreos :units]))
+(expect (get-in slave-from-cloud-config [:coreos :units])
+        (get-in slave-from-user-data [:coreos :units]))
 
 (expect slave-from-cloud-config
         slave-from-user-data)

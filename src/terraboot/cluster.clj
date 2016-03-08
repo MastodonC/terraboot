@@ -52,14 +52,23 @@
                                            {:path "/etc/mesosphere/roles/aws"
                                             :content ""}]})))
 
+(defn add-to-systemd
+  [m systemd]
+  (update-in m [:coreos :units] #(vec (concat % systemd))))
+
 (defn mesos-slave-user-data
   []
-  (cloud-config (merge-with (comp vec concat)
-                            (mesos-instance-user-data)
-                            {:write_files [{:path "/etc/mesosphere/roles/slave"
-                                            :content ""}
-                                           {:path "/etc/mesosphere/roles/aws"
-                                            :content ""}]})))
+  (cloud-config (-> (merge-with (comp vec concat)
+                                (mesos-instance-user-data)
+                                {:write_files [{:path "/etc/mesosphere/roles/slave"
+                                                :content ""}
+                                               {:path "/etc/mesosphere/roles/aws"
+                                                :content ""}
+                                               {:path "/home/core/cassandra-backup/backup-witan.sh"
+                                                :content (snippet "system-files/backup-witan.sh")
+                                                :permissions "0644"}]})
+                    (add-to-systemd [{:name "backup.service" :content (snippet "systemd/backup.service") :enable true}
+                                     {:name "backup.timer" :command "start" :content (snippet "systemd/backup.timer") :enable true}] )  )))
 
 (defn mesos-public-slave-user-data
   []
