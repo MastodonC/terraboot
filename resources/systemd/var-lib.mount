@@ -1,7 +1,0 @@
-[Unit]
-Description=Mount /var/lib
-Before=dbus.service
-[Mount]
-What=/dev/xvdb
-Where=/var/lib
-Type=ext4
