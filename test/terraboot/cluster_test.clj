@@ -30,8 +30,8 @@
   (yaml/parse-string
    (mesos-slave-user-data)))
 
-(expect (get-in slave-from-cloud-config [:coreos :units])
-        (get-in slave-from-user-data [:coreos :units]))
+#_(expect (get-in slave-from-cloud-config [:coreos :units])
+          (get-in slave-from-user-data [:coreos :units]))
 
 (expect slave-from-cloud-config
         slave-from-user-data)

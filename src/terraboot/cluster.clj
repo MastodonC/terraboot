@@ -10,12 +10,9 @@
                     {:name "update-engine.service" :command "stop" :mask true}
                     {:name "locksmithd.service" :command "stop" :mask true}
                     {:name "systemd-resolved.service" :command "stop"}
-                    {:name "format-var-lib-ephemeral.service" :command "start" :content (snippet "systemd/format-var-lib-ephemeral.service")}
-                    {:name "var-lib.mount" :command "start" :content (clojure.string/trim-newline (snippet "systemd/var-lib.mount"))}
                     {:name "dcos-link-env.service" :command "start" :content (snippet "systemd/dcos-link-env.service")}
                     {:name "dcos-download.service" :content (snippet "systemd/dcos-download.service")}
-                    {:name "dcos-setup.service" :command "start" :content (clojure.string/trim-newline (snippet "systemd/dcos-setup.service")) :enable true}
-                    {:name "dcos-cfn-signal.service" :command "start" :content (clojure.string/trim-newline (snippet "systemd/dcos-cfn-signal.service"))}]
+                    {:name "dcos-setup.service" :command "start" :content (clojure.string/trim-newline (snippet "systemd/dcos-setup.service")) :enable true}]
             :update {:reboot-strategy "off"}}
    :write_files [{:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json"
                   :content (snippet "system-files/pkginfo.json")}
@@ -322,8 +319,7 @@
                                :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
                                :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
-                               :number-of-masters default-number-of-master-instances}
-                        })
+                               :number-of-masters default-number-of-master-instances}})
 
              (asg "PublicSlaveServerGroup"
                   {:image_id current-coreos-ami
@@ -335,7 +331,7 @@
                           :PropagateAtLaunch "true"
                           :Value "mesos-slave"}
                    :user_data (output-of "template_file" "public-slave-user-data" "rendered")
-                   :root_block_device {:volume_size 20}
+                   ;;:root_block_device {:volume_size 20}
                    :max_size 2
                    :min_size 1
                    :health_check_type "EC2"
@@ -375,7 +371,7 @@
                           :PropagateAtLaunch "true"
                           :Value "mesos-slave"}
                    :user_data  (output-of "template_file" "public-slave-user-data" "rendered")
-                   ;; :root_block_device {:volume_size 20}
+                   :root_block_device {:volume_size 20}
                    :max_size 2
                    :min_size 2
                    :health_check_type "EC2" ;; or "ELB"?
