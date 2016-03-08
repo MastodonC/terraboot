@@ -1,0 +1,11 @@
+[Unit]
+Description=cAdvisor for monitoring
+Requires=docker.service
+After=docker.service
+
+[Service]
+Restart=always
+ExecStart=/usr/bin/docker run --volume=/:/rootfs:ro --volume=/var/run:/var/run:rw --volume=/sys:/sys:ro --volume=/var/lib/docker/:/var/lib/docker:ro --publish=8080:8888 --detach=true --name=cadvisor -e RUN_OPTS="-storage_driver=influxdb -storage_driver_host=${influx-db-host}:8086" logbase/cadvisor-influxdb:latest
+
+[Install]
+WantedBy=local.target
