@@ -293,6 +293,7 @@
                    :health_check_grace_period 20
                    :root_block_device {:volume_size 20}
                    :subnets public-subnets
+                   :lifecycle {:create_before_destroy true}
                    :elb [{:name "MasterServerGroup"
                           :health_check {:healthy_threshold 2
                                          :unhealthy_threshold 3
@@ -351,6 +352,7 @@
                    :health_check_type "EC2"
                    :health_check_grace_period 20
                    :subnets public-subnets
+                   :lifecycle {:create_before_destroy true}
                    :elb [{:name "PublicSlaveServerGroup"
                           :health_check {:healthy_threshold 2
                                          :unhealthy_threshold 2
@@ -391,6 +393,7 @@
                    :health_check_type "EC2" ;; or "ELB"?
                    :health_check_grace_period 20
                    :subnets private-subnets
+                   :lifecycle {:create_before_destroy true}
                    :elb []
                    })
              ))))
