@@ -10,12 +10,14 @@
                     {:name "update-engine.service" :command "stop" :mask true}
                     {:name "locksmithd.service" :command "stop" :mask true}
                     {:name "systemd-resolved.service" :command "stop"}
+                    {:name "systemd-journald.service" :command "restart"}
+                    {:name "docker.service" :command "restart"}
                     {:name "dcos-link-env.service" :command "start" :content (snippet "systemd/dcos-link-env.service")}
                     {:name "dcos-download.service" :content (snippet "systemd/dcos-download.service")}
                     {:name "dcos-setup.service" :command "start" :content (clojure.string/trim-newline (snippet "systemd/dcos-setup.service")) :enable true}]
             :update {:reboot-strategy "off"}}
    :write_files [{:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json"
-                  :content (snippet "system-files/pkginfo.json")}
+                  :content "{}\n"}
                  {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/cloudenv"
                   :content (snippet "system-files/cloudenv")}
                  {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/mesos-master-provider"
@@ -34,13 +36,16 @@
                   :owner "root"
                   :permissions 420}
                  {:path "/etc/mesosphere/setup-flags/bootstrap-id"
-                  :content "BOOTSTRAP_ID=299269a7aa9e23a1edc94de3f2375356b2942af8\n"
+                  :content "BOOTSTRAP_ID=18d094b1648521b017622180e3a8e05788a81e80"
                   :owner "root"
                   :permissions 420}
                  {:path "/etc/mesosphere/setup-flags/cluster-packages.json"
-                  :content "[\"dcos-config--setup_7660c4e993820a3dea2c017b37c7eeb93151b1da\", \"dcos-detect-ip--setup_7660c4e993820a3dea2c017b37c7eeb93151b1da\", \"dcos-metadata--setup_7660c4e993820a3dea2c017b37c7eeb93151b1da\"]"
+                  :content "[\"dcos-config--setup_39bcd04b14a990a870cdff4543566e78d7507ba5\", \"dcos-metadata--setup_39bcd04b14a990a870cdff4543566e78d7507ba5\"]\n"
                   :owner "root"
-                  :permissions 420}]})
+                  :permissions 420}
+                 {:path "/etc/systemd/journald.conf.d/dcos.conf"
+                  :content "[Journal]\nMaxLevelConsole=warning\n"
+                  :owner "root"}]})
 
 (defn mesos-master-user-data []
   (cloud-config (merge-with (comp vec concat)
@@ -380,7 +385,7 @@
                           :PropagateAtLaunch "true"
                           :Value "mesos-slave"}
                    :user_data  (output-of "template_file" "public-slave-user-data" "rendered")
-                   :root_block_device {:volume_size 20}
+                   ;;:root_block_device {:volume_size 20}
                    :max_size 2
                    :min_size 2
                    :health_check_type "EC2" ;; or "ELB"?
