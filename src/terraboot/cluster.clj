@@ -84,11 +84,8 @@
                                            {:path "/etc/mesosphere/roles/aws"
                                             :content ""}]})))
 
-(defn exhibitor-bucket-name [cluster-name]
-  (str cluster-name "-exhibitor-s3-bucket"))
-
-(defn exhibitor-bucket-policy [cluster-name]
-  (let [bucket-arn (arn-of "aws_s3_bucket" (exhibitor-bucket-name cluster-name))]
+(defn exhibitor-bucket-policy [bucket-name]
+  (let [bucket-arn (arn-of "aws_s3_bucket" bucket-name)]
     (policy {"Action" ["s3:AbortMultipartUpload",
                        "s3:DeleteObject",
                        "s3:GetBucketAcl",
@@ -126,162 +123,169 @@
 
 (def default-number-of-master-instances 3)
 
+
 (defn cluster-infra
   [vpc-name cluster-name]
-  (let [public-subnets (mapv #(id-of "aws_subnet" (stringify "public-" %)) azs)
-        private-subnets (mapv #(id-of "aws_subnet" (stringify "private-" %)) azs) ]
+  (let [public-subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
+        private-subnets (mapv #(id-of "aws_subnet" (stringify vpc-name "-private-" %)) azs)
+        cluster-identifier (str vpc-name "-" cluster-name)
+        cluster-unique (fn [name] (str cluster-identifier "-" name))
+        cluster-resource (partial resource cluster-unique)
+        cluster-security-group (partial scoped-security-group cluster-unique)
+        cluster-id-of (fn [type name] (id-of type (cluster-unique name)))
+        cluster-output-of (fn [type name & values] (apply (partial output-of type (cluster-unique name)) values))]
     (merge-in
      (in-vpc vpc-name
-             (security-group "admin-security-group" {}
-                             {:from_port 0
-                              :to_port 65535
-                              :cidr_blocks (vec (vals (:public vpc/cidr-block)))}
-                             {:from_port 0
-                              :to_port 65535
-                              :protocol "udp"
-                              :cidr_blocks (vec (vals (:public vpc/cidr-block)))}
-                             )
+             (cluster-security-group "admin-security-group" {}
+                                     {:from_port 0
+                                      :to_port 65535
+                                      :cidr_blocks (vec (vals (:public vpc/cidr-block)))}
+                                     {:from_port 0
+                                      :to_port 65535
+                                      :protocol "udp"
+                                      :cidr_blocks (vec (vals (:public vpc/cidr-block)))}
+                                     )
 
-             (security-group "lb-security-group" {}
-                             {:port 2181
-                              :source_security_group_id (id-of "aws_security_group" "slave-security-group")}
-                             {:type "egress"
-                              :from_port 0
-                              :to_port 0
-                              :protocol -1
-                              :cidr_blocks [all-external]
-                              })
+             (cluster-security-group "lb-security-group" {}
+                                     {:port 2181
+                                      :source_security_group_id (cluster-id-of "aws_security_group" "slave-security-group")}
+                                     {:type "egress"
+                                      :from_port 0
+                                      :to_port 0
+                                      :protocol -1
+                                      :cidr_blocks [all-external]
+                                      })
 
-             (security-group "master-security-group" {}
-                             {:port 5050
-                              :source_security_group_id (id-of "aws_security_group" "lb-security-group")}
-                             {:port 80
-                              :source_security_group_id (id-of "aws_security_group" "lb-security-group")}
-                             {:port 8080
-                              :source_security_group_id (id-of "aws_security_group" "lb-security-group")}
-                             {:port 8181
-                              :source_security_group_id (id-of "aws_security_group" "lb-security-group")}
-                             {:port 2181
-                              :source_security_group_id (id-of "aws_security_group" "lb-security-group")}
-                             {:allow-all-sg (id-of "aws_security_group" "public-slave-security-group")}
-                             {:allow-all-sg (id-of "aws_security_group" "slave-security-group")}
-                             )
+             (cluster-security-group "master-security-group" {}
+                                     {:port 5050
+                                      :source_security_group_id (cluster-id-of "aws_security_group" "lb-security-group")}
+                                     {:port 80
+                                      :source_security_group_id (cluster-id-of "aws_security_group" "lb-security-group")}
+                                     {:port 8080
+                                      :source_security_group_id (cluster-id-of "aws_security_group" "lb-security-group")}
+                                     {:port 8181
+                                      :source_security_group_id (cluster-id-of "aws_security_group" "lb-security-group")}
+                                     {:port 2181
+                                      :source_security_group_id (cluster-id-of "aws_security_group" "lb-security-group")}
+                                     {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-security-group")}
+                                     {:allow-all-sg (cluster-id-of "aws_security_group" "slave-security-group")}
+                                     )
 
-             (security-group "public-slave-security-group" {}
-                             {:allow-all-sg (id-of "aws_security_group" "master-security-group")}
-                             {:from_port 0
-                              :to_port 21
-                              :cidr_blocks [all-external]}
-                             {:from_port 0
-                              :to_port 21
-                              :protocol "udp"
-                              :cidr_blocks [all-external]}
-                             {:port 22
-                              :cidr_blocks [vpc/vpc-cidr-block]}
-                             {:from_port 23
-                              :to_port 5050
-                              :cidr_blocks [all-external]}
-                             {:from_port 23
-                              :to_port 5050
-                              :protocol "udp"
-                              :cidr_blocks [all-external]}
-                             {:from_port 5052
-                              :to_port 65535
-                              :cidr_blocks [all-external]}
-                             {:from_port 5052
-                              :to_port 65535
-                              :protocol "udp"
-                              :cidr_blocks [all-external]}
-                             {:allow-all-sg (id-of "aws_security_group" "public-slave-security-group")}
-                             {:allow-all-sg (id-of "aws_security_group" "slave-security-group")})
+             (cluster-security-group "public-slave-security-group" {}
+                                     {:allow-all-sg (cluster-id-of "aws_security_group" "master-security-group")}
+                                     {:from_port 0
+                                      :to_port 21
+                                      :cidr_blocks [all-external]}
+                                     {:from_port 0
+                                      :to_port 21
+                                      :protocol "udp"
+                                      :cidr_blocks [all-external]}
+                                     {:port 22
+                                      :cidr_blocks [vpc/vpc-cidr-block]}
+                                     {:from_port 23
+                                      :to_port 5050
+                                      :cidr_blocks [all-external]}
+                                     {:from_port 23
+                                      :to_port 5050
+                                      :protocol "udp"
+                                      :cidr_blocks [all-external]}
+                                     {:from_port 5052
+                                      :to_port 65535
+                                      :cidr_blocks [all-external]}
+                                     {:from_port 5052
+                                      :to_port 65535
+                                      :protocol "udp"
+                                      :cidr_blocks [all-external]}
+                                     {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-security-group")}
+                                     {:allow-all-sg (cluster-id-of "aws_security_group" "slave-security-group")})
 
-             (security-group "slave-security-group" {}
-                             {:allow-all-sg (id-of "aws_security_group" "public-slave-security-group")}
-                             {:allow-all-sg (id-of "aws_security_group" "slave-security-group")}
-                             {:allow-all-sg (id-of "aws_security_group" "master-security-group")}
-                             {:port 2181
-                              :source_security_group_id (id-of "aws_security_group" "lb-security-group")})
+             (cluster-security-group "slave-security-group" {}
+                                     {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-security-group")}
+                                     {:allow-all-sg (cluster-id-of "aws_security_group" "slave-security-group")}
+                                     {:allow-all-sg (cluster-id-of "aws_security_group" "master-security-group")}
+                                     {:port 2181
+                                      :source_security_group_id (cluster-id-of "aws_security_group" "lb-security-group")})
 
-             (resource "aws_s3_bucket" (exhibitor-bucket-name cluster-name) {:bucket (exhibitor-bucket-name cluster-name)})
+             (cluster-resource "aws_s3_bucket" "exhibitor-s3-bucket" {:bucket (cluster-unique "exhibitor-s3-bucket")})
 
-             (resource "aws_iam_access_key" "host-key" {:user (id-of "aws_iam_user" "mesos-user")})
 
-             (resource "aws_iam_user" "mesos-user" {:name "mesos-user"})
+             (cluster-resource "aws_iam_user" "mesos-user" {:name "mesos-user"})
 
-             (resource "aws_iam_user_policy" "mesos-user-policy-s3"
-                       {:name "mesos-user-policy-s3"
-                        :user (id-of "aws_iam_user" "mesos-user")
-                        :policy (exhibitor-bucket-policy cluster-name)})
-             (resource "aws_iam_user_policy" "mesos-user-policy-ec2"
-                       {:name "mesos-user-policy-ec2"
-                        :user (id-of "aws_iam_user" "mesos-user")
-                        :policy auto-scaling-policy})
+             (cluster-resource "aws_iam_user_policy" "mesos-user-policy-s3"
+                               {:name "mesos-user-policy-s3"
+                                :user (cluster-id-of "aws_iam_user" "mesos-user")
+                                :policy (exhibitor-bucket-policy (cluster-unique "exhibitor-s3-bucket"))})
+             (cluster-resource "aws_iam_access_key" "host-key" {:user (cluster-id-of "aws_iam_user" "mesos-user")})
 
-             (resource "aws_iam_role" "master-role"
-                       {:name "master-role"
-                        :assume_role_policy default-assume-policy
-                        :path "/"})
+             (cluster-resource "aws_iam_role" "master-role"
+                               {:name "master-role"
+                                :assume_role_policy default-assume-policy
+                                :path "/"})
 
-             (resource "aws_iam_role_policy" "master-s3"
-                       {:name "master-s3"
-                        :role (id-of "aws_iam_role" "master-role")
-                        :policy (exhibitor-bucket-policy cluster-name)})
+             (cluster-resource "aws_iam_role_policy" "master-s3"
+                               {:name "master-s3"
+                                :role (cluster-id-of "aws_iam_role" "master-role")
+                                :policy (exhibitor-bucket-policy (cluster-unique "exhibitor-s3-bucket"))})
 
-             (resource "aws_iam_role_policy" "master-auto-scaling-policy"
-                       {:name "master-auto-scaling-policy"
-                        :role (id-of "aws_iam_role" "master-role")
-                        :policy auto-scaling-policy})
+             (cluster-resource "aws_iam_role_policy" "master-auto-scaling-policy"
+                               {:name "master-auto-scaling-policy"
+                                :role (cluster-id-of "aws_iam_role" "master-role")
+                                :policy auto-scaling-policy})
 
-             (resource "aws_iam_role" "slave-role"
-                       {:name "slave-role"
-                        :assume_role_policy default-assume-policy})
 
-             (resource "aws_iam_policy_attachment" "amazon-s3"
-                       {:name "managed-amazon-s3-policy"
-                        :roles [(id-of "aws_iam_role" "slave-role")]
-                        :policy_arn "arn:aws:iam::aws:policy/AmazonS3FullAccess"})
 
-             (resource "aws_iam_policy_attachment" "cloudwatch"
-                       {:name "managed-cloudwatch-policy"
-                        :roles [(id-of "aws_iam_role" "slave-role")]
-                        :policy_arn  "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"})
 
-             (resource "aws_iam_role_policy" "slave-eip-policy"
-                       {:name "slave-eip-policy"
-                        :role (id-of "aws_iam_role" "slave-role")
-                        :policy (policy {"Action" ["ec2:AssociateAddress"]})})
+             (cluster-resource "aws_iam_role" "slave-role"
+                               {:name "slave-role"
+                                :assume_role_policy default-assume-policy})
 
-             (resource "aws_iam_role_policy" "slave-cloudwatch-policy"
-                       {:name "slave-cloudwatch-policy"
-                        :role (id-of "aws_iam_role" "slave-role")
-                        :policy (policy { "Action" ["cloudwatch:GetMetricStatistics",
-                                                    "cloudwatch:ListMetrics",
-                                                    "cloudwatch:PutMetricData",
-                                                    "EC2:DescribeTags" ]
-                                         "Condition" {"Bool" { "aws:SecureTransport" "true"}}
-                                         })})
+             (cluster-resource "aws_iam_policy_attachment" "amazon-s3"
+                               {:name "managed-amazon-s3-policy"
+                                :roles [(cluster-id-of "aws_iam_role" "slave-role")]
+                                :policy_arn "arn:aws:iam::aws:policy/AmazonS3FullAccess"})
+
+             (cluster-resource "aws_iam_policy_attachment" "cloudwatch"
+                               {:name "managed-cloudwatch-policy"
+                                :roles [(cluster-id-of "aws_iam_role" "slave-role")]
+                                :policy_arn  "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"})
+
+             (cluster-resource "aws_iam_role_policy" "slave-eip-policy"
+                               {:name "slave-eip-policy"
+                                :role (cluster-id-of "aws_iam_role" "slave-role")
+                                :policy (policy {"Action" ["ec2:AssociateAddress"]})})
+
+             (cluster-resource "aws_iam_role_policy" "slave-cloudwatch-policy"
+                               {:name "slave-cloudwatch-policy"
+                                :role (cluster-id-of "aws_iam_role" "slave-role")
+                                :policy (policy { "Action" ["cloudwatch:GetMetricStatistics",
+                                                            "cloudwatch:ListMetrics",
+                                                            "cloudwatch:PutMetricData",
+                                                            "EC2:DescribeTags" ]
+                                                 "Condition" {"Bool" { "aws:SecureTransport" "true"}}
+                                                 })})
 
              (resource "template_file" "master-user-data"
                        {:template (mesos-master-user-data)
                         :vars {:aws-region region
                                :cluster-name cluster-name
-                               :cluster-id (str vpc-name "-" cluster-name)
-                               :server-group "MasterServerGroup"
-                               :master-role (id-of "aws_iam_role" "master-role")
-                               :slave-role (id-of "aws_iam_role" "slave-role")
-                               :aws-access-key (id-of "aws_iam_access_key" "host-key")
-                               :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
-                               :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
-                               :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
+                               :cluster-id cluster-identifier
+                               :server-group (cluster-unique "MasterServerGroup")
+                               :master-role (cluster-id-of "aws_iam_role" "master-role")
+                               :slave-role (cluster-id-of "aws_iam_role" "slave-role")
+                               :aws-access-key (cluster-id-of "aws_iam_access_key" "host-key")
+                               :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
+                               :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
+                               :internal-lb-dns (cluster-output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                :number-of-masters default-number-of-master-instances}
                         })
 
              (asg "MasterServerGroup"
+                  cluster-unique
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"
-                   :sgs ["master-security-group" "admin-security-group"]
-                   :role "master-role"
+                   :sgs (mapv cluster-unique ["master-security-group" "admin-security-group"])
+                   :role (cluster-unique "master-role")
                    :public_ip true
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
@@ -301,8 +305,8 @@
                                          :timeout 5
                                          :interval 30}
                           :subnets public-subnets
-                          :sgs ["lb-security-group"
-                                "admin-security-group"]}
+                          :sgs (mapv cluster-unique ["lb-security-group"
+                                                     "admin-security-group"])}
                          {:name "InternalMasterLoadBalancer"
                           :listeners [(elb-listener {:port 5050 :protocol "HTTP"})
                                       (elb-listener {:port 2181 :protocol "TCP"})
@@ -314,33 +318,34 @@
                                          :timeout 5
                                          :interval 30}
                           :subnets public-subnets
-                          :sgs ["lb-security-group"
-                                "admin-security-group"
-                                "slave-security-group"
-                                "public-slave-security-group"
-                                "master-security-group"]
+                          :sgs (mapv cluster-unique ["lb-security-group"
+                                                     "admin-security-group"
+                                                     "slave-security-group"
+                                                     "public-slave-security-group"
+                                                     "master-security-group"])
                           }]})
 
              (resource "template_file" "public-slave-user-data"
                        {:template (mesos-public-slave-user-data)
                         :vars {:aws-region region
                                :cluster-name cluster-name
-                               :cluster-id (str vpc-name "-" cluster-name)
-                               :server-group "PublicSlaveServerGroup"
-                               :master-role (id-of "aws_iam_role" "master-role")
-                               :slave-role (id-of "aws_iam_role" "slave-role")
-                               :aws-access-key (id-of "aws_iam_access_key" "host-key")
-                               :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
-                               :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
-                               :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
+                               :cluster-id cluster-identifier
+                               :server-group (cluster-unique "PublicSlaveServerGroup")
+                               :master-role (cluster-id-of "aws_iam_role" "master-role")
+                               :slave-role (cluster-id-of "aws_iam_role" "slave-role")
+                               :aws-access-key (cluster-id-of "aws_iam_access_key" "host-key")
+                               :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
+                               :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
+                               :internal-lb-dns (cluster-output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                :number-of-masters default-number-of-master-instances}})
 
              (asg "PublicSlaveServerGroup"
+                  cluster-unique
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"
-                   :sgs ["public-slave-security-group"]
-                   :role "slave-role"
+                   :sgs (mapv cluster-unique ["public-slave-security-group"])
+                   :role (cluster-unique "slave-role")
                    :public_ip true
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
@@ -360,29 +365,30 @@
                                          :timeout 5
                                          :interval 30}
                           :subnets public-subnets
-                          :sgs ["public-slave-security-group"]}]})
+                          :sgs (mapv cluster-unique ["public-slave-security-group"])}]})
 
              (resource "template_file" "slave-user-data"
                        {:template (mesos-slave-user-data)
                         :vars {:aws-region region
                                :cluster-name cluster-name
-                               :cluster-id "some-unique-id"
-                               :server-group "SlaveServerGroup"
-                               :master-role (id-of "aws_iam_role" "master-role")
-                               :slave-role (id-of "aws_iam_role" "slave-role")
-                               :aws-access-key (id-of "aws_iam_access_key" "host-key")
-                               :aws-secret-access-key (output-of "aws_iam_access_key" "host-key" "secret")
-                               :exhibitor-s3-bucket (exhibitor-bucket-name cluster-name)
-                               :internal-lb-dns (output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
+                               :cluster-id cluster-identifier
+                               :server-group (cluster-unique "SlaveServerGroup")
+                               :master-role (cluster-id-of "aws_iam_role" "master-role")
+                               :slave-role (cluster-id-of "aws_iam_role" "slave-role")
+                               :aws-access-key (cluster-id-of "aws_iam_access_key" "host-key")
+                               :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
+                               :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
+                               :internal-lb-dns (cluster-output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                :number-of-masters default-number-of-master-instances}
                         })
 
              (asg "SlaveServerGroup"
+                  cluster-unique
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"
-                   :sgs ["slave-security-group"]
-                   :role "slave-role"
+                   :sgs (mapv cluster-unique ["slave-security-group"])
+                   :role (cluster-unique "slave-role")
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
                           :Value "mesos-slave"}

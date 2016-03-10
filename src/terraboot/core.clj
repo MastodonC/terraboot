@@ -30,11 +30,19 @@
 (defn arn-of [type name]
   (output-of type name "arn"))
 
-(defn resource [type name spec]
-  {:resource
-   {type
-    {name
-     spec}}})
+(defn resource
+  ([type name spec]
+   {:resource
+    {type
+     {name
+      spec}}})
+  ([name-fn type name spec]
+   (resource type (name-fn name) (-> (if (:name spec)
+                                       (assoc spec :name (name-fn (:name spec)))
+                                       spec)
+                                     (#(if (get-in % [:tags :Name])
+                                         (assoc-in % [:tags :Name] (name-fn (get-in % [:tags :Name])))
+                                         %))))))
 
 (defn provider [type spec]
   {:provider
@@ -79,17 +87,20 @@
 (defn stringify [& args]
   (apply str (map name args)))
 
-(defn security-group [name spec & rules]
+
+
+(defn scoped-security-group
+  [name-fn name spec & rules]
   (merge-in
-   (resource "aws_security_group" name
-             (merge {:name name
-                     :tags {:Name name}}
+   (resource "aws_security_group" (name-fn name)
+             (merge {:name (name-fn name)
+                     :tags {:Name (name-fn name)}}
                     spec))
    (resource-seq
     (for [rule rules]
       (let [defaults {:protocol "tcp"
                       :type "ingress"
-                      :security_group_id (id-of "aws_security_group" name)}
+                      :security_group_id (id-of "aws_security_group" (name-fn name))}
 
             port-to-port-range (fn [rule] (if-let [port (:port rule)]
                                             (-> rule
@@ -109,8 +120,11 @@
                      allow-all-sg)
             suffix (str (hash rule))]
         ["aws_security_group_rule"
-         (stringify name "-" suffix)
+         (stringify (name-fn name) "-" suffix)
          rule])))))
+
+(def security-group
+  (partial scoped-security-group identity))
 
 (defn aws-instance [name spec]
   (let [default-sg-ids (map (partial id-of "aws_security_group") default-sgs)]
@@ -122,7 +136,7 @@
                                       (merge-in spec)
                                       (update-in [:vpc_security_group_ids] concat default-sg-ids)))))
 
-(defn elb [name spec]
+(defn elb [name cluster-resource spec]
   (let [defaults {:cert_name false
                   :instances []
                   :lb_protocol "http"}
@@ -151,71 +165,75 @@
                             [default-listener])
         listeners (concat default-listeners (:listeners spec))
         elb-security-groups        (map #(id-of "aws_security_group" %) sgs)]
-    (resource "aws_elb" name {:subnets subnets
-                              :security_groups elb-security-groups
-                              :listener listeners
-                              :instances instances
-                              :health_check health_check
-                              :cross_zone_load_balancing true
-                              :idle_timeout 60
-                              :connection_draining true
-                              :connection_draining_timeout 60
-                              :tags {:Name name}})))
+    (cluster-resource "aws_elb" name {:subnets subnets
+                                      :security_groups elb-security-groups
+                                      :listener listeners
+                                      :instances instances
+                                      :health_check health_check
+                                      :cross_zone_load_balancing true
+                                      :idle_timeout 60
+                                      :connection_draining true
+                                      :connection_draining_timeout 60
+                                      :tags {:Name name}})))
 
-(defn asg [name {:keys [sgs
-                        image_id
-                        user_data
-                        instance_type
-                        subnets
-                        role
-                        public_ip
-                        ebs_block_device] :as spec}]
+(defn asg [name
+           name-fn
+           {:keys [sgs
+                   image_id
+                   user_data
+                   instance_type
+                   subnets
+                   role
+                   public_ip
+                   ebs_block_device] :as spec}]
   (let [add-disk-if-present (fn [ebs_block_device map]
                               (if ebs_block_device
                                 (assoc map :ebs_block_device ebs_block_device)
                                 map))
         root_block_device (get spec :root_block_device {})
-
+        cluster-resource (partial resource name-fn)
+        cluster-id-of (fn [type name] (id-of type (name-fn name)))
+        cluster-output-of (fn [type name & values] (apply (partial output-of type (name-fn name)) values))
         security-groups (map #(id-of "aws_security_group" %) (concat default-sgs sgs))
         asg-config
         (merge-in
-         (resource "aws_iam_instance_profile" name
-                   {:name (str name "-profile")
-                    :roles [(id-of "aws_iam_role" role)]})
+         (cluster-resource "aws_iam_instance_profile" name
+                           {:name (str name "-profile")
+                            :roles [(id-of "aws_iam_role" role)]})
 
-         (resource "aws_launch_configuration" name
-                   (add-disk-if-present ebs_block_device
-                                        {:name_prefix (str name "-")
-                                         :image_id image_id
-                                         :instance_type instance_type
-                                         :iam_instance_profile (id-of "aws_iam_instance_profile" name)
-                                         :user_data user_data
-                                         :lifecycle { :create_before_destroy true }
-                                         :key_name (get spec :key_name "ops-terraboot")
-                                         :security_groups security-groups
-                                         :associate_public_ip_address (or public_ip false)
-                                         :root_block_device root_block_device}
+         (cluster-resource "aws_launch_configuration" name
+                           (add-disk-if-present ebs_block_device
+                                                {:name_prefix (str (name-fn name) "-")
+                                                 :image_id image_id
+                                                 :instance_type instance_type
+                                                 :iam_instance_profile (cluster-id-of "aws_iam_instance_profile" name)
+                                                 :user_data user_data
+                                                 :lifecycle { :create_before_destroy true }
+                                                 :key_name (get spec :key_name "ops-terraboot")
+                                                 :security_groups security-groups
+                                                 :associate_public_ip_address (or public_ip false)
+                                                 :root_block_device root_block_device}
 
-                                        )
-                   )
+                                                )
+                           )
 
-         (resource "aws_autoscaling_group" name
-                   {:vpc_zone_identifier subnets
-                    :name name
-                    :max_size (spec :max_size)
-                    :min_size (spec :min_size)
-                    :health_check_type (spec :health_check_type)
-                    :health_check_grace_period (spec :health_check_grace_period)
-                    :launch_configuration (output-of "aws_launch_configuration" name "name")
-                    :lifecycle { :create_before_destroy true }
-                    :load_balancers (mapv #(output-of "aws_elb" (:name %) "name") (:elb spec))
-                    :tag {
-                          :key "Name"
-                          :value (str "autoscale-" name)
-                          :propagate_at_launch true
-                          }}))]
+         (cluster-resource "aws_autoscaling_group" name
+                           {:vpc_zone_identifier subnets
+                            :name name
+                            :max_size (spec :max_size)
+                            :min_size (spec :min_size)
+                            :health_check_type (spec :health_check_type)
+                            :health_check_grace_period (spec :health_check_grace_period)
+                            :launch_configuration (cluster-output-of "aws_launch_configuration" name "name")
+                            :lifecycle { :create_before_destroy true }
+                            :load_balancers (mapv #(cluster-output-of "aws_elb" (:name %) "name") (:elb spec))
+                            :tag {
+                                  :key "Name"
+                                  :value (str "autoscale-" name)
+                                  :propagate_at_launch true
+                                  }}))]
     (merge-in asg-config
-              (apply merge-in (map #(elb (:name %) %) (spec :elb))))))
+              (apply merge-in (map #(elb (:name %) cluster-resource %) (spec :elb))))))
 
 (defn policy [statement]
   (let [default-policy {"Version" "2012-10-17"
