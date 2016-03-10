@@ -109,11 +109,7 @@
                      "autoscaling:DescribeScalingActivities",
                      "elasticloadbalancing:DescribeLoadBalancers"]}))
 
-(def default-assume-policy
-  (to-json {"Statement" [{"Action" ["sts:AssumeRole"]
-                          "Effect" "Allow"
-                          "Principal" {"Service" ["ec2.amazonaws.com"]}}]
-            "Version" "2012-10-17" }))
+
 
 (defn elb-listener [{:keys [port lb_port protocol lb_protocol]}]
   {:instance_port port
@@ -217,52 +213,31 @@
                                 :policy (exhibitor-bucket-policy (cluster-unique "exhibitor-s3-bucket"))})
              (cluster-resource "aws_iam_access_key" "host-key" {:user (cluster-id-of "aws_iam_user" "mesos-user")})
 
-             (cluster-resource "aws_iam_role" "master-role"
-                               {:name "master-role"
-                                :assume_role_policy default-assume-policy
-                                :path "/"})
 
-             (cluster-resource "aws_iam_role_policy" "master-s3"
-                               {:name "master-s3"
-                                :role (cluster-id-of "aws_iam_role" "master-role")
-                                :policy (exhibitor-bucket-policy (cluster-unique "exhibitor-s3-bucket"))})
-
-             (cluster-resource "aws_iam_role_policy" "master-auto-scaling-policy"
-                               {:name "master-auto-scaling-policy"
-                                :role (cluster-id-of "aws_iam_role" "master-role")
-                                :policy auto-scaling-policy})
+             (iam-role "master-role"
+                       cluster-unique
+                       {:name "master-s3"
+                        :policy (exhibitor-bucket-policy (cluster-unique "exhibitor-s3-bucket"))}
+                       {:name "master-auto-scaling-policy"
+                        :policy auto-scaling-policy}                       )
 
 
+             (iam-role "slave-role"
+                       cluster-unique
+                       {:name "amazon-s3-policy"
+                        :policy_arn "arn:aws:iam::aws:policy/AmazonS3FullAccess"}
+                       {:name "cloudwatch-policy"
+                        :policy_arn  "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"}
+                       {:name "slave-eip-policy"
+                        :policy (policy {"Action" ["ec2:AssociateAddress"]})}
+                       {:name "slave-cloudwatch-policy"
+                        :policy (policy { "Action" ["cloudwatch:GetMetricStatistics",
+                                                    "cloudwatch:ListMetrics",
+                                                    "cloudwatch:PutMetricData",
+                                                    "EC2:DescribeTags" ]
+                                         "Condition" {"Bool" { "aws:SecureTransport" "true"}}
+                                         })})
 
-
-             (cluster-resource "aws_iam_role" "slave-role"
-                               {:name "slave-role"
-                                :assume_role_policy default-assume-policy})
-
-             (cluster-resource "aws_iam_policy_attachment" "amazon-s3"
-                               {:name "managed-amazon-s3-policy"
-                                :roles [(cluster-id-of "aws_iam_role" "slave-role")]
-                                :policy_arn "arn:aws:iam::aws:policy/AmazonS3FullAccess"})
-
-             (cluster-resource "aws_iam_policy_attachment" "cloudwatch"
-                               {:name "managed-cloudwatch-policy"
-                                :roles [(cluster-id-of "aws_iam_role" "slave-role")]
-                                :policy_arn  "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"})
-
-             (cluster-resource "aws_iam_role_policy" "slave-eip-policy"
-                               {:name "slave-eip-policy"
-                                :role (cluster-id-of "aws_iam_role" "slave-role")
-                                :policy (policy {"Action" ["ec2:AssociateAddress"]})})
-
-             (cluster-resource "aws_iam_role_policy" "slave-cloudwatch-policy"
-                               {:name "slave-cloudwatch-policy"
-                                :role (cluster-id-of "aws_iam_role" "slave-role")
-                                :policy (policy { "Action" ["cloudwatch:GetMetricStatistics",
-                                                            "cloudwatch:ListMetrics",
-                                                            "cloudwatch:PutMetricData",
-                                                            "EC2:DescribeTags" ]
-                                                 "Condition" {"Bool" { "aws:SecureTransport" "true"}}
-                                                 })})
 
              (resource "template_file" "master-user-data"
                        {:template (mesos-master-user-data)

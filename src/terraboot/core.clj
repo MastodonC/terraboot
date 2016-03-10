@@ -235,6 +235,29 @@
     (merge-in asg-config
               (apply merge-in (map #(elb (:name %) cluster-resource %) (spec :elb))))))
 
+(def default-assume-policy
+  (to-json {"Statement" [{"Action" ["sts:AssumeRole"]
+                          "Effect" "Allow"
+                          "Principal" {"Service" ["ec2.amazonaws.com"]}}]
+            "Version" "2012-10-17" }))
+
+(defn iam-role [name name-fn & policies]
+  (let [cluster-resource (partial resource name-fn)
+        cluster-id-of (fn [type name] (id-of type (name-fn name)))]
+    (merge-in
+     (cluster-resource "aws_iam_role" name
+                       {:name name
+                        :assume_role_policy default-assume-policy
+                        :path "/"})
+     (apply merge-in (mapv
+                      #(cond
+                         (:policy %) (cluster-resource "aws_iam_role_policy" (:name %)
+                                                       (assoc % :role (cluster-id-of "aws_iam_role" name)))
+                         (:policy_arn %) (cluster-resource "aws_iam_policy_attachment" (:name %)
+                                                           (assoc % :roles [(cluster-id-of "aws_iam_role" name)])))
+                      policies)))
+
+    ))
 (defn policy [statement]
   (let [default-policy {"Version" "2012-10-17"
                         "Statement" {"Effect" "Allow"
