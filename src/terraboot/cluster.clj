@@ -367,7 +367,7 @@
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
                           :Value "mesos-slave"}
-                   :user_data  (output-of "template_file" "public-slave-user-data" "rendered")
+                   :user_data  (output-of "template_file" "slave-user-data" "rendered")
                    ;;:root_block_device {:volume_size 20}
                    :max_size 2
                    :min_size 2
