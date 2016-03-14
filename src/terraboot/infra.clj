@@ -16,7 +16,7 @@
                              :min-number-of-slaves 2
                              :max-number-of-slaves 2
                              :min-number-of-public-slaves 1
-                             :max-number-of-public-slaves 1}) (str infra-path "cluster.tf"))))
+                             :max-number-of-public-slaves 2}) (str infra-path "cluster.tf"))))
 
 ;; Possible extra option: to make directory a parameter
 (defn -main [action]
