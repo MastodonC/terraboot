@@ -97,17 +97,33 @@
                                                :associate_public_ip_address true
                                                })
 
+             (aws-instance "influxdb" {:ami "ami-9b9c86f7"
+                                       :vpc_security_group_ids [(id-of "aws_security_group" "influxdb")
+                                                                (id-of "aws_security_group" "allow_ssh")
+                                                                ]
+                                       :subnet_id (vpc-id-of "aws_subnet" "public-a")
+                                       })
+
+             (security-group "influxdb" {}
+                             {:port 222
+                              :protocol "tcp"
+                              :cidr_blocks [all-external]})
+
+             (resource "aws_eip" "influxdb"
+                       {:vpc true
+                        :instance (id-of "aws_instance" "influxdb")})
+
+             (route53_record "influxdb" { :records [(output-of "aws_eip" "influxdb" "public_ip")]})
+
+             (route53_record "logstash" {:records [(vpc-output-of "aws_eip" "logstash" "public_ip")]})
+
+             (vpc-security-group "sends_gelf" {})
+
+
              (vpc-resource "aws_eip" "vpn" {:instance (vpc-id-of "aws_instance" "vpn")
                                             :vpc true})
 
-             (resource "aws_route53_zone" "kixi" {:name "kixi.io"})
-
-             (vpc-resource "aws_route53_record" "vpn"
-                           {:zone_id (id-of "aws_route53_zone" "kixi")
-                            :name "vpn.kixi.io"
-                            :type "A"
-                            :ttl 300
-                            :records [(vpc-output-of "aws_instance" "vpn" "public_ip")]})
+             (route53_record "vpn" {:records [(vpc-output-of "aws_instance" "vpn" "public_ip")]})
 
              (security-group "allow_outbound" {}
                              {:type "egress"
