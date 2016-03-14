@@ -117,8 +117,6 @@
    :lb_port (or lb_port port)
    :lb_protocol (or lb_protocol protocol)})
 
-(def default-number-of-master-instances 3)
-
 
 (defn cluster-infra
   [{:keys [vpc-name
@@ -259,7 +257,7 @@
                                :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
                                :internal-lb-dns (cluster-output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
-                               :number-of-masters default-number-of-master-instances}
+                               :number-of-masters min-number-of-masters}
                         })
 
              (asg "MasterServerGroup"
@@ -320,7 +318,7 @@
                                :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
                                :internal-lb-dns (cluster-output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
-                               :number-of-masters default-number-of-master-instances}})
+                               :number-of-masters min-number-of-masters}})
 
              (asg "PublicSlaveServerGroup"
                   cluster-unique
@@ -362,7 +360,7 @@
                                :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
                                :internal-lb-dns (cluster-output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
-                               :number-of-masters default-number-of-master-instances}
+                               :number-of-masters min-number-of-masters}
                         })
 
              (asg "SlaveServerGroup"
