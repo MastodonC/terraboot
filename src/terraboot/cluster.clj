@@ -121,7 +121,14 @@
 
 
 (defn cluster-infra
-  [vpc-name cluster-name]
+  [{:keys [vpc-name
+           cluster-name
+           min-number-of-masters
+           max-number-of-masters
+           min-number-of-slaves
+           max-number-of-slaves
+           min-number-of-public-slaves
+           max-number-of-public-slaves]}]
   (let [public-subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
         private-subnets (mapv #(id-of "aws_subnet" (stringify vpc-name "-private-" %)) azs)
         cluster-identifier (str vpc-name "-" cluster-name)
@@ -266,8 +273,8 @@
                           :PropagateAtLaunch "true"
                           :Value "mesos-master"}
                    :user_data (output-of "template_file" "master-user-data" "rendered")
-                   :max_size default-number-of-master-instances
-                   :min_size default-number-of-master-instances
+                   :max_size max-number-of-masters
+                   :min_size min-number-of-masters
                    :health_check_type "EC2"
                    :health_check_grace_period 20
                    :root_block_device {:volume_size 20}
@@ -327,8 +334,8 @@
                           :Value "mesos-slave"}
                    :user_data (output-of "template_file" "public-slave-user-data" "rendered")
                    ;;:root_block_device {:volume_size 20}
-                   :max_size 2
-                   :min_size 1
+                   :max_size max-number-of-public-slaves
+                   :min_size min-number-of-public-slaves
                    :health_check_type "EC2"
                    :health_check_grace_period 20
                    :subnets public-subnets
@@ -369,8 +376,8 @@
                           :Value "mesos-slave"}
                    :user_data  (output-of "template_file" "slave-user-data" "rendered")
                    ;;:root_block_device {:volume_size 20}
-                   :max_size 2
-                   :min_size 2
+                   :max_size max-number-of-slaves
+                   :min_size min-number-of-slaves
                    :health_check_type "EC2" ;; or "ELB"?
                    :health_check_grace_period 20
                    :subnets private-subnets

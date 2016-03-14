@@ -9,7 +9,14 @@
 (defn generate-json []
   (do
     (to-file vpc-vpn-infra (str infra-path "vpc.tf"))
-    (to-file (cluster-infra vpc-name "production") (str infra-path "cluster.tf"))))
+    (to-file (cluster-infra {:vpc-name vpc-name
+                             :cluster-name"production"
+                             :min-number-of-masters 3
+                             :max-number-of-masters 3
+                             :min-number-of-slaves 2
+                             :max-number-of-slaves 2
+                             :min-number-of-public-slaves 1
+                             :max-number-of-public-slaves 1}) (str infra-path "cluster.tf"))))
 
 ;; Possible extra option: to make directory a parameter
 (defn -main [action]
