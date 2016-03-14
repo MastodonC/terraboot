@@ -266,6 +266,7 @@
                                :internal-lb-dns (cluster-output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                :number-of-masters min-number-of-masters}
+                        :lifecycle { :create_before_destroy true }
                         })
 
              (asg "MasterServerGroup"
@@ -326,7 +327,8 @@
                                :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
                                :internal-lb-dns (cluster-output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
-                               :number-of-masters min-number-of-masters}})
+                               :number-of-masters min-number-of-masters}
+                        :lifecycle { :create_before_destroy true }})
 
              (asg "PublicSlaveServerGroup"
                   cluster-unique
@@ -369,6 +371,7 @@
                                :internal-lb-dns (cluster-output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
                                :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                :number-of-masters min-number-of-masters}
+                        :lifecycle { :create_before_destroy true }
                         })
 
              (asg "SlaveServerGroup"
