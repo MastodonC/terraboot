@@ -126,6 +126,22 @@
 (def security-group
   (partial scoped-security-group identity))
 
+(defn safe-name [s]
+  (string/replace s #"\." "__"))
+
+(def dns-zone "mastodonc.net")
+(def dns-zone-id "Z1EFD0WXZUIXYT")
+
+(defn route53_record [prefix spec]
+  (let [name (str prefix "." dns-zone)]
+    (resource "aws_route53_record" (safe-name name)
+              (merge
+               {:zone_id dns-zone-id
+                :name name
+                :type "A"
+                :ttl  "300"}
+               spec))))
+
 (defn aws-instance [name spec]
   (let [default-sg-ids (map (partial id-of "aws_security_group") default-sgs)]
     (resource "aws_instance" name (-> {:tags {:Name name}
