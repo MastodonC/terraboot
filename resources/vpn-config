@@ -24,6 +24,9 @@ write_files:
 {{vpn-cert}}
       permissions: '644'
       path: /etc/openvpn/mesos-vpn-gw.crt
+{{crl}}
+      permissions: '644'
+      path: /etc/openvpn/crl.pem
     - content:  |
 {{dh-param}}
       permissions: '600'
@@ -36,6 +39,7 @@ write_files:
                cert mesos-vpn-gw.crt
                key mesos-vpn-gw.key
                dh dh2048.pem
+               crl-verify crl.pem
                server 10.20.0.0 255.255.255.0
                ifconfig-pool-persist ipp.txt
                push "route {{range-start}} 255.255.0.0"
