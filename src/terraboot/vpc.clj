@@ -100,6 +100,15 @@
              (vpc-resource "aws_eip" "vpn" {:instance (vpc-id-of "aws_instance" "vpn")
                                             :vpc true})
 
+             (resource "aws_route53_zone" "kixi" {:name "kixi.io"})
+
+             (vpc-resource "aws_route53_record" "vpn"
+                           {:zone_id (id-of "aws_route53_zone" "kixi")
+                            :name "vpn.kixi.io"
+                            :type "A"
+                            :ttl 300
+                            :records [(vpc-output-of "aws_instance" "vpn" "public_ip")]})
+
              (security-group "allow_outbound" {}
                              {:type "egress"
                               :from_port 0
