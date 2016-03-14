@@ -109,7 +109,15 @@
                      "autoscaling:DescribeScalingActivities",
                      "elasticloadbalancing:DescribeLoadBalancers"]}))
 
+(def full-amazon-s3-access
+  (policy {"Action" "s3:*"}))
 
+(def cloudwatch-metrics-policy
+  (policy {"Action" ["cloudwatch:GetMetricStatistics"
+                     "cloudwatch:ListMetrics"
+                     "cloudwatch:PutMetricData"
+                     "EC2:DescribeTags"]
+           "Condition" {"Bool" {"aws:SecureTransport" "true"}}}))
 
 (defn elb-listener [{:keys [port lb_port protocol lb_protocol]}]
   {:instance_port port
@@ -209,7 +217,6 @@
 
              (cluster-resource "aws_s3_bucket" "exhibitor-s3-bucket" {:bucket (cluster-unique "exhibitor-s3-bucket")})
 
-
              (cluster-resource "aws_iam_user" "mesos-user" {:name "mesos-user"})
 
              (cluster-resource "aws_iam_user_policy" "mesos-user-policy-s3"
@@ -230,9 +237,9 @@
              (iam-role "slave-role"
                        cluster-unique
                        {:name "amazon-s3-policy"
-                        :policy_arn "arn:aws:iam::aws:policy/AmazonS3FullAccess"}
+                        :policy full-amazon-s3-access}
                        {:name "cloudwatch-policy"
-                        :policy_arn  "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"}
+                        :policy cloudwatch-metrics-policy}
                        {:name "slave-eip-policy"
                         :policy (policy {"Action" ["ec2:AssociateAddress"]})}
                        {:name "slave-cloudwatch-policy"
