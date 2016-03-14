@@ -14,7 +14,8 @@
                     {:name "docker.service" :command "restart"}
                     {:name "dcos-link-env.service" :command "start" :content (snippet "systemd/dcos-link-env.service")}
                     {:name "dcos-download.service" :content (snippet "systemd/dcos-download.service")}
-                    {:name "dcos-setup.service" :command "start" :content (clojure.string/trim-newline (snippet "systemd/dcos-setup.service")) :enable true}]
+                    {:name "dcos-setup.service" :command "start" :content (clojure.string/trim-newline (snippet "systemd/dcos-setup.service")) :enable true}
+                    {:name "cadvisor.service" :command "start" :content (snippet "systemd/cadvisor.service") :enable true}]
             :update {:reboot-strategy "off"}}
    :write_files [{:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json"
                   :content "{}\n"}
