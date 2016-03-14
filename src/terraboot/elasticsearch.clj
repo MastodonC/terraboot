@@ -80,7 +80,7 @@
              (aws-instance (vpc-unique "kibana") {
                                                   :ami "ami-9b9c86f7"
                                                   :vpc_security_group_ids [(vpc-id-of "aws_security_group" "kibana")]
-                                                  :subnet_id (vpc-id-of "aws_subnet" "public-a")
+                                                  :subnet_id (vpc-id-of "aws_subnet" "private-a")
                                                   })
 
              (vpc-security-group "kibana" {})
