@@ -36,7 +36,7 @@
                                                                                             (vpc-output-of "aws_eip" "public-b-nat" "public_ip")
                                                                                             (vpc-output-of "aws_eip" "logstash" "public_ip")
                                                                                             "87.115.98.26/32" ; Tom
-                                                                                            "146.200.166.70" ; Elise
+                                                                                            "146.200.166.70/32"  ; Elise
                                                                                             ]
                                                                             }}}]})
                     :cluster_config {:instance_count 2,
@@ -57,11 +57,15 @@
                                   :cidr_blocks ["52.29.162.148/32"
                                                 "52.29.163.57/32"
                                                 "52.29.97.114/32"
-                                                "87.115.98.26/32"]})
+                                                "87.115.98.26/32"]}
+                                  :protocol "tcp"
+                                  :cidr_blocks [all-external]})
 
              (vpc-resource "aws_eip" "logstash"
                            {:vpc true
                             :instance (vpc-id-of "aws_instance" "logstash")})
+
+
 
              (vpc-security-group "sends_gelf" {})
              (aws-instance (vpc-unique "logstash") {:ami "ami-9b9c86f7"
