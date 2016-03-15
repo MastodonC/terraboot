@@ -1,8 +1,7 @@
 (ns terraboot.infra
   (:require [terraboot.core :refer :all]
             [terraboot.vpc :refer [vpc-vpn-infra vpc-name]]
-            [terraboot.cluster :refer [cluster-infra]]
-            [me.raynes.conch :refer [with-programs]]))
+            [terraboot.cluster :refer [cluster-infra]]))
 
 (def infra-path "infra/")
 
@@ -19,12 +18,5 @@
                              :max-number-of-public-slaves 2}) (str infra-path "cluster.tf"))))
 
 ;; Possible extra option: to make directory a parameter
-(defn -main [action]
-  (with-programs [terraform]
-    (condp = action
-      "gen-json" (generate-json)
-      "plan"     (do (generate-json)
-                     (-> (terraform "plan" infra-path) println))
-      "apply"    (do (generate-json)
-                     (-> (terraform "apply" infra-path) println))
-      :else (generate-json))))
+(defn -main []
+  (generate-json))
