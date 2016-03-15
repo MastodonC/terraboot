@@ -48,6 +48,9 @@
                   :permissions 420}
                  {:path "/etc/systemd/journald.conf.d/dcos.conf"
                   :content "[Journal]\nMaxLevelConsole=warning\n"
+                  :owner "root"}
+                 {:path "/etc/systemd/journal-upload.conf"
+                  :content (snippet "systemd/journal-upload.conf")
                   :owner "root"}]})
 
 (defn mesos-master-user-data []
