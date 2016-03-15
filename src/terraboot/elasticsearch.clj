@@ -16,7 +16,8 @@
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
         vpc-output-of (fn [type name & values] (apply (partial output-of type (vpc-unique name)) values))
-        vpc-security-group (partial scoped-security-group vpc-unique)]
+        vpc-security-group (partial scoped-security-group vpc-unique)
+        azs [:a :b]]
     (merge-in
      (vpc-resource "aws_elasticsearch_domain" name
                    {:domain_name (vpc-unique name)
@@ -67,6 +68,7 @@
                             :instance (vpc-id-of "aws_instance" "logstash")})
 
 
+             (route53_record "logstash" {:records [(vpc-output-of "aws_eip" "logstash" "public_ip")]})
 
              (vpc-security-group "sends_gelf" {})
              (aws-instance (vpc-unique "logstash") {:ami "ami-9b9c86f7"
@@ -79,10 +81,28 @@
 
              (aws-instance (vpc-unique "kibana") {
                                                   :ami "ami-9b9c86f7"
-                                                  :vpc_security_group_ids [(vpc-id-of "aws_security_group" "kibana")]
+                                                  :vpc_security_group_ids [(vpc-id-of "aws_security_group" "kibana")
+                                                                           (vpc-id-of "aws_security_group" "allow-elb-kibana")]
                                                   :subnet_id (vpc-id-of "aws_subnet" "private-a")
                                                   })
 
-             (vpc-security-group "kibana" {})
+
+             (elb "kibana" resource {:name "kibana"
+                                     :health_check {:healthy_threshold 2
+                                                    :unhealthy_threshold 3
+                                                    :target "HTTP:80/status"
+                                                    :timeout 5
+                                                    :interval 30}
+                                     :subnets (mapv #(id-of "aws_subnet" (stringify  vpc_name "-public-" %)) azs)
+                                     :instances [(id-of "aws_instance" (vpc-unique "kibana"))]
+                                     :sgs ["allow_outbound"
+                                           (vpc-unique "elb-kibana")
+                                           ]})
+
+             (vpc-security-group "elb-kibana" {})
+             (vpc-security-group "allow-elb-kibana" {}
+                                 {:port 80
+                                  :source_security_group_id (vpc-id-of "aws_security_group" "elb-kibana")})
+             (vpc-security-group  "kibana" {})
 
              ))))
