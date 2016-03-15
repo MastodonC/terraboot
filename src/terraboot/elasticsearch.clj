@@ -25,8 +25,8 @@
                     :access_policies (json/generate-string {"Version" "2012-10-17",
                                                             "Statement" [{"Action" "es:*",
                                                                           "Principal" "*",
-                                                                          "Resource" "arn:aws:es:eu-central-1:165664414043:domain/elasticsearch/*",
-                                                                          ;; There is currently a bug which means 'Resource' needs adding after there
+                                                                          "Resource" "arn:aws:es:eu-central-1:165664414043:domain/sandpit-elasticsearch/*",
+                                                                          ;; There is currently a bug which means 'Resource' needs adding after the
                                                                           ;; cluster is created or it will constantly say it needs to change.
                                                                           ;; https://github.com/hashicorp/terraform/issues/5067
                                                                           "Effect" "Allow",
