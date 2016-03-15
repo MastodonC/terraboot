@@ -72,7 +72,8 @@
                                 :permissions "644"}]
                  }))
 
-(def vpc-vpn-infra
+(defn vpc-vpn-infra
+  [vpc-name]
   (let [vpc-unique (fn [name] (str vpc-name "-" name))
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
