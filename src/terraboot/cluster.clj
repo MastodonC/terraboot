@@ -257,22 +257,22 @@
                                          })})
 
 
-             (resource "template_file" "master-user-data"
-                       {:template (mesos-master-user-data)
-                        :vars {:aws-region region
-                               :cluster-name cluster-name
-                               :cluster-id cluster-identifier
-                               :server-group (cluster-unique "MasterServerGroup")
-                               :master-role (cluster-id-of "aws_iam_role" "master-role")
-                               :slave-role (cluster-id-of "aws_iam_role" "slave-role")
-                               :aws-access-key (cluster-id-of "aws_iam_access_key" "host-key")
-                               :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
-                               :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
-                               :internal-lb-dns (cluster-output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
-                               :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
-                               :number-of-masters min-number-of-masters}
-                        :lifecycle { :create_before_destroy true }
-                        })
+             (cluster-resource "template_file" "master-user-data"
+                               {:template (mesos-master-user-data)
+                                :vars {:aws-region region
+                                       :cluster-name cluster-name
+                                       :cluster-id cluster-identifier
+                                       :server-group (cluster-unique "MasterServerGroup")
+                                       :master-role (cluster-id-of "aws_iam_role" "master-role")
+                                       :slave-role (cluster-id-of "aws_iam_role" "slave-role")
+                                       :aws-access-key (cluster-id-of "aws_iam_access_key" "host-key")
+                                       :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
+                                       :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
+                                       :internal-lb-dns (cluster-output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
+                                       :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
+                                       :number-of-masters min-number-of-masters}
+                                :lifecycle { :create_before_destroy true }
+                                })
 
              (asg "MasterServerGroup"
                   cluster-unique
@@ -284,7 +284,7 @@
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
                           :Value "mesos-master"}
-                   :user_data (output-of "template_file" "master-user-data" "rendered")
+                   :user_data (cluster-output-of "template_file" "master-user-data" "rendered")
                    :max_size max-number-of-masters
                    :min_size min-number-of-masters
                    :health_check_type "EC2"
@@ -319,21 +319,21 @@
                                                      "master-security-group"])
                           }]})
 
-             (resource "template_file" "public-slave-user-data"
-                       {:template (mesos-public-slave-user-data)
-                        :vars {:aws-region region
-                               :cluster-name cluster-name
-                               :cluster-id cluster-identifier
-                               :server-group (cluster-unique "PublicSlaveServerGroup")
-                               :master-role (cluster-id-of "aws_iam_role" "master-role")
-                               :slave-role (cluster-id-of "aws_iam_role" "slave-role")
-                               :aws-access-key (cluster-id-of "aws_iam_access_key" "host-key")
-                               :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
-                               :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
-                               :internal-lb-dns (cluster-output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
-                               :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
-                               :number-of-masters min-number-of-masters}
-                        :lifecycle { :create_before_destroy true }})
+             (cluster-resource "template_file" "public-slave-user-data"
+                               {:template (mesos-public-slave-user-data)
+                                :vars {:aws-region region
+                                       :cluster-name cluster-name
+                                       :cluster-id cluster-identifier
+                                       :server-group (cluster-unique "PublicSlaveServerGroup")
+                                       :master-role (cluster-id-of "aws_iam_role" "master-role")
+                                       :slave-role (cluster-id-of "aws_iam_role" "slave-role")
+                                       :aws-access-key (cluster-id-of "aws_iam_access_key" "host-key")
+                                       :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
+                                       :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
+                                       :internal-lb-dns (cluster-output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
+                                       :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
+                                       :number-of-masters min-number-of-masters}
+                                :lifecycle { :create_before_destroy true }})
 
              (asg "PublicSlaveServerGroup"
                   cluster-unique
@@ -345,7 +345,7 @@
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
                           :Value "mesos-slave"}
-                   :user_data (output-of "template_file" "public-slave-user-data" "rendered")
+                   :user_data (cluster-output-of "template_file" "public-slave-user-data" "rendered")
                    ;;:root_block_device {:volume_size 20}
                    :max_size max-number-of-public-slaves
                    :min_size min-number-of-public-slaves
@@ -362,22 +362,22 @@
                           :subnets public-subnets
                           :sgs (mapv cluster-unique ["public-slave-security-group"])}]})
 
-             (resource "template_file" "slave-user-data"
-                       {:template (mesos-slave-user-data)
-                        :vars {:aws-region region
-                               :cluster-name cluster-name
-                               :cluster-id cluster-identifier
-                               :server-group (cluster-unique "SlaveServerGroup")
-                               :master-role (cluster-id-of "aws_iam_role" "master-role")
-                               :slave-role (cluster-id-of "aws_iam_role" "slave-role")
-                               :aws-access-key (cluster-id-of "aws_iam_access_key" "host-key")
-                               :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
-                               :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
-                               :internal-lb-dns (cluster-output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
-                               :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
-                               :number-of-masters min-number-of-masters}
-                        :lifecycle { :create_before_destroy true }
-                        })
+             (cluster-resource "template_file" "slave-user-data"
+                               {:template (mesos-slave-user-data)
+                                :vars {:aws-region region
+                                       :cluster-name cluster-name
+                                       :cluster-id cluster-identifier
+                                       :server-group (cluster-unique "SlaveServerGroup")
+                                       :master-role (cluster-id-of "aws_iam_role" "master-role")
+                                       :slave-role (cluster-id-of "aws_iam_role" "slave-role")
+                                       :aws-access-key (cluster-id-of "aws_iam_access_key" "host-key")
+                                       :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
+                                       :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
+                                       :internal-lb-dns (cluster-output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
+                                       :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
+                                       :number-of-masters min-number-of-masters}
+                                :lifecycle { :create_before_destroy true }
+                                })
 
              (asg "SlaveServerGroup"
                   cluster-unique
@@ -388,7 +388,7 @@
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
                           :Value "mesos-slave"}
-                   :user_data  (output-of "template_file" "slave-user-data" "rendered")
+                   :user_data  (cluster-output-of "template_file" "slave-user-data" "rendered")
                    ;;:root_block_device {:volume_size 20}
                    :max_size max-number-of-slaves
                    :min_size min-number-of-slaves
