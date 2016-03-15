@@ -8,9 +8,9 @@
 
 (defn generate-json []
   (do
-    (to-file vpc-vpn-infra (str infra-path "vpc.tf"))
+    (to-file (vpc-vpn-infra "sandpit") (str infra-path "vpc.tf"))
     (to-file (cluster-infra {:vpc-name vpc-name
-                             :cluster-name"production"
+                             :cluster-name "production"
                              :min-number-of-masters 3
                              :max-number-of-masters 3
                              :min-number-of-slaves 2
