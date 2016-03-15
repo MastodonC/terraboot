@@ -15,7 +15,9 @@
                     {:name "dcos-link-env.service" :command "start" :content (snippet "systemd/dcos-link-env.service")}
                     {:name "dcos-download.service" :content (snippet "systemd/dcos-download.service")}
                     {:name "dcos-setup.service" :command "start" :content (clojure.string/trim-newline (snippet "systemd/dcos-setup.service")) :enable true}
-                    {:name "cadvisor.service" :command "start" :content (snippet "systemd/cadvisor.service") :enable true}]
+                    {:name "cadvisor.service" :command "start" :content (snippet "systemd/cadvisor.service") :enable true}
+                    {:name "docker-cleanup.service" :command "start" :content (snippet "systemd/docker-cleanup.service")}
+                    {:name "docker-cleanup.timer" :command "start" :content (snippet "systemd/docker-cleanup.timer") :enable true}]
             :update {:reboot-strategy "off"}}
    :write_files [{:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json"
                   :content "{}\n"}
@@ -73,7 +75,7 @@
                                                {:path "/home/core/cassandra-backup/backup-witan.sh"
                                                 :content (snippet "system-files/backup-witan.sh")
                                                 :permissions "0644"}]})
-                    (add-to-systemd [{:name "backup.service" :content (snippet "systemd/backup.service") :enable true}
+                    (add-to-systemd [{:name "backup.service" :content (snippet "systemd/backup.service")}
                                      {:name "backup.timer" :command "start" :content (snippet "systemd/backup.timer") :enable true}] )  )))
 
 (defn mesos-public-slave-user-data

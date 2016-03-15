@@ -1,0 +1,6 @@
+[Unit]
+Description=Regularly cleanup unused docker images
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/docker rmi $(/usr/bin/docker images -a -q)

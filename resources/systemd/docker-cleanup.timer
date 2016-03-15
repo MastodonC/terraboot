@@ -1,0 +1,5 @@
+[Unit]
+Description=Run docker-cleanup once a day at 1am
+
+[Timer]
+OnCalendar=*-*-* 01:00:00
