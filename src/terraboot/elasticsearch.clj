@@ -96,6 +96,7 @@
                                      :subnets (mapv #(id-of "aws_subnet" (stringify  vpc_name "-public-" %)) azs)
                                      :instances [(id-of "aws_instance" (vpc-unique "kibana"))]
                                      :sgs ["allow_outbound"
+                                           "allow_external_http_https"
                                            (vpc-unique "elb-kibana")
                                            ]})
 
