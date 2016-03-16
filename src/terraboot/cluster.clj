@@ -3,7 +3,7 @@
             [terraboot.vpc :as vpc]
             [terraboot.cloud-config :refer [cloud-config]]))
 
-(def current-coreos-ami "ami-07f1ec6b")
+(def current-coreos-ami "ami-1807e377")
 
 (defn mesos-instance-user-data []
   {:coreos {:units [{:name "etcd.service" :command "stop" :mask true}
