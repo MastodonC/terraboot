@@ -8,6 +8,7 @@
                                                :groups ["users" "admin"]
                                                :ssh-authorized-keys ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDiRTaPy06VZVuYQZs7XvG2ytbw3hg7F/uLC8hLoPD4ugbtVAWSrlO9koietHedLFkWI/UVwCP3FcMgZYqQnCQTwnEJ5bsp2r+MOI+nUfojZ6O8j7XMxwMtxf60S3FmVeuvN38Bbh2cygv72+uPbdE2giH+scD7lslm5LWsYAqK79ZVJ2Gk3do+x/eWc3mLqDnW/PNghgT2jJxg1T16kFPYiVFRUSYP1+CbmmQoJ38x8Xc7CZb2PfFcqHoHVzz9nBqRdhHl7GO2lSl8ostyy5nqhTWMkpOPxsJoGvJCS+ZUh/PPtUlxGikH8XcY+6h9QvThTR/17Irc9Aa7YJFPEk5l thattommyhall@gmail.com"]}
                                               ]}))
+(def ubuntu "ami-9b9c86f7")
 
 (defn elasticsearch-cluster [name {:keys [vpc_name] :as spec}]
   ;; http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs
@@ -75,7 +76,7 @@
              (route53_record "logstash" {:records [(vpc-output-of "aws_eip" "logstash" "public_ip")]})
 
              (vpc-security-group "sends_gelf" {})
-             (aws-instance (vpc-unique "logstash") {:ami "ami-9b9c86f7"
+             (aws-instance (vpc-unique "logstash") {:ami ubuntu
                                                     :vpc_security_group_ids [(vpc-id-of "aws_security_group" "logstash")
                                                                              (id-of "aws_security_group" "allow_ssh")
                                                                              ]
@@ -84,7 +85,7 @@
                                                     })
 
              (aws-instance (vpc-unique "kibana") {
-                                                  :ami "ami-9b9c86f7"
+                                                  :ami ubuntu
                                                   :vpc_security_group_ids [(vpc-id-of "aws_security_group" "kibana")
                                                                            (vpc-id-of "aws_security_group" "allow-elb-kibana")]
                                                   :subnet_id (vpc-id-of "aws_subnet" "private-a")
