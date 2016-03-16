@@ -262,19 +262,19 @@
                                 :vars {:aws-region region
                                        :cluster-name cluster-name
                                        :cluster-id cluster-identifier
-                                       :server-group (cluster-unique "MasterServerGroup")
+                                       :server-group (cluster-unique "masters")
                                        :master-role (cluster-id-of "aws_iam_role" "master-role")
                                        :slave-role (cluster-id-of "aws_iam_role" "slave-role")
                                        :aws-access-key (cluster-id-of "aws_iam_access_key" "host-key")
                                        :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
                                        :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
-                                       :internal-lb-dns (cluster-output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
+                                       :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters}
                                 :lifecycle { :create_before_destroy true }
                                 })
 
-             (asg "MasterServerGroup"
+             (asg "masters"
                   cluster-unique
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"
@@ -292,7 +292,7 @@
                    :root_block_device {:volume_size 20}
                    :subnets public-subnets
                    :lifecycle {:create_before_destroy true}
-                   :elb [{:name "MasterServerGroup"
+                   :elb [{:name "masters"
                           :health_check {:healthy_threshold 2
                                          :unhealthy_threshold 3
                                          :target "HTTP:5050/health"
@@ -301,7 +301,7 @@
                           :subnets public-subnets
                           :sgs (mapv cluster-unique ["lb-security-group"
                                                      "admin-security-group"])}
-                         {:name "InternalMasterLoadBalancer"
+                         {:name "internal-lb"
                           :listeners [(elb-listener {:port 5050 :protocol "HTTP"})
                                       (elb-listener {:port 2181 :protocol "TCP"})
                                       (elb-listener {:port 8181 :protocol "HTTP"})
@@ -324,18 +324,18 @@
                                 :vars {:aws-region region
                                        :cluster-name cluster-name
                                        :cluster-id cluster-identifier
-                                       :server-group (cluster-unique "PublicSlaveServerGroup")
+                                       :server-group (cluster-unique "public-slaves")
                                        :master-role (cluster-id-of "aws_iam_role" "master-role")
                                        :slave-role (cluster-id-of "aws_iam_role" "slave-role")
                                        :aws-access-key (cluster-id-of "aws_iam_access_key" "host-key")
                                        :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
                                        :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
-                                       :internal-lb-dns (cluster-output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
+                                       :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters}
                                 :lifecycle { :create_before_destroy true }})
 
-             (asg "PublicSlaveServerGroup"
+             (asg "public-slaves"
                   cluster-unique
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"
@@ -353,7 +353,7 @@
                    :health_check_grace_period 20
                    :subnets public-subnets
                    :lifecycle {:create_before_destroy true}
-                   :elb [{:name "PublicSlaveServerGroup"
+                   :elb [{:name "public-slaves"
                           :health_check {:healthy_threshold 2
                                          :unhealthy_threshold 2
                                          :target "HTTP:80/"
@@ -367,19 +367,19 @@
                                 :vars {:aws-region region
                                        :cluster-name cluster-name
                                        :cluster-id cluster-identifier
-                                       :server-group (cluster-unique "SlaveServerGroup")
+                                       :server-group (cluster-unique "slaves")
                                        :master-role (cluster-id-of "aws_iam_role" "master-role")
                                        :slave-role (cluster-id-of "aws_iam_role" "slave-role")
                                        :aws-access-key (cluster-id-of "aws_iam_access_key" "host-key")
                                        :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
                                        :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
-                                       :internal-lb-dns (cluster-output-of "aws_elb" "InternalMasterLoadBalancer" "dns_name")
+                                       :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters}
                                 :lifecycle { :create_before_destroy true }
                                 })
 
-             (asg "SlaveServerGroup"
+             (asg "slaves"
                   cluster-unique
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"

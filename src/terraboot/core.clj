@@ -181,7 +181,8 @@
                             [default-listener])
         listeners (concat default-listeners (:listeners spec))
         elb-security-groups        (map #(id-of "aws_security_group" %) sgs)]
-    (cluster-resource "aws_elb" name {:subnets subnets
+    (cluster-resource "aws_elb" name {:name name
+                                      :subnets subnets
                                       :security_groups elb-security-groups
                                       :listener listeners
                                       :instances instances
