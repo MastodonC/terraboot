@@ -3,11 +3,28 @@
             [terraboot.cloud-config :refer [cloud-config]]
             [cheshire.core :as json]))
 
-(def ubuntu-user-data (cloud-config { :users [{:name "admin"
-                                               :sudo "ALL=(ALL) NOPASSWD:ALL"
-                                               :groups ["users" "admin"]
-                                               :ssh-authorized-keys ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDiRTaPy06VZVuYQZs7XvG2ytbw3hg7F/uLC8hLoPD4ugbtVAWSrlO9koietHedLFkWI/UVwCP3FcMgZYqQnCQTwnEJ5bsp2r+MOI+nUfojZ6O8j7XMxwMtxf60S3FmVeuvN38Bbh2cygv72+uPbdE2giH+scD7lslm5LWsYAqK79ZVJ2Gk3do+x/eWc3mLqDnW/PNghgT2jJxg1T16kFPYiVFRUSYP1+CbmmQoJ38x8Xc7CZb2PfFcqHoHVzz9nBqRdhHl7GO2lSl8ostyy5nqhTWMkpOPxsJoGvJCS+ZUh/PPtUlxGikH8XcY+6h9QvThTR/17Irc9Aa7YJFPEk5l thattommyhall@gmail.com"]}
-                                              ]}))
+(def logstash-user-data (cloud-config {:users ["default"
+                                               {:name "admin"
+                                                :sudo "ALL=(ALL) NOPASSWD:ALL"
+                                                :groups ["users" "admin"]
+                                                :ssh-authorized-keys ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDiRTaPy06VZVuYQZs7XvG2ytbw3hg7F/uLC8hLoPD4ugbtVAWSrlO9koietHedLFkWI/UVwCP3FcMgZYqQnCQTwnEJ5bsp2r+MOI+nUfojZ6O8j7XMxwMtxf60S3FmVeuvN38Bbh2cygv72+uPbdE2giH+scD7lslm5LWsYAqK79ZVJ2Gk3do+x/eWc3mLqDnW/PNghgT2jJxg1T16kFPYiVFRUSYP1+CbmmQoJ38x8Xc7CZb2PfFcqHoHVzz9nBqRdhHl7GO2lSl8ostyy5nqhTWMkpOPxsJoGvJCS+ZUh/PPtUlxGikH8XcY+6h9QvThTR/17Irc9Aa7YJFPEk5l thattommyhall@gmail.com"]}
+                                               ]
+                                       :package_update true
+                                       :bootcmd ["echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections"
+                                                 "wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -" ]
+                                       :apt_sources [{:source "ppa:webupd8team/java"}
+                                                     {:source "http://packages.elastic.co/logstash/2.2/debian"}]
+                                       :packages ["oracle-java8-installer"
+                                                  "oracle-java8-set-default"
+                                                  "logstash"]
+
+
+                                       :runcmd ["update-rc.d logstash defaults"
+                                                "/opt/logstash/bin/plugin install logstash-output-amazon_es"]
+                                       :write_files [{:path "/etc/logstash/conf.d/out-es.conf"
+                                                      :permissions "644"
+                                                      :content (snippet "system-files/out-es.conf")}]}))
+
 (def ubuntu "ami-9b9c86f7")
 
 (defn elasticsearch-cluster [name {:keys [vpc_name] :as spec}]
@@ -76,6 +93,11 @@
              (route53_record "logstash" {:records [(vpc-output-of "aws_eip" "logstash" "public_ip")]})
 
              (vpc-security-group "sends_gelf" {})
+
+             (vpc-resource "template_file" "logstash-user-data"
+                           {:template logstash-user-data
+                            :vars {:elasticsearch-lb (id-of "aws_elb" "kibana")}})
+
              (aws-instance (vpc-unique "logstash") {:ami ubuntu
                                                     :vpc_security_group_ids [(vpc-id-of "aws_security_group" "logstash")
                                                                              (id-of "aws_security_group" "allow_ssh")
