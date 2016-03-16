@@ -55,10 +55,14 @@
                                   :source_security_group_id (vpc-id-of "aws_security_group" "sends_gelf")}
                                  {:port 12201
                                   :protocol "udp"
-                                  :cidr_blocks ["52.29.162.148/32"
+                                  :cidr_blocks [(str (vpc-output-of "aws_eip" "public-a-nat" "public_ip") "/32")
+                                                (str (vpc-output-of "aws_eip" "public-b-nat" "public_ip") "/32")
+                                                "52.29.162.148/32"
                                                 "52.29.163.57/32"
                                                 "52.29.97.114/32"
-                                                "87.115.98.26/32"]}
+                                                "87.115.98.26/32"
+                                                "151.230.75.151/32" ; Tom Temp
+                                                ]}
                                  {:port 9200
                                   :protocol "tcp"
                                   :cidr_blocks [all-external]})
@@ -93,12 +97,16 @@
                                                     :target "HTTP:80/status"
                                                     :timeout 5
                                                     :interval 30}
+                                     :cert_name "112349508752725708607389286684892850272129-2016-06-13-kibana_mastodonc_net" ; This was obtained via Lets Encrypt
                                      :subnets (mapv #(id-of "aws_subnet" (stringify  vpc_name "-public-" %)) azs)
                                      :instances [(id-of "aws_instance" (vpc-unique "kibana"))]
                                      :sgs ["allow_outbound"
                                            "allow_external_http_https"
                                            (vpc-unique "elb-kibana")
                                            ]})
+
+             (route53_record "kibana" {:type "CNAME"
+                                       :records [(output-of "aws_elb" "kibana" "dns_name")]})
 
              (vpc-security-group "elb-kibana" {})
              (vpc-security-group "allow-elb-kibana" {}
