@@ -377,6 +377,16 @@
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters}
                                 :lifecycle { :create_before_destroy true }
+
+                                })
+
+             ;; local resources: easy customized local access to the cluster
+             (cluster-resource "template_file" "cassandra_deploy"
+                               {:template (snippet "local-exec/cassandra-production.json")
+                                :vars {:cassandra_node_count min-number-of-slaves
+                                       :cassandra_seed_count (max (quot min-number-of-slaves 3) 1)}
+                                :provisioner {"local-exec" {"cassandra-marathon"
+                                                            {:command (str "mkdir -p ~/" cluster-name  "; echo '" (cluster-output-of "template_file" "cassandra_deploy" "rendered") "' > ~/" cluster-name "/cassandra-marathon-" cluster-name ".json" )}}}
                                 })
 
              (asg "slaves"
