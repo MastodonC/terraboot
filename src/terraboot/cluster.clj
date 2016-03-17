@@ -362,6 +362,11 @@
                           :subnets public-subnets
                           :sgs (mapv cluster-unique ["public-slave-security-group"])}]})
 
+             (route53_record (cluster-unique "deploy")
+                             {:alias {:name (cluster-output-of "aws_elb" "public-slaves" "dns_name")
+                                      :zone_id (cluster-output-of "aws_elb" "public-slaves" "zone_id")
+                                      :evaluate_target_health true}})
+
              (cluster-resource "template_file" "slave-user-data"
                                {:template (mesos-slave-user-data)
                                 :vars {:aws-region region

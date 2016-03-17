@@ -138,8 +138,8 @@
               (merge
                {:zone_id dns-zone-id
                 :name name
-                :type "A"
-                :ttl  "300"}
+                :type "A"}
+               (if (:alias spec) {} {:ttl "300"})
                spec))))
 
 (defn aws-instance [name spec]
