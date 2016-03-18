@@ -312,6 +312,7 @@
                                          :timeout 5
                                          :interval 30}
                           :subnets public-subnets
+                          :internal true
                           :sgs (mapv cluster-unique ["lb-security-group"
                                                      "admin-security-group"
                                                      "slave-security-group"
