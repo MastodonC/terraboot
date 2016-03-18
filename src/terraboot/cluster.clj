@@ -395,6 +395,19 @@
                                                             {:command (str "mkdir -p ~/" cluster-name  "; echo '" (cluster-output-of "template_file" "cassandra_deploy" "rendered") "' > ~/" cluster-name "/cassandra-marathon-" cluster-name ".json" )}}}
                                 })
 
+             (cluster-resource "template_file" "deploy-sh"
+                               {:template (snippet "local-exec/deploy.sh")
+                                :vars {:internal-lb (cluster-output-of "aws_elb" "internal-lb" "dns_name")
+                                       :cluster-name cluster-name}
+                                :provisioner {"local-exec" {"cassandra-marathon"
+                                                            {:command (str "mkdir -p ~/" cluster-name  "; echo '" (cluster-output-of "template_file" "deploy-sh" "rendered") "' > ~/" cluster-name "/deploy.sh; chmod +x ~/" cluster-name "/deploy.sh" )}}}})
+
+             (cluster-resource "template_file" "dcos-cli-install"
+                               {:template (snippet "local-exec/dcos-cli-install.sh")
+                                :vars {:internal-lb (cluster-output-of "aws_elb" "internal-lb" "dns_name")}
+                                :provisioner {"local-exec" {"cassandra-marathon"
+                                                            {:command (str "mkdir -p ~/" cluster-name  "; echo '" (cluster-output-of "template_file" "dcos-cli-install" "rendered") "' > ~/" cluster-name "/dcos-cli-install.sh; chmod +x ~/" cluster-name "/dcos-cli-install.sh" )}}}})
+
              (asg "slaves"
                   cluster-unique
                   {:image_id current-coreos-ami
