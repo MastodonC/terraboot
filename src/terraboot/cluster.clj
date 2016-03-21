@@ -132,6 +132,45 @@
    :lb_protocol (or lb_protocol protocol)})
 
 
+(defn local-deploy-scripts [{:keys [cluster-name
+                                    internal-lb
+                                    name-fn
+                                    min-number-of-slaves]}]
+  (let [cluster-resource (partial resource name-fn)
+        cluster-output-of (fn [type name & values] (apply (partial output-of type (name-fn name)) values))
+        directory-name (str "~/" cluster-name)
+        dump-local-file (fn [content file-name] (str "mkdir -p " directory-name "; echo '" content "' > " directory-name "/" file-name))
+        make-executable (fn [file-name] (str "chmod +x " directory-name "/" file-name))]
+    ;; local resources: easy customized local access to the cluster
+    (cluster-resource "template_file" "cassandra_deploy"
+                      {:template (snippet "local-exec/cassandra-production.json")
+                       :vars {:cassandra_node_count min-number-of-slaves
+                              :cassandra_seed_count (max (quot min-number-of-slaves 3) 1)}
+                       :provisioner {"local-exec" {"cassandra-marathon"
+                                                   {:command (dump-local-file (cluster-output-of "template_file" "cassandra_deploy" "rendered") (str "cassandra-marathon.json"))}}}})
+
+    (cluster-resource "template_file" "deploy-sh"
+                      {:template (snippet "local-exec/deploy.sh")
+                       :vars {:internal-lb internal-lb
+                              :cluster-name cluster-name}
+                       :provisioner {"local-exec" {"deploy-sh"
+                                                   {:command (str (dump-local-file (cluster-output-of "template_file" "deploy-sh" "rendered") "deploy.sh") ";"
+                                                                  (make-executable "deploy.sh"))}}}})
+
+    (cluster-resource "template_file" "dcos-cli-install"
+                      {:template (snippet "local-exec/dcos-cli-install.sh")
+                       :vars {:internal-lb internal-lb}
+                       :provisioner {"local-exec" {"dcos-cli-install"
+                                                   {:command (str (dump-local-file (cluster-output-of "template_file" "dcos-cli-install" "rendered") "dcos-cli-install.sh") ";"
+                                                                  (make-executable "dcos-cli-install.sh"))}}}})
+
+    (cluster-resource "template_file" "open-mesos-admin"
+                      {:template (str "open http://" internal-lb)
+                       :provisioner {"local-exec" {"open-mesos-admin"
+                                                   {:command (str (dump-local-file (cluster-output-of "template_file" "open-mesos-admin" "rendered") "open-mesos-admin.sh") ";"
+                                                                  (make-executable "open-mesos-admin.sh"))}}}}
+                      )))
+
 (defn cluster-infra
   [{:keys [vpc-name
            cluster-name
@@ -386,27 +425,6 @@
 
                                 })
 
-             ;; local resources: easy customized local access to the cluster
-             (cluster-resource "template_file" "cassandra_deploy"
-                               {:template (snippet "local-exec/cassandra-production.json")
-                                :vars {:cassandra_node_count min-number-of-slaves
-                                       :cassandra_seed_count (max (quot min-number-of-slaves 3) 1)}
-                                :provisioner {"local-exec" {"cassandra-marathon"
-                                                            {:command (str "mkdir -p ~/" cluster-name  "; echo '" (cluster-output-of "template_file" "cassandra_deploy" "rendered") "' > ~/" cluster-name "/cassandra-marathon-" cluster-name ".json" )}}}
-                                })
-
-             (cluster-resource "template_file" "deploy-sh"
-                               {:template (snippet "local-exec/deploy.sh")
-                                :vars {:internal-lb (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                                       :cluster-name cluster-name}
-                                :provisioner {"local-exec" {"cassandra-marathon"
-                                                            {:command (str "mkdir -p ~/" cluster-name  "; echo '" (cluster-output-of "template_file" "deploy-sh" "rendered") "' > ~/" cluster-name "/deploy.sh; chmod +x ~/" cluster-name "/deploy.sh" )}}}})
-
-             (cluster-resource "template_file" "dcos-cli-install"
-                               {:template (snippet "local-exec/dcos-cli-install.sh")
-                                :vars {:internal-lb (cluster-output-of "aws_elb" "internal-lb" "dns_name")}
-                                :provisioner {"local-exec" {"cassandra-marathon"
-                                                            {:command (str "mkdir -p ~/" cluster-name  "; echo '" (cluster-output-of "template_file" "dcos-cli-install" "rendered") "' > ~/" cluster-name "/dcos-cli-install.sh; chmod +x ~/" cluster-name "/dcos-cli-install.sh" )}}}})
 
              (asg "slaves"
                   cluster-unique
@@ -427,4 +445,10 @@
                    :lifecycle {:create_before_destroy true}
                    :elb []
                    })
+
+
+             (local-deploy-scripts {:cluster-name cluster-name
+                                    :name-fn cluster-unique
+                                    :min-number-of-slaves min-number-of-slaves
+                                    :internal-lb (cluster-output-of "aws_elb" "internal-lb" "dns_name")})
              ))))
