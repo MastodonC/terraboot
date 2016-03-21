@@ -354,8 +354,6 @@
                           :internal true
                           :sgs (mapv cluster-unique ["lb-security-group"
                                                      "admin-security-group"
-                                                     "slave-security-group"
-                                                     "public-slave-security-group"
                                                      "master-security-group"])
                           }]})
 
