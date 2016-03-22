@@ -193,11 +193,11 @@
              (cluster-security-group "admin-security-group" {}
                                      {:from_port 0
                                       :to_port 65535
-                                      :cidr_blocks (vec (vals (:public vpc/cidr-block)))}
+                                      :cidr_blocks [vpc/vpc-cidr-block]}
                                      {:from_port 0
                                       :to_port 65535
                                       :protocol "udp"
-                                      :cidr_blocks (vec (vals (:public vpc/cidr-block)))}
+                                      :cidr_blocks [vpc/vpc-cidr-block]}
                                      )
 
              (cluster-security-group "lb-security-group" {}
