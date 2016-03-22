@@ -155,14 +155,16 @@
 (defn elb [name cluster-resource spec]
   (let [defaults {:cert_name false
                   :instances []
-                  :lb_protocol "http"}
+                  :lb_protocol "http"
+                  :internal false}
         spec (merge-in defaults spec)
         {:keys [health_check
                 lb_protocol
                 instances
                 cert_name
                 subnets
-                sgs]} spec
+                sgs
+                internal]} spec
         secure_protocol (if (= lb_protocol "http")
                           "https"
                           "ssl")
@@ -191,6 +193,7 @@
                                       :idle_timeout 60
                                       :connection_draining true
                                       :connection_draining_timeout 60
+                                      :internal internal
                                       :tags {:Name name}})))
 
 (defn asg [name
