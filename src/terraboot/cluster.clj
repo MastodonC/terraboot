@@ -378,7 +378,7 @@
              (asg "public-slaves"
                   cluster-unique
                   {:image_id current-coreos-ami
-                   :instance_type "m4.large"
+                   :instance_type "m4.xlarge"
                    :sgs [(cluster-unique "public-slave-security-group")
                          (vpc-unique "sends_gelf")]
                    :role (cluster-unique "slave-role")
@@ -430,7 +430,7 @@
              (asg "slaves"
                   cluster-unique
                   {:image_id current-coreos-ami
-                   :instance_type "m4.large"
+                   :instance_type "m4.xlarge"
                    :sgs [(cluster-unique "slave-security-group")
                          (vpc-unique "sends_gelf")]
                    :role (cluster-unique "slave-role")
