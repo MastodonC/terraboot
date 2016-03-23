@@ -375,6 +375,14 @@
                                        :number-of-masters min-number-of-masters}
                                 :lifecycle { :create_before_destroy true }})
 
+             (resource "aws_route53_record" (cluster-unique "masters")
+                       {:zone_id (id-of "aws_route53_zone" (vpc-unique "mesos"))
+                        :name (str (cluster-unique "masters") "." (vpc-unique "kixi") ".mesos")
+                        :type "A"
+                        :alias {:name (cluster-output-of "aws_elb" "internal-lb" "dns_name")
+                                :zone_id (cluster-output-of "aws_elb" "internal-lb" "zone_id")
+                                :evaluate_target_health true}})
+
              (asg "public-slaves"
                   cluster-unique
                   {:image_id current-coreos-ami
