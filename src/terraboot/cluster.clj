@@ -182,6 +182,7 @@
            max-number-of-public-slaves]}]
   (let [public-subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
         private-subnets (mapv #(id-of "aws_subnet" (stringify vpc-name "-private-" %)) azs)
+        vpc-unique (fn [name] (str vpc-name "-" name))
         cluster-identifier (str vpc-name "-" cluster-name)
         cluster-unique (fn [name] (str cluster-identifier "-" name))
         cluster-resource (partial resource cluster-unique)
@@ -317,7 +318,8 @@
                   cluster-unique
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"
-                   :sgs (mapv cluster-unique ["master-security-group" "admin-security-group"])
+                   :sgs (concat (mapv cluster-unique ["master-security-group" "admin-security-group"])
+                                [(vpc-unique "sends_gelf")])
                    :role (cluster-unique "master-role")
                    :public_ip true
                    :tags {:Key "role"
@@ -377,7 +379,8 @@
                   cluster-unique
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"
-                   :sgs (mapv cluster-unique ["public-slave-security-group"])
+                   :sgs [(cluster-unique "public-slave-security-group")
+                         (vpc-unique "sends_gelf")]
                    :role (cluster-unique "slave-role")
                    :public_ip true
                    :tags {:Key "role"
@@ -428,7 +431,8 @@
                   cluster-unique
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"
-                   :sgs (mapv cluster-unique ["slave-security-group"])
+                   :sgs [(cluster-unique "slave-security-group")
+                         (vpc-unique "sends_gelf")]
                    :role (cluster-unique "slave-role")
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
