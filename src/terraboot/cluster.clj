@@ -56,7 +56,13 @@
 (defn mesos-master-user-data []
   (cloud-config (merge-with (comp vec concat)
                             (mesos-instance-user-data)
-                            {:write_files [{:path "/etc/mesosphere/roles/master"
+                            { :coreos {:units {:name "etcd2.service" :command "start"}
+                                       :etcd2 {:discovery "https://discovery.etcd.io/60f34aae1d2dceee4a6de292dc583470"  ; NOTE: need a new token for every cluster!
+                                               :initial-advertise-peer-urls "http://$private_ipv4:2380"
+                                               :advertise-client-urls "http://$private_ipv4:2379,http://$private_ipv4:4001"
+                                               :listen-client-urls "http://0.0.0.0:2379,http://0.0.0.0:4001"
+                                               :listen-peer-urls "http://$private_ipv4:2380"}}
+                             :write_files [{:path "/etc/mesosphere/roles/master"
                                             :content ""}
                                            {:path "/etc/mesosphere/roles/aws_master"
                                             :content ""}
