@@ -182,6 +182,7 @@
            max-number-of-public-slaves]}]
   (let [public-subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
         private-subnets (mapv #(id-of "aws_subnet" (stringify vpc-name "-private-" %)) azs)
+        vpc-unique (fn [name] (str vpc-name "-" name))
         cluster-identifier (str vpc-name "-" cluster-name)
         cluster-unique (fn [name] (str cluster-identifier "-" name))
         cluster-resource (partial resource cluster-unique)
@@ -317,7 +318,8 @@
                   cluster-unique
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"
-                   :sgs (mapv cluster-unique ["master-security-group" "admin-security-group"])
+                   :sgs (concat (mapv cluster-unique ["master-security-group" "admin-security-group"])
+                                [(vpc-unique "sends_gelf")])
                    :role (cluster-unique "master-role")
                    :public_ip true
                    :tags {:Key "role"
@@ -373,11 +375,20 @@
                                        :number-of-masters min-number-of-masters}
                                 :lifecycle { :create_before_destroy true }})
 
+             (resource "aws_route53_record" (cluster-unique "masters")
+                       {:zone_id (id-of "aws_route53_zone" (vpc-unique "mesos"))
+                        :name (str (cluster-unique "masters") "." (vpc-unique "kixi") ".mesos")
+                        :type "A"
+                        :alias {:name (cluster-output-of "aws_elb" "internal-lb" "dns_name")
+                                :zone_id (cluster-output-of "aws_elb" "internal-lb" "zone_id")
+                                :evaluate_target_health true}})
+
              (asg "public-slaves"
                   cluster-unique
                   {:image_id current-coreos-ami
-                   :instance_type "m4.large"
-                   :sgs (mapv cluster-unique ["public-slave-security-group"])
+                   :instance_type "m4.xlarge"
+                   :sgs [(cluster-unique "public-slave-security-group")
+                         (vpc-unique "sends_gelf")]
                    :role (cluster-unique "slave-role")
                    :public_ip true
                    :tags {:Key "role"
@@ -427,8 +438,9 @@
              (asg "slaves"
                   cluster-unique
                   {:image_id current-coreos-ami
-                   :instance_type "m4.large"
-                   :sgs (mapv cluster-unique ["slave-security-group"])
+                   :instance_type "m4.xlarge"
+                   :sgs [(cluster-unique "slave-security-group")
+                         (vpc-unique "sends_gelf")]
                    :role (cluster-unique "slave-role")
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"

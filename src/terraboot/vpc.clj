@@ -126,6 +126,11 @@
 
              (route53_record "vpn" {:records [(vpc-output-of "aws_instance" "vpn" "public_ip")]})
 
+             (vpc-resource "aws_route53_zone" "mesos"
+                           {:name "kixi.mesos"
+                            :comment "private routes within vpc"
+                            :vpc_id (id-of "aws_vpc" vpc-name)})
+
              (security-group "allow_outbound" {}
                              {:type "egress"
                               :from_port 0
