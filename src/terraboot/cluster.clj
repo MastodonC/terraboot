@@ -53,11 +53,11 @@
                   :content (snippet "systemd/journal-upload.conf")
                   :owner "root"}]})
 
-(defn mesos-master-user-data []
+(defn mesos-master-user-data [etcd-token]
   (cloud-config (merge-with (comp vec concat)
                             (mesos-instance-user-data)
                             { :coreos {:units {:name "etcd2.service" :command "start"}
-                                       :etcd2 {:discovery "https://discovery.etcd.io/60f34aae1d2dceee4a6de292dc583470"  ; NOTE: need a new token for every cluster!
+                                       :etcd2 {:discovery (str "https://discovery.etcd.io/" etcd-token)
                                                :initial-advertise-peer-urls "http://$private_ipv4:2380"
                                                :advertise-client-urls "http://$private_ipv4:2379,http://$private_ipv4:4001"
                                                :listen-client-urls "http://0.0.0.0:2379,http://0.0.0.0:4001"
@@ -185,7 +185,8 @@
            min-number-of-slaves
            max-number-of-slaves
            min-number-of-public-slaves
-           max-number-of-public-slaves]}]
+           max-number-of-public-slaves
+           etcd-token]}]
   (let [public-subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
         private-subnets (mapv #(id-of "aws_subnet" (stringify vpc-name "-private-" %)) azs)
         vpc-unique (fn [name] (str vpc-name "-" name))
@@ -304,7 +305,7 @@
 
 
              (cluster-resource "template_file" "master-user-data"
-                               {:template (mesos-master-user-data)
+                               {:template (mesos-master-user-data etcd-token)
                                 :vars {:aws-region region
                                        :cluster-name cluster-name
                                        :cluster-id cluster-identifier

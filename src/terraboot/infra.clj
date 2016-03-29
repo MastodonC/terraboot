@@ -15,7 +15,8 @@
                              :min-number-of-slaves 2
                              :max-number-of-slaves 2
                              :min-number-of-public-slaves 1
-                             :max-number-of-public-slaves 2}) (str infra-path "cluster.tf"))))
+                             :max-number-of-public-slaves 2
+                             :etcd-token "60f34aae1d2dceee4a6de292dc583470"}) (str infra-path "cluster.tf"))))
 
 ;; Possible extra option: to make directory a parameter
 (defn -main []
