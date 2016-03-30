@@ -323,9 +323,11 @@
                                        :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
                                        :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
-                                       :number-of-masters min-number-of-masters}
+                                       :number-of-masters min-number-of-masters
+                                       :influxdb-ip (output-of "aws_instance" "influxdb" "private_ip")}
                                 :lifecycle { :create_before_destroy true }
                                 })
+
 
              (asg "masters"
                   cluster-unique
