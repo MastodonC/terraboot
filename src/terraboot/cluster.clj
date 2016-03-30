@@ -17,7 +17,9 @@
                     {:name "dcos-setup.service" :command "start" :content (clojure.string/trim-newline (snippet "systemd/dcos-setup.service")) :enable true}
                     {:name "cadvisor.service" :command "start" :content (snippet "systemd/cadvisor.service") :enable true}
                     {:name "docker-cleanup.service" :command "start" :content (snippet "systemd/docker-cleanup.service")}
-                    {:name "docker-cleanup.timer" :command "start" :content (snippet "systemd/docker-cleanup.timer") :enable true}]
+                    {:name "docker-cleanup.timer" :command "start" :content (snippet "systemd/docker-cleanup.timer") :enable true}
+                    {:name "install-confd.service" :command "start" :content (snippet "systemd/install-confd.service")}
+                    {:name "confd.service" :command "start" :enable true :content (snippet "systemd/confd.service")}]
             :update {:reboot-strategy "off"}}
    :write_files [{:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json"
                   :content "{}\n"}
@@ -51,7 +53,10 @@
                   :owner "root"}
                  {:path "/etc/systemd/journal-upload.conf"
                   :content (snippet "systemd/journal-upload.conf")
-                  :owner "root"}]})
+                  :owner "root"}
+                 {:path "/etc/confd/conf.d/ssh-authorized-keys.toml"
+                  :content (snippet "system-files/ssh-authorized-keys.toml")}
+                 {:path "/etc/confd/conf.d/ssh-authorized-keys.tmpl"}]})
 
 (defn mesos-master-user-data [etcd-token]
   (cloud-config (merge-with (comp vec concat)

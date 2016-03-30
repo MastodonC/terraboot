@@ -1,0 +1,7 @@
+[template]
+prefix = "/ssh"
+src = "ssh-authorized-keys.tmpl"
+dest = "/home/core/.ssh/authorized_keys.d/extra-users"
+owner = "core"
+mode="0600"
+keys=["/authorized-keys"]

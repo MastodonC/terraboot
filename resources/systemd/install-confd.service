@@ -1,0 +1,12 @@
+[Unit]
+Description=download and install confd
+After=network-online.target
+Wants=network-online.target
+[Service]
+Type=oneshot
+ExecStartPre=/usr/bin/curl --fail --retry 20 --continue-at - --location --silent --show-error --verbose --output /tmp/confd-0.11.0  https://github.com/kelseyhightower/confd/releases/download/v0.11.0/confd-0.11.0-darwin-amd64
+ExecStartPre=/usr/bin/mv /tmp/confd-0.11.0 /usr/local/bin/
+ExecStartPre=/usr/bin/ln -s /usr/local/bin/confd-0.11.0 /usr/local/bin/confd
+ExecStartPre=/usr/bin/mkdir -p /etc/confd/{conf.d,templates}
+ExecStart=/usr/bin/chmod +x /usr/local/bin/confd
+ExecStartPost=/usr/bin/rm -f /tmp/confd-0.11.0

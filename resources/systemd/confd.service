@@ -1,0 +1,6 @@
+[Unit]
+Description=running confd
+After=install-confd.service
+[Service]
+ExecStart=/usr/local/bin/confd -daemon -backend etcd -node http://{{internal-lb}}:4001
+ExecStop=/usr/bin/pkill confd
