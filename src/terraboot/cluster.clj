@@ -334,7 +334,8 @@
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"
                    :sgs (concat (mapv cluster-unique ["master-security-group" "admin-security-group"])
-                                [(vpc-unique "sends_gelf")])
+                                [(vpc-unique "sends_gelf")
+                                 (vpc-unique "sends_influx")])
                    :role (cluster-unique "master-role")
                    :public_ip true
                    :tags {:Key "role"
@@ -403,7 +404,8 @@
                   {:image_id current-coreos-ami
                    :instance_type "m4.xlarge"
                    :sgs [(cluster-unique "public-slave-security-group")
-                         (vpc-unique "sends_gelf")]
+                         (vpc-unique "sends_gelf")
+                         (vpc-unique "sends_influx")]
                    :role (cluster-unique "slave-role")
                    :public_ip true
                    :tags {:Key "role"
@@ -455,7 +457,8 @@
                   {:image_id current-coreos-ami
                    :instance_type "m4.xlarge"
                    :sgs [(cluster-unique "slave-security-group")
-                         (vpc-unique "sends_gelf")]
+                         (vpc-unique "sends_gelf")
+                         (vpc-unique "sends_influx")]
                    :role (cluster-unique "slave-role")
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"

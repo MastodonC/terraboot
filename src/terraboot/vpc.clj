@@ -108,7 +108,12 @@
              (security-group "influxdb" {}
                              {:port 222
                               :protocol "tcp"
-                              :cidr_blocks [all-external]})
+                              :cidr_blocks [all-external]}
+                             {:port 8086
+                              :protocol "tcp"
+                              :source_security_group_id (vpc-id-of "aws_security_group" "sends_influx")})
+
+             (vpc-security-group "sends_influx" {})
 
              (resource "aws_eip" "influxdb"
                        {:vpc true
