@@ -18,7 +18,6 @@
                     {:name "cadvisor.service" :command "start" :content (snippet "systemd/cadvisor.service") :enable true}
                     {:name "docker-cleanup.service" :command "start" :content (snippet "systemd/docker-cleanup.service")}
                     {:name "docker-cleanup.timer" :command "start" :content (snippet "systemd/docker-cleanup.timer") :enable true}
-                    {:name "etcd2.service" :command "start" :enable "true"}
                     {:name "install-confd.service" :command "start" :content (snippet "systemd/install-confd.service")}
                     {:name "confd.service" :command "start" :enable true :content (snippet "systemd/confd.service")}]
             :update {:reboot-strategy "off"}}
