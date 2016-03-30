@@ -3,5 +3,5 @@ Description=running confd
 After=install-confd.service
 After=etcd2.service
 [Service]
-ExecStart=/usr/local/bin/confd -daemon -backend etcd -node http://{{internal-lb}}:4001
+ExecStart=/usr/local/bin/confd -daemon -backend etcd -node http://${internal-lb-dns}:4001
 ExecStop=/usr/bin/pkill confd
