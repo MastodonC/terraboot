@@ -2,10 +2,6 @@
 Description=cAdvisor for monitoring
 Requires=docker.service
 After=docker.service
-
 [Service]
-Restart=always
 ExecStart=/usr/bin/docker run --name=cadvisor --volume=/:/rootfs:ro --volume=/var/run:/var/run:rw --volume=/sys:/sys:ro --volume=/var/lib/docker/:/var/lib/docker:ro --publish=9922:8080  --detach=true google/cadvisor:latest -storage_driver=influxdb -storage_driver_host=${influxdb-ip}:8086
 ExecStop=/usr/bin/docker stop -t 2 cadvisor ; /usr/bin/docker rm -f cadvisor
-[Install]
-WantedBy=local.target
