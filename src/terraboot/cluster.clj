@@ -56,7 +56,7 @@
                   :owner "root"}
                  {:path "/etc/confd/conf.d/ssh-authorized-keys.toml"
                   :content (snippet "system-files/ssh-authorized-keys.toml")}
-                 {:path "/etc/confd/conf.d/ssh-authorized-keys.tmpl"
+                 {:path "/etc/confd/templates/ssh-authorized-keys.tmpl"
                   :content (snippet "system-files/ssh-authorized-keys.tmpl")}]})
 
 (defn mesos-master-user-data [etcd-token]
