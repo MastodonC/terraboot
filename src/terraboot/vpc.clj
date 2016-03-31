@@ -94,6 +94,7 @@
                                                :ami "ami-bc5b48d0"
                                                :vpc_security_group_ids [(vpc-id-of "aws_security_group" "vpn")
                                                                         (id-of "aws_security_group" "allow_outbound")
+                                                                        (vpc-id-of "aws_security_group" "sends_influx")
                                                                         ]
                                                :associate_public_ip_address true
                                                })

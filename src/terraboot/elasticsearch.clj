@@ -101,6 +101,7 @@
              (aws-instance (vpc-unique "logstash") {:ami ubuntu
                                                     :vpc_security_group_ids [(vpc-id-of "aws_security_group" "logstash")
                                                                              (id-of "aws_security_group" "allow_ssh")
+                                                                             (vpc-id-of "aws_security_group" "sends_influx")
                                                                              ]
                                                     :associate_public_ip_address true
                                                     :subnet_id (vpc-id-of "aws_subnet" "public-a")
@@ -109,7 +110,8 @@
              (aws-instance (vpc-unique "kibana") {
                                                   :ami ubuntu
                                                   :vpc_security_group_ids [(vpc-id-of "aws_security_group" "kibana")
-                                                                           (vpc-id-of "aws_security_group" "allow-elb-kibana")]
+                                                                           (vpc-id-of "aws_security_group" "allow-elb-kibana")
+                                                                           (vpc-id-of "aws_security_group" "sends_influx")]
                                                   :subnet_id (vpc-id-of "aws_subnet" "private-a")
                                                   })
 
