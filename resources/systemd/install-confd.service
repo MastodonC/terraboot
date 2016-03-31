@@ -1,12 +1,12 @@
 [Unit]
 Description=download and install confd
-After=network-online.target
-Wants=network-online.target
+After=dcos-setup.service
 [Service]
 Type=oneshot
-ExecStartPre=/usr/bin/curl --fail --retry 20 --continue-at - --location --silent --show-error --verbose --output /tmp/confd-0.11.0  https://github.com/kelseyhightower/confd/releases/download/v0.11.0/confd-0.11.0-darwin-amd64
-ExecStartPre=/usr/bin/mv /tmp/confd-0.11.0 /usr/local/bin/
-ExecStartPre=/usr/bin/ln -s /usr/local/bin/confd-0.11.0 /usr/local/bin/confd
-ExecStartPre=/usr/bin/mkdir -p /etc/confd/{conf.d,templates}
-ExecStart=/usr/bin/chmod +x /usr/local/bin/confd
+ExecStartPre=/usr/bin/curl --fail --retry 20 --continue-at - --location --silent --show-error --verbose --output /tmp/confd-0.11.0 https://s3.eu-central-1.amazonaws.com/witan-cf-templates/confd-0.11.0-linux-amd64
+ExecStartPre=/usr/bin/mv /tmp/confd-0.11.0 /opt/mesosphere/bin/
+ExecStartPre=/usr/bin/ln -s /opt/mesosphere/bin/confd-0.11.0 /opt/mesosphere/bin/confd
+ExecStartPre=/usr/bin/mkdir -p /etc/confd/conf.d
+ExecStartPre=/usr/bin/mkdir -p /etc/confd/templates
+ExecStart=/usr/bin/chmod +x /opt/mesosphere/bin/confd
 ExecStartPost=/usr/bin/rm -f /tmp/confd-0.11.0
