@@ -11,7 +11,7 @@
                     {:name "locksmithd.service" :command "stop" :mask true}
                     {:name "systemd-resolved.service" :command "stop"}
                     {:name "systemd-journald.service" :command "restart"}
-                    {:name "docker.service" :command "restart"}
+                    {:name "docker.service" :command "restart" :enable true}
                     {:name "dcos-link-env.service" :command "start" :content (snippet "systemd/dcos-link-env.service")}
                     {:name "dcos-download.service" :content (snippet "systemd/dcos-download.service")}
                     {:name "dcos-setup.service" :command "start" :content (clojure.string/trim-newline (snippet "systemd/dcos-setup.service")) :enable true}
@@ -19,7 +19,7 @@
                     {:name "docker-cleanup.service" :command "start" :content (snippet "systemd/docker-cleanup.service")}
                     {:name "docker-cleanup.timer" :command "start" :content (snippet "systemd/docker-cleanup.timer") :enable true}
                     {:name "install-confd.service" :command "start" :content (snippet "systemd/install-confd.service")}
-                    {:name "confd.service" :command "start" :enable true :content (snippet "systemd/confd.service")}]
+                    {:name "confd.service" :command "start" :content (snippet "systemd/confd.service") :enable true}]
             :update {:reboot-strategy "off"}}
    :write_files [{:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json"
                   :content "{}\n"}
