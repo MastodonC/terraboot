@@ -3,4 +3,5 @@ src = "ssh-authorized-keys.tmpl"
 dest = "/home/core/.ssh/authorized_keys.d/extra-users"
 owner = "core"
 mode="0600"
-keys=["/ssh/authorized-keys"]
+keys = ["/ssh/authorized-keys"]
+reload_cmd = "/usr/bin/su - core -c /usr/bin/update-ssh-keys"
