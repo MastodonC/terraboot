@@ -4,4 +4,4 @@ dest = "/home/core/.ssh/authorized_keys.d/extra-users"
 owner = "core"
 mode="0600"
 keys = ["/ssh/authorized-keys"]
-reload_cmd = "/usr/bin/su - core -c /usr/bin/update-ssh-keys"
+reload_cmd = "/usr/bin/update-ssh-keys"
