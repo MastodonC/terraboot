@@ -3,3 +3,7 @@ Description=Run backup.service once a day at 5am
 
 [Timer]
 OnCalendar=*-*-* 05:00:00
+Unit=backup.service
+
+[Install]
+WantedBy=timers.target
