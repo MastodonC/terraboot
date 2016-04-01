@@ -14,7 +14,7 @@
           (fn [a b]
             (if (map? a)
               (do (when-let [dups (seq (set/intersection (set (keys a)) (set (keys b))))]
-                    (prn "Duplicate keys: " dups))
+                    (throw (Exception. (str "Duplicate keys: " dups))))
                   (merge-with ((first mfns) (rest mfns)) a b))
               b)))
         (merge-in*
