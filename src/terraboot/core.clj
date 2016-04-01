@@ -12,8 +12,8 @@
           [mfns]
           (fn [a b]
             (if (map? a)
-              (do (when (seq (clojure.set/intersection (set (keys a)) (set (keys b))))
-                    (prn "Duplicate key"))
+              (do (when-let [dups (seq (clojure.set/intersection (set (keys a)) (set (keys b))))]
+                    (prn "Duplicate keys: " dups))
                   (merge-with ((first mfns) (rest mfns)) a b))
               b)))
         (merge-in* 
@@ -27,8 +27,8 @@
           (partial merge-with
                   ((first fn-seq) (rest fn-seq))))]
   (def merge-in
-    (merge-with-fn-seq (conj (repeat merge-in*) merge-in* 
-                             merge-in* sensitive-merge-in*))))
+    (merge-with-fn-seq (conj (repeat merge-in*) sensitive-merge-in* 
+                             merge-in*))))
 
 (defn output-of [type resource-name & values]
   (str "${"
