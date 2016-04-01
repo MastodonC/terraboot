@@ -106,7 +106,7 @@
                                        :subnet_id (vpc-id-of "aws_subnet" "public-a")
                                        })
 
-             (elb "influxdb" resource {:name "influxdb"
+             (elb "chronograf" resource {:name "chronograf"
                                        :health_check {:healthy_threshold 2
                                                       :unhealthy_threshold 3
                                                       :target "HTTP:80/status"
@@ -117,13 +117,16 @@
                                        :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
                                        :sgs ["allow_outbound"
                                              "allow_external_http_https"
-                                             "sandpit-elb_influxdb"
+                                             "sandpit-elb_chronograf"
                                              ]})
 
-             (vpc-security-group "elb_influxdb" {})
-             (vpc-security-group "allow_elb_influxdb" {}
+             (route53_record "chronograf" {:type "CNAME"
+                                           :records [(output-of "aws_elb" "chronograf" "dns_name")]})
+
+             (vpc-security-group "elb_chronograf" {})
+             (vpc-security-group "allow_elb_chronograf" {}
                              {:port 80
-                              :source_security_group_id (vpc-id-of "aws_security_group" "elb_influxdb")})
+                              :source_security_group_id (vpc-id-of "aws_security_group" "elb_chronograf")})
 
              (vpc-security-group "influxdb" {}
                              {:port 222
