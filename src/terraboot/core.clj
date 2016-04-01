@@ -3,20 +3,21 @@
             [cheshire.core :as json]
             [stencil.core :as mustache]
             [clj-yaml.core :as yaml]
-            [clojure.pprint :refer [pprint]]))
+            [clojure.pprint :refer [pprint]]
+            [clojure.set :as set]))
 
 (def account-id "165664414043")
 (def default-sgs ["allow_outbound" "allow_ssh"])
 
-(letfn [(sensitive-merge-in* 
+(letfn [(sensitive-merge-in*
           [mfns]
           (fn [a b]
             (if (map? a)
-              (do (when-let [dups (seq (clojure.set/intersection (set (keys a)) (set (keys b))))]
+              (do (when-let [dups (seq (set/intersection (set (keys a)) (set (keys b))))]
                     (prn "Duplicate keys: " dups))
                   (merge-with ((first mfns) (rest mfns)) a b))
               b)))
-        (merge-in* 
+        (merge-in*
           [mfns]
           (fn [a b]
             (if (map? a)
@@ -25,9 +26,9 @@
         (merge-with-fn-seq
           [fn-seq]
           (partial merge-with
-                  ((first fn-seq) (rest fn-seq))))]
+                   ((first fn-seq) (rest fn-seq))))]
   (def merge-in
-    (merge-with-fn-seq (conj (repeat merge-in*) sensitive-merge-in* 
+    (merge-with-fn-seq (conj (repeat merge-in*) sensitive-merge-in*
                              merge-in*))))
 
 (defn output-of [type resource-name & values]
