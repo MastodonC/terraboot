@@ -102,6 +102,7 @@
              (aws-instance "influxdb" {:ami "ami-9b9c86f7"
                                        :vpc_security_group_ids [(vpc-id-of "aws_security_group" "influxdb")
                                                                 (id-of "aws_security_group" "allow_ssh")
+                                                                (vpc-id-of "aws_security_group" "allow_elb_chronograf")
                                                                 ]
                                        :subnet_id (vpc-id-of "aws_subnet" "public-a")
                                        })
