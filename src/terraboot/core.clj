@@ -8,14 +8,27 @@
 (def account-id "165664414043")
 (def default-sgs ["allow_outbound" "allow_ssh"])
 
-(letfn [(merge-in* [a b]
-          (if (map? a)
-            (merge-with merge-in* a b)
-            b))]
-  (defn merge-in
-    "Merge multiple nested maps."
-    [& args]
-    (reduce merge-in* nil args)))
+(letfn [(sensitive-merge-in* 
+          [mfns]
+          (fn [a b]
+            (if (map? a)
+              (do (when-let [dups (seq (clojure.set/intersection (set (keys a)) (set (keys b))))]
+                    (prn "Duplicate keys: " dups))
+                  (merge-with ((first mfns) (rest mfns)) a b))
+              b)))
+        (merge-in* 
+          [mfns]
+          (fn [a b]
+            (if (map? a)
+              (merge-with ((first mfns) (rest mfns)) a b)
+              b)))
+        (merge-with-fn-seq
+          [fn-seq]
+          (partial merge-with
+                  ((first fn-seq) (rest fn-seq))))]
+  (def merge-in
+    (merge-with-fn-seq (conj (repeat merge-in*) sensitive-merge-in* 
+                             merge-in*))))
 
 (defn output-of [type resource-name & values]
   (str "${"
