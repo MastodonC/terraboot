@@ -112,7 +112,7 @@
                                                       :target "HTTP:80/status"
                                                       :timeout 5
                                                       :interval 30}
-                                       ;; :cert_name "112349508752725708607389286684892850272129-2016-06-13-kibana_mastodonc_net" ; This was obtained via Lets Encrypt
+                                       :cert_name "265132466347680684417566576640082540205789-2016-06-30-chronograf_mastodonc_net" ; This was obtained via Lets Encrypt
                                        :instances [(id-of "aws_instance" "influxdb")]
                                        :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
                                        :sgs ["allow_outbound"
