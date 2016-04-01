@@ -147,8 +147,6 @@
 
              (route53_record "logstash" {:records [(vpc-output-of "aws_eip" "logstash" "public_ip")]})
 
-             (vpc-security-group "sends_gelf" {})
-
 
              (vpc-resource "aws_eip" "vpn" {:instance (vpc-id-of "aws_instance" "vpn")
                                             :vpc true})
