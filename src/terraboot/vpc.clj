@@ -108,34 +108,34 @@
                                        })
 
              (elb "chronograf" resource {:name "chronograf"
-                                       :health_check {:healthy_threshold 2
-                                                      :unhealthy_threshold 3
-                                                      :target "HTTP:80/status"
-                                                      :timeout 5
-                                                      :interval 30}
-                                       :cert_name "265132466347680684417566576640082540205789-2016-06-30-chronograf_mastodonc_net" ; This was obtained via Lets Encrypt
-                                       :instances [(id-of "aws_instance" "influxdb")]
-                                       :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
-                                       :sgs ["allow_outbound"
-                                             "allow_external_http_https"
-                                             "sandpit-elb_chronograf"
-                                             ]})
+                                         :health_check {:healthy_threshold 2
+                                                        :unhealthy_threshold 3
+                                                        :target "HTTP:80/status"
+                                                        :timeout 5
+                                                        :interval 30}
+                                         :cert_name "265132466347680684417566576640082540205789-2016-06-30-chronograf_mastodonc_net" ; This was obtained via Lets Encrypt
+                                         :instances [(id-of "aws_instance" "influxdb")]
+                                         :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
+                                         :sgs ["allow_outbound"
+                                               "allow_external_http_https"
+                                               "sandpit-elb_chronograf"
+                                               ]})
 
              (route53_record "chronograf" {:type "CNAME"
                                            :records [(output-of "aws_elb" "chronograf" "dns_name")]})
 
              (vpc-security-group "elb_chronograf" {})
              (vpc-security-group "allow_elb_chronograf" {}
-                             {:port 80
-                              :source_security_group_id (vpc-id-of "aws_security_group" "elb_chronograf")})
+                                 {:port 80
+                                  :source_security_group_id (vpc-id-of "aws_security_group" "elb_chronograf")})
 
              (vpc-security-group "influxdb" {}
-                             {:port 222
-                              :protocol "tcp"
-                              :cidr_blocks [all-external]}
-                             {:port 8086
-                              :protocol "tcp"
-                              :source_security_group_id (vpc-id-of "aws_security_group" "sends_influx")})
+                                 {:port 222
+                                  :protocol "tcp"
+                                  :cidr_blocks [all-external]}
+                                 {:port 8086
+                                  :protocol "tcp"
+                                  :source_security_group_id (vpc-id-of "aws_security_group" "sends_influx")})
 
              (vpc-security-group "sends_influx" {})
 
