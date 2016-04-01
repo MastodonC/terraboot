@@ -145,9 +145,6 @@
 
              (route53_record "influxdb" { :records [(output-of "aws_eip" "influxdb" "public_ip")]})
 
-             (route53_record "logstash" {:records [(vpc-output-of "aws_eip" "logstash" "public_ip")]})
-
-
              (vpc-resource "aws_eip" "vpn" {:instance (vpc-id-of "aws_instance" "vpn")
                                             :vpc true})
 
