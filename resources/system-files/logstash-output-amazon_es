@@ -1,0 +1,35 @@
+input{
+    beats {
+        port => 9200
+#        ssl => true
+#        ssl_certificate => "/etc/pki/tls/certs/logstash-forwarder.crt"
+#        ssl_key => "/etc/pki/tls/private/logstash-forwarder.key"
+    }
+}
+
+input{
+  file {
+    path => ["/tmp/logstashtest"]
+  }
+}
+
+input {
+  gelf {
+    type => docker
+    port => 12201
+  }
+}
+
+output{
+    elasticsearch {
+        hosts => ["${elasticsearch-lb}:80"]
+        document_type => "%{[@metadata][type]}"
+    }
+}
+
+output {
+ file {
+   path => "/var/log/logstash/all.log"
+   flush_interval => 0
+ }
+}
