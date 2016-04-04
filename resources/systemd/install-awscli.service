@@ -1,12 +1,12 @@
 [Unit]
 Description=download and install aws-cli
-After=network-online.target
-Wants=network-online.target
+After=multi-user.target
+Wants=multi-user.target
 [Service]
-Type=oneshot
 Restart=on-failure
+TimeoutStartSec=10
 StandardOutput=journal+console
 StandardError=journal+console
-ExecStartPre=/usr/bin/curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "/home/core/awscli-bundle.zip"
-ExecStartPre=/usr/bin/unzip /home/core/awscli-bundle.zip -d /home/core
-ExecStart=/home/core/awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
+ExecStart=/opt/mesosphere/bin/pip install awscli
+[Install]
+WantedBy=aws-installed.target
