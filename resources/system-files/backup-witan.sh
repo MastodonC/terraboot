@@ -4,7 +4,7 @@
 export PATH=$PATH:/opt/mesosphere/bin
 CASSANDRA_DIR=$(ps -A -o command | grep CassandraDaemon | grep '/var/lib' | cut -d' ' -f1 | sed -e 's#/jre1.*##')
 CASSANDRA_DATA_DIR=$CASSANDRA_DIR/data/
-NODETOOL=$(find $CASSANDRA_DIR -name nodetool | grep bin)
+NODETOOL=$(find $CASSANDRA_DIR -name nodetool -type f | grep bin/nodetool)
 AWS=$(find /opt/mesosphere -name aws)
 directory=$($NODETOOL snapshot witan | awk '/directory/{print $3}')
 
