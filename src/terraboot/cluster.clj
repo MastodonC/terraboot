@@ -19,7 +19,8 @@
                     {:name "docker-cleanup.service" :command "start" :content (snippet "systemd/docker-cleanup.service")}
                     {:name "docker-cleanup.timer" :command "start" :content (snippet "systemd/docker-cleanup.timer") :enable true}
                     {:name "install-confd.service" :command "start" :content (snippet "systemd/install-confd.service")}
-                    {:name "confd.service" :command "start" :content (snippet "systemd/confd.service") :enable true}]
+                    {:name "confd.service" :command "start" :content (snippet "systemd/confd.service") :enable true}
+                    {:name "install-awscli.service" :command "start" :content (snippet "systemd/install-awscli.service")}]
             :update {:reboot-strategy "off"}}
    :write_files [{:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json"
                   :content "{}\n"}
@@ -83,7 +84,7 @@
                                                 :content ""}
                                                {:path "/home/core/cassandra-backup/backup-witan.sh"
                                                 :content (snippet "system-files/backup-witan.sh")
-                                                :permissions "0644"}]})
+                                                :permissions "0744"}]})
                     (add-to-systemd [{:name "backup.service" :content (snippet "systemd/backup.service")}
                                      {:name "backup.timer" :command "start" :content (snippet "systemd/backup.timer") :enable true}] )  )))
 
