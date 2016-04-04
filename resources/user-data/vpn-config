@@ -144,6 +144,7 @@ write_files:
                cert mesos-vpn-gw.crt
                key mesos-vpn-gw.key
                dh dh2048.pem
+               crl-verify crl.pem
                server 10.20.0.0 255.255.255.0
                ifconfig-pool-persist ipp.txt
                push "route 10.64.0.0 255.255.0.0"
@@ -158,6 +159,22 @@ write_files:
                verb 3
       permissions: '644'
       path: /etc/openvpn/server.conf
+    - content: |
+               -----BEGIN X509 CRL-----
+               MIIB9jCB3zANBgkqhkiG9w0BAQsFADCBmTELMAkGA1UEBhMCVUsxDzANBgNVBAcT
+               BkxvbmRvbjETMBEGA1UEChMKTWFzdG9kb24gQzEUMBIGA1UECxMLRGV2ZWxvcG1l
+               bnQxFjAUBgNVBAMTDU1hc3RvZG9uIEMgQ0ExEDAOBgNVBCkTB0Vhc3lSU0ExJDAi
+               BgkqhkiG9w0BCQEWFXN1cHBvcnRAbWFzdG9kb25jLmNvbRcNMTYwMzA5MDkyNjE1
+               WhcNMTYwNDA4MDkyNjE1WjAUMBICAQIXDTE2MDMwOTA5MjYxNVowDQYJKoZIhvcN
+               AQELBQADggEBAMlxnNLSejxlqkVFYJhgQKWGYfXfvIXZJ9VQ1Ic2PHbkVnvKFHno
+               S8zGBKqijW5pcrQwUhHfovG2YUYz6M4IRlpmmnX3CvZdpwwUZ33FpApGv1bnMFYf
+               oK/Yz7viKh8jqUcOjysUkJ2N0zy39716aU/hy7Q8TIcP5D4qPeUZ1f3Q52YqB59x
+               r4HzC2r9B8mURXHAoSm6Ch03NhLiQQH4Vf/OGyJ8OaY3d/uM9jAuU40JsZYawXsy
+               rbi89GNwdC3wga77efKQddZNR2DvjVcIQwjx2/Y680W5jHi4Y2SIInc4/OJzWjwe
+               Q0u02YQxRyPFbbYYsktvIA8BhJ/Az/mjEuk=
+               -----END X509 CRL-----
+      permissions: '644'
+      path: /etc/openvpn/crl.pem
     - content: |
                net.ipv4.ip_forward = 1
       permissions: '644'
