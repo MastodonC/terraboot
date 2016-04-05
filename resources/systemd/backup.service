@@ -1,7 +1,7 @@
 [Unit]
 Description=Backup of cassandra database
-After=aws-installed.target
-Wants=aws-installed.target
+After=multi-user.target
+Wants=multi-user.target
 [Service]
 Type=oneshot
 Environment="PATH=/opt/mesosphere/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/bin"

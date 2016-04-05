@@ -1,6 +1,7 @@
 [Unit]
 Description=running confd
-After=install-confd.service
+After=multi-user.target
+Wants=multi-user.target
 
 [Service]
 Restart=always
@@ -8,6 +9,3 @@ StandardOutput=journal+console
 StandardError=journal+console
 ExecStart=/opt/mesosphere/bin/confd -backend=zookeeper -log-level=debug -node=${internal-lb-dns}:2181 -interval=60
 ExecStop=-/usr/bin/pkill confd
-
-[Install]
-WantedBy=multi-user.target

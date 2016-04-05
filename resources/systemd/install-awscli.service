@@ -3,10 +3,8 @@ Description=download and install aws-cli
 After=multi-user.target
 Wants=multi-user.target
 [Service]
-Restart=on-failure
+Type=oneshot
 TimeoutStartSec=10
 StandardOutput=journal+console
 StandardError=journal+console
 ExecStart=/opt/mesosphere/bin/pip install awscli
-[Install]
-WantedBy=aws-installed.target
