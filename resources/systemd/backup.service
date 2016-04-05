@@ -4,5 +4,5 @@ After=aws-installed.target
 Wants=aws-installed.target
 [Service]
 Type=oneshot
-Environment=AWS_CONFIG_FILE=/home/core/.aws/config
+Environment="PATH=/opt/mesosphere/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/bin"
 ExecStart=/home/core/cassandra-backup/backup-witan.sh
