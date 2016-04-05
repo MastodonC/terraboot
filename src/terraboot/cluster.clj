@@ -16,11 +16,11 @@
                     {:name "dcos-download.service" :content (snippet "systemd/dcos-download.service")}
                     {:name "dcos-setup.service" :command "start" :content (clojure.string/trim-newline (snippet "systemd/dcos-setup.service")) :enable true}
                     {:name "cadvisor.service" :command "start" :content (snippet "systemd/cadvisor.service") :enable true}
-                    {:name "docker-cleanup.service" :command "start" :content (snippet "systemd/docker-cleanup.service")}
-                    {:name "docker-cleanup.timer" :command "start" :content (snippet "systemd/docker-cleanup.timer") :enable true}
+                    {:name "docker-cleanup.service" :content (snippet "systemd/docker-cleanup.service")}
+                    {:name "docker-cleanup.timer" :command "start" :content (snippet "systemd/docker-cleanup.timer")}
                     {:name "install-confd.service" :command "start" :content (snippet "systemd/install-confd.service")}
                     {:name "confd.service" :command "start" :content (snippet "systemd/confd.service") :enable true}
-                    {:name "install-awscli.service" :command "start" :content (snippet "systemd/install-awscli.service")}]
+                    {:name "install-awscli.service" :command "start" :content (snippet "systemd/install-awscli.service") :enable true}]
             :update {:reboot-strategy "off"}}
    :write_files [{:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json"
                   :content "{}\n"}
@@ -86,7 +86,7 @@
                                                 :content (snippet "system-files/backup-witan.sh")
                                                 :permissions "0744"}]})
                     (add-to-systemd [{:name "backup.service" :content (snippet "systemd/backup.service")}
-                                     {:name "backup.timer" :command "start" :content (snippet "systemd/backup.timer") :enable true}] )  )))
+                                     {:name "backup.timer" :command "start" :content (snippet "systemd/backup.timer")}] )  )))
 
 (defn mesos-public-slave-user-data
   []
