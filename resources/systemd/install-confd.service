@@ -3,7 +3,7 @@ Description=download and install confd
 After=network-online.target
 Wants=network-online.target
 [Service]
-Restart=on-failure
+Type=oneshot
 StandardOutput=journal+console
 StandardError=journal+console
 TimeoutStartSec=10
