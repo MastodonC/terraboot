@@ -149,34 +149,35 @@
         dump-local-file (fn [content file-name] (str "mkdir -p " directory-name "; echo '" content "' > " directory-name "/" file-name))
         make-executable (fn [file-name] (str "chmod +x " directory-name "/" file-name))]
     ;; local resources: easy customized local access to the cluster
-    (cluster-resource "template_file" "cassandra_deploy"
-                      {:template (snippet "local-exec/cassandra-production.json")
-                       :vars {:cassandra_node_count min-number-of-slaves
-                              :cassandra_seed_count (max (quot min-number-of-slaves 3) 1)}
-                       :provisioner {"local-exec" {"cassandra-marathon"
-                                                   {:command (dump-local-file (cluster-output-of "template_file" "cassandra_deploy" "rendered") (str "cassandra-marathon.json"))}}}})
+    (merge-in
+     (cluster-resource "template_file" "cassandra_deploy"
+                       {:template (snippet "local-exec/cassandra-production.json")
+                        :vars {:cassandra_node_count min-number-of-slaves
+                               :cassandra_seed_count (max (quot min-number-of-slaves 3) 1)}
+                        :provisioner {"local-exec" {"cassandra-marathon"
+                                                    {:command (dump-local-file (cluster-output-of "template_file" "cassandra_deploy" "rendered") (str "cassandra-marathon.json"))}}}})
 
-    (cluster-resource "template_file" "deploy-sh"
-                      {:template (snippet "local-exec/deploy.sh")
-                       :vars {:internal-lb internal-lb
-                              :cluster-name cluster-name}
-                       :provisioner {"local-exec" {"deploy-sh"
-                                                   {:command (str (dump-local-file (cluster-output-of "template_file" "deploy-sh" "rendered") "deploy.sh") ";"
-                                                                  (make-executable "deploy.sh"))}}}})
+     (cluster-resource "template_file" "deploy-sh"
+                       {:template (snippet "local-exec/deploy.sh")
+                        :vars {:internal-lb internal-lb
+                               :cluster-name cluster-name}
+                        :provisioner {"local-exec" {"deploy-sh"
+                                                    {:command (str (dump-local-file (cluster-output-of "template_file" "deploy-sh" "rendered") "deploy.sh") ";"
+                                                                   (make-executable "deploy.sh"))}}}})
 
-    (cluster-resource "template_file" "dcos-cli-install"
-                      {:template (snippet "local-exec/dcos-cli-install.sh")
-                       :vars {:internal-lb internal-lb}
-                       :provisioner {"local-exec" {"dcos-cli-install"
-                                                   {:command (str (dump-local-file (cluster-output-of "template_file" "dcos-cli-install" "rendered") "dcos-cli-install.sh") ";"
-                                                                  (make-executable "dcos-cli-install.sh"))}}}})
+     (cluster-resource "template_file" "dcos-cli-install"
+                       {:template (snippet "local-exec/dcos-cli-install.sh")
+                        :vars {:internal-lb internal-lb}
+                        :provisioner {"local-exec" {"dcos-cli-install"
+                                                    {:command (str (dump-local-file (cluster-output-of "template_file" "dcos-cli-install" "rendered") "dcos-cli-install.sh") ";"
+                                                                   (make-executable "dcos-cli-install.sh"))}}}})
 
-    (cluster-resource "template_file" "open-mesos-admin"
-                      {:template (str "open http://" internal-lb)
-                       :provisioner {"local-exec" {"open-mesos-admin"
-                                                   {:command (str (dump-local-file (cluster-output-of "template_file" "open-mesos-admin" "rendered") "open-mesos-admin.sh") ";"
-                                                                  (make-executable "open-mesos-admin.sh"))}}}}
-                      )))
+     (cluster-resource "template_file" "open-mesos-admin"
+                       {:template (str "open http://" internal-lb)
+                        :provisioner {"local-exec" {"open-mesos-admin"
+                                                    {:command (str (dump-local-file (cluster-output-of "template_file" "open-mesos-admin" "rendered") "open-mesos-admin.sh") ";"
+                                                                   (make-executable "open-mesos-admin.sh"))}}}}
+                       ))))
 
 (defn cluster-infra
   [{:keys [vpc-name
