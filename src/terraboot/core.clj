@@ -196,7 +196,7 @@
                                                :ssl_certificate_id (str "arn:aws:iam::" account-id ":server-certificate/" cert_name)}]
                             [default-listener])
         listeners (concat default-listeners (:listeners spec))
-        elb-security-groups        (map #(id-of "aws_security_group" %) sgs)]
+        elb-security-groups        (map #(id-of "aws_security_group" %) (concat sgs default-sgs))]
     (cluster-resource "aws_elb" name {:name name
                                       :subnets subnets
                                       :security_groups elb-security-groups
