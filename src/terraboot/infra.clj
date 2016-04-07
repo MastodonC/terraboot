@@ -16,6 +16,14 @@
                              :max-number-of-slaves 2
                              :min-number-of-public-slaves 1
                              :max-number-of-public-slaves 2}) (str infra-path "cluster.tf"))
+    (to-file (cluster-infra {:vpc-name vpc-name
+                             :cluster-name "staging"
+                             :min-number-of-masters 3
+                             :max-number-of-masters 3
+                             :min-number-of-slaves 2
+                             :max-number-of-slaves 2
+                             :min-number-of-public-slaves 1
+                             :max-number-of-public-slaves 1}) (str infra-path "staging.tf"))))
 
 ;; Possible extra option: to make directory a parameter
 (defn -main []
