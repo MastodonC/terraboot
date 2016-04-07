@@ -60,7 +60,7 @@
                  {:path "/etc/confd/templates/ssh-authorized-keys.tmpl"
                   :content (snippet "system-files/ssh-authorized-keys.tmpl")}]})
 
-(defn mesos-master-user-data [etcd-token]
+(defn mesos-master-user-data []
   (cloud-config (merge-with (comp vec concat)
                             (mesos-instance-user-data)
                             {:write_files [{:path "/etc/mesosphere/roles/master"
@@ -186,8 +186,7 @@
            min-number-of-slaves
            max-number-of-slaves
            min-number-of-public-slaves
-           max-number-of-public-slaves
-           etcd-token]}]
+           max-number-of-public-slaves]}]
   (let [public-subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
         private-subnets (mapv #(id-of "aws_subnet" (stringify vpc-name "-private-" %)) azs)
         vpc-unique (fn [name] (str vpc-name "-" name))
@@ -306,7 +305,7 @@
 
 
              (cluster-resource "template_file" "master-user-data"
-                               {:template (mesos-master-user-data etcd-token)
+                               {:template (mesos-master-user-data)
                                 :vars {:aws-region region
                                        :cluster-name cluster-name
                                        :cluster-id cluster-identifier
