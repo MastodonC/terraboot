@@ -421,6 +421,7 @@
                                          :target "HTTP:80/"
                                          :timeout 5
                                          :interval 30}
+                          :listeners [(elb-listener {:port 9501 :protocol "HTTP"})]
                           :subnets public-subnets
                           :sgs (mapv cluster-unique ["public-slave-security-group"])}]})
 
