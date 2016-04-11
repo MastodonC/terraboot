@@ -148,8 +148,8 @@
 
              (route53_record "influxdb" { :records [(output-of "aws_eip" "influxdb" "public_ip")]})
 
-             (vpc-resource "aws_eip" "vpn" {:instance (vpc-id-of "aws_instance" "vpn")
-                                            :vpc true})
+             #_(vpc-resource "aws_eip" "vpn" {:instance (vpc-id-of "aws_instance" "vpn")
+                                              :vpc true})
 
              (route53_record "vpn" {:records [(vpc-output-of "aws_instance" "vpn" "public_ip")]})
 
