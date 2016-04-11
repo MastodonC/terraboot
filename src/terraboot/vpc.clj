@@ -72,7 +72,7 @@
                                 :permissions "644"}
                                {:path "/etc/openvpn/up.sh"
                                 :content (snippet "system-files/up.sh")
-                                :permissions "644"}]
+                                :permissions "744"}]
                  }))
 
 (defn vpc-vpn-infra
