@@ -62,13 +62,16 @@
                                 :content (snippet "vpn-keys/dh2048.pem")
                                 :permissions "600"}
                                {:path "/etc/openvpn/server.conf"
-                                :content (from-template "server.conf" vars)
+                                :content (from-template "system-files/server.conf" vars)
                                 :permissions "644"}
                                {:path "/etc/openvpn/crl.pem"
                                 :content (snippet "vpn-keys/crl.pem")
                                 :permissions "644"}
                                {:path "/etc/sysctl.d/99-ip-forwarding.conf"
                                 :content "net.ipv4.ip_forward = 1\n"
+                                :permissions "644"}
+                               {:path "/etc/openvpn/up.sh"
+                                :content (snippet "system-files/up.sh")
                                 :permissions "644"}]
                  }))
 
