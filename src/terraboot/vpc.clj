@@ -102,13 +102,22 @@
                                                :associate_public_ip_address true
                                                })
 
+             (vpc-resource "aws_ebs_volume" "influxdb"
+                           {:availability_zone region
+                            :size 20})
+
              (aws-instance "influxdb" {:ami "ami-9b9c86f7"
+                                       :instance_type "m4.large"
                                        :vpc_security_group_ids [(vpc-id-of "aws_security_group" "influxdb")
                                                                 (id-of "aws_security_group" "allow_ssh")
                                                                 (vpc-id-of "aws_security_group" "allow_elb_chronograf")
                                                                 ]
-                                       :subnet_id (vpc-id-of "aws_subnet" "public-a")
-                                       })
+                                       :subnet_id (vpc-id-of "aws_subnet" "public-a")})
+
+             (vpc-resource "aws_volume_attachment" "influxdb_volume"
+                           {:device_name "/dev/xvdh"
+                            :instance_id (id-of "aws_instance" "influxdb")
+                            :volume_id (vpc-id-of "aws_ebs_volume" "influxdb")})
 
              (elb "chronograf" resource {:name "chronograf"
                                          :health_check {:healthy_threshold 2
