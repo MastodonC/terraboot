@@ -103,7 +103,7 @@
                                                })
 
              (vpc-resource "aws_ebs_volume" "influxdb"
-                           {:availability_zone region
+                           {:availability_zone (stringify region (first azs))
                             :size 20})
 
              (aws-instance "influxdb" {:ami "ami-9b9c86f7"
