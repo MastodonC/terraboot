@@ -91,6 +91,7 @@
 
 
              (route53_record "logstash" {:records [(vpc-output-of "aws_eip" "logstash" "public_ip")]})
+             (vpc-security-group "sends_gelf" {})
 
              (vpc-security-group "sends_logstash" {})
 
