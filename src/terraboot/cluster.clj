@@ -179,6 +179,23 @@
                                                                    (make-executable "open-mesos-admin.sh"))}}}}
                        ))))
 
+(defn logstash-user-data []
+  (cloud-config {:package_update true
+                 :packages ["oracle-java8-installer" "oracle-java8-set-default" "logstash"]
+                 :apt_sources
+                 [{:source "ppa:webupd8team/java"}
+                  {:source "deb http://packages.elastic.co/logstash/2.2/debian stable main"
+                   :key (snippet "system-files/elasticsearch-apt.pem")} ]
+                 :write_files
+                 [{:path "/etc/logstash/conf.d/cluster-logstash.conf"
+                   :content (snippet "system-files/cluster-logstash.conf")}
+                  {:path "/etc/ssl/ca.cert"
+                   :content (snippet "vpn-keys/ca.crt")}]
+                 :bootcmd
+                 ["cloud-init-per once accepted-oracle-license-v1-1 echo \"oracle-java8-installer shared/accepted-oracle-license-v1-1 select true\" | debconf-set-selections"]
+                 :runcmd
+                 ["update-rc.d logstash defaults"]}))
+
 (defn cluster-infra
   [{:keys [vpc-name
            cluster-name
@@ -191,6 +208,7 @@
   (let [public-subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
         private-subnets (mapv #(id-of "aws_subnet" (stringify vpc-name "-private-" %)) azs)
         vpc-unique (fn [name] (str vpc-name "-" name))
+        vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
         cluster-identifier (str vpc-name "-" cluster-name)
         cluster-unique (fn [name] (str cluster-identifier "-" name))
         cluster-resource (partial resource cluster-unique)
@@ -328,9 +346,8 @@
                   cluster-unique
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"
-                   :sgs (concat (mapv cluster-unique ["master-security-group" "admin-security-group"])
-                                [(vpc-unique "sends_gelf")
-                                 (vpc-unique "sends_influx")])
+                   :sgs (concat (mapv cluster-unique ["master-security-group" "admin-security-group" "sends_gelf"])
+                                [(vpc-unique "sends_influx")])
                    :role (cluster-unique "master-role")
                    :public_ip true
                    :tags {:Key "role"
@@ -401,7 +418,7 @@
                   {:image_id current-coreos-ami
                    :instance_type "m4.xlarge"
                    :sgs [(cluster-unique "public-slave-security-group")
-                         (vpc-unique "sends_gelf")
+                         (cluster-unique "sends_gelf")
                          (vpc-unique "sends_influx")]
                    :role (cluster-unique "slave-role")
                    :public_ip true
@@ -461,7 +478,7 @@
                   {:image_id current-coreos-ami
                    :instance_type "m4.xlarge"
                    :sgs [(cluster-unique "slave-security-group")
-                         (vpc-unique "sends_gelf")
+                         (cluster-unique "sends_gelf")
                          (vpc-unique "sends_influx")]
                    :role (cluster-unique "slave-role")
                    :tags {:Key "role"
@@ -478,6 +495,25 @@
                    :elb []
                    })
 
+
+             (cluster-security-group "sends_gelf" {})
+             (cluster-security-group "logstash" {}
+                                     {:port 12201
+                                      :protocol "udp"
+                                      :source_security_group_id (cluster-id-of "aws_security_group" "sends_gelf")})
+             (aws-instance (cluster-unique "logstash")
+                           {:user_data (logstash-user-data)
+                            :subnet_id (vpc-id-of "aws_subnet" "public-a")
+                            :vpc_security_group_ids [(vpc-id-of "aws_security_group" "sends_logstash") (cluster-id-of "aws_security_group" "logstash")]
+                            :ami "ami-9b9c86f7"
+                            :associate_public_ip_address true})
+
+             (resource "aws_route53_record" (cluster-unique "logstash")
+                       {:zone_id (id-of "aws_route53_zone" (vpc-unique "mesos"))
+                        :name (str (cluster-unique "logstash") "." (vpc-unique "kixi") ".mesos")
+                        :type "A"
+                        :ttl 300
+                        :records [(cluster-output-of "aws_instance" "logstash" "private_ip")]})
 
              (local-deploy-scripts {:cluster-name cluster-name
                                     :name-fn cluster-unique

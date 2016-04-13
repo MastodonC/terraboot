@@ -70,7 +70,7 @@
              (vpc-security-group "logstash" {}
                                  {:port 12201
                                   :protocol "udp"
-                                  :source_security_group_id (vpc-id-of "aws_security_group" "sends_gelf")}
+                                  :source_security_group_id (vpc-id-of "aws_security_group" "sends_logstash")}
                                  {:port 12201
                                   :protocol "udp"
                                   :cidr_blocks [(str (vpc-output-of "aws_eip" "public-a-nat" "public_ip") "/32")
@@ -92,7 +92,7 @@
 
              (route53_record "logstash" {:records [(vpc-output-of "aws_eip" "logstash" "public_ip")]})
 
-             (vpc-security-group "sends_gelf" {})
+             (vpc-security-group "sends_logstash" {})
 
              (vpc-resource "template_file" "logstash-user-data"
                            {:template logstash-user-data
