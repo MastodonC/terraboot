@@ -133,6 +133,13 @@
                                                "sandpit-elb_chronograf"
                                                ]})
 
+             (resource "aws_route53_record" (vpc-unique "influxdb")
+                       {:zone_id (id-of "aws_route53_zone" (vpc-unique "mesos"))
+                        :name (str "influxdb." (vpc-unique "kixi") ".mesos")
+                        :type "A"
+                        :ttl 300
+                        :records [(output-of "aws_instance" "influxdb" "private_ip")]})
+
              (route53_record "chronograf" {:type "CNAME"
                                            :records [(output-of "aws_elb" "chronograf" "dns_name")]})
 

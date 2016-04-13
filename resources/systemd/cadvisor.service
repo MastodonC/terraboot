@@ -6,5 +6,5 @@ After=docker.service
 User=core
 TimeoutStartSec=15
 ExecStartPre=-/usr/bin/docker pull mastodonc/cadvisor:latest
-ExecStart=/usr/bin/docker run --name=cadvisor --label application=cadvisor --net=host --volume=/:/rootfs:ro --volume=/var/run:/var/run:rw --volume=/sys:/sys:ro --volume=/var/lib/docker/:/var/lib/docker:ro --publish=9922:9922  --detach=false mastodonc/cadvisor:latest -port 9922 -storage_driver=influxdb -storage_driver_host=influxdb.mastodonc.net:8086 -storage_driver_db=cadvisor_${cluster-name}
+ExecStart=/usr/bin/docker run --name=cadvisor --label application=cadvisor --net=host --volume=/:/rootfs:ro --volume=/var/run:/var/run:rw --volume=/sys:/sys:ro --volume=/var/lib/docker/:/var/lib/docker:ro --publish=9922:9922  --detach=false mastodonc/cadvisor:latest -port 9922 -storage_driver=influxdb -storage_driver_host=${influxdb-dns}:8086 -storage_driver_db=cadvisor_${cluster-name}
 ExecStop=-/usr/bin/docker stop -t 2 cadvisor; /usr/bin/docker rm -f cadvisor

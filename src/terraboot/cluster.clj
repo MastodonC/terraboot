@@ -319,7 +319,7 @@
                                        :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
-                                       :influxdb-ip (output-of "aws_instance" "influxdb" "private_ip")}
+                                       :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")}
                                 :lifecycle { :create_before_destroy true }
                                 })
 
@@ -384,7 +384,7 @@
                                        :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
-                                       :influxdb-ip (output-of "aws_instance" "influxdb" "private_ip")                                       }
+                                       :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")}
                                 :lifecycle { :create_before_destroy true }})
 
              (resource "aws_route53_record" (cluster-unique "masters")
@@ -394,6 +394,7 @@
                         :alias {:name (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                 :zone_id (cluster-output-of "aws_elb" "internal-lb" "zone_id")
                                 :evaluate_target_health true}})
+
 
              (asg "public-slaves"
                   cluster-unique
@@ -449,7 +450,7 @@
                                        :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
-                                       :influxdb-ip (output-of "aws_instance" "influxdb" "private_ip")                                       }
+                                       :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")}
                                 :lifecycle { :create_before_destroy true }
 
                                 })
