@@ -9,7 +9,7 @@
   {:coreos {:units [{:name "etcd.service" :command "stop" :mask true}
                     {:name "update-engine.service" :command "stop" :mask true}
                     {:name "locksmithd.service" :command "stop" :mask true}
-                    {:name "systemd-resolved.service" :command "stop"}
+                    {:name "systemd-resolved.service" :command "restart"}
                     {:name "systemd-journald.service" :command "restart"}
                     {:name "docker.service" :command "restart" :enable true}
                     {:name "dcos-link-env.service" :command "start" :content (snippet "systemd/dcos-link-env.service")}
@@ -20,7 +20,8 @@
                     {:name "docker-cleanup.timer" :command "start" :content (snippet "systemd/docker-cleanup.timer")}
                     {:name "install-confd.service" :command "start" :content (snippet "systemd/install-confd.service")}
                     {:name "confd.service" :command "start" :content (snippet "systemd/confd.service") :enable true}
-                    {:name "install-awscli.service" :command "start" :content (snippet "systemd/install-awscli.service") :enable true}]
+                    {:name "install-awscli.service" :command "start" :content (snippet "systemd/install-awscli.service") :enable true}
+                    {:name "dcos-gen-resolvconf.timer" :command "stop" :mask true}]
             :update {:reboot-strategy "off"}}
    :write_files [{:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json"
                   :content "{}\n"}
