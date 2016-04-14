@@ -58,7 +58,9 @@
                  {:path "/etc/confd/conf.d/ssh-authorized-keys.toml"
                   :content (snippet "system-files/ssh-authorized-keys.toml")}
                  {:path "/etc/confd/templates/ssh-authorized-keys.tmpl"
-                  :content (snippet "system-files/ssh-authorized-keys.tmpl")}]})
+                  :content (snippet "system-files/ssh-authorized-keys.tmpl")}
+                 {:path "/etc/systemd/resolved.conf"
+                  :content (snippet "systemd/resolved.conf")}]})
 
 (defn mesos-master-user-data []
   (cloud-config (merge-with (comp vec concat)
@@ -181,7 +183,7 @@
 
 (defn logstash-user-data []
   (cloud-config {:package_update true
-                 :packages ["oracle-java8-installer" "oracle-java8-set-default" "logstash"]
+                 :packages ["oracle-java8-installer" "oracle-java8-set-default" "logstash" "dnsmasq"]
                  :apt_sources
                  [{:source "ppa:webupd8team/java"}
                   {:source "deb http://packages.elastic.co/logstash/2.2/debian stable main"
@@ -190,7 +192,9 @@
                  [{:path "/etc/logstash/conf.d/cluster-logstash.conf"
                    :content (snippet "system-files/cluster-logstash.conf")}
                   {:path "/etc/ssl/ca.cert"
-                   :content (snippet "vpn-keys/ca.crt")}]
+                   :content (snippet "vpn-keys/ca.crt")}
+                  {:path "/etc/dnsmasq.conf"
+                   :content (snippet "system-files/dnsmasq.conf")}]
                  :bootcmd
                  ["cloud-init-per once accepted-oracle-license-v1-1 echo \"oracle-java8-installer shared/accepted-oracle-license-v1-1 select true\" | debconf-set-selections"]
                  :runcmd
@@ -337,7 +341,9 @@
                                        :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
-                                       :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")}
+                                       :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")
+                                       :logstash-ip (cluster-output-of "aws_instance" "logstash" "private_ip")
+                                       :mesos-dns "127.0.0.1"}
                                 :lifecycle { :create_before_destroy true }
                                 })
 
@@ -374,7 +380,8 @@
                           :listeners [(elb-listener {:port 5050 :protocol "HTTP"})
                                       (elb-listener {:port 2181 :protocol "TCP"})
                                       (elb-listener {:port 8181 :protocol "HTTP"})
-                                      (elb-listener {:port 8080 :protocol "HTTP"})]
+                                      (elb-listener {:port 8080 :protocol "HTTP"})
+                                      (elb-listener {:port 53 :protocol "TCP"})]
                           :health_check {:healthy_threshold 2
                                          :unhealthy_threshold 3
                                          :target "HTTP:8181/exhibitor/v1/cluster/status"
@@ -401,12 +408,14 @@
                                        :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
-                                       :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")}
+                                       :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")
+                                       :logstash-ip (cluster-output-of "aws_instance" "logstash" "private_ip")
+                                       :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")}
                                 :lifecycle { :create_before_destroy true }})
 
              (resource "aws_route53_record" (cluster-unique "masters")
                        {:zone_id (id-of "aws_route53_zone" (vpc-unique "mesos"))
-                        :name (str (cluster-unique "masters") "." (vpc-unique "kixi") ".mesos")
+                        :name (str cluster-name  "-masters." (vpc-unique "kixi") ".mesos")
                         :type "A"
                         :alias {:name (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                 :zone_id (cluster-output-of "aws_elb" "internal-lb" "zone_id")
@@ -467,7 +476,9 @@
                                        :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
-                                       :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")}
+                                       :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")
+                                       :logstash-ip (cluster-output-of "aws_instance" "logstash" "private_ip")
+                                       :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")}
                                 :lifecycle { :create_before_destroy true }
 
                                 })
@@ -501,16 +512,30 @@
                                      {:port 12201
                                       :protocol "udp"
                                       :source_security_group_id (cluster-id-of "aws_security_group" "sends_gelf")})
+
+             (cluster-security-group "dns" {}
+                                     {:port 53
+                                      :protocol "udp"
+                                      :cidr_blocks [vpc/vpc-cidr-block]}
+                                     {:port 53
+                                      :protocol "tcp"
+                                      :cidr_blocks [vpc/vpc-cidr-block]})
+
+             (cluster-resource "template_file" "logstash-user-data"
+                               {:vars {:internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
+                                       :fallback-dns  (vpc/fallback-dns vpc/vpc-cidr-block)}
+                                :template (logstash-user-data)})
+
              (aws-instance (cluster-unique "logstash")
-                           {:user_data (logstash-user-data)
+                           {:user_data (cluster-output-of "template_file" "logstash-user-data" "rendered")
                             :subnet_id (vpc-id-of "aws_subnet" "public-a")
-                            :vpc_security_group_ids [(vpc-id-of "aws_security_group" "sends_logstash") (cluster-id-of "aws_security_group" "logstash")]
+                            :vpc_security_group_ids [(vpc-id-of "aws_security_group" "sends_logstash") (cluster-id-of "aws_security_group" "logstash") (cluster-id-of "aws_security_group" "dns")]
                             :ami "ami-9b9c86f7"
                             :associate_public_ip_address true})
 
              (resource "aws_route53_record" (cluster-unique "logstash")
                        {:zone_id (id-of "aws_route53_zone" (vpc-unique "mesos"))
-                        :name (str (cluster-unique "logstash") "." (vpc-unique "kixi") ".mesos")
+                        :name (str cluster-name "-logstash." (vpc-unique "kixi") ".mesos")
                         :type "A"
                         :ttl 300
                         :records [(cluster-output-of "aws_instance" "logstash" "private_ip")]})
