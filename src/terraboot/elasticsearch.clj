@@ -83,6 +83,9 @@
                                                 ]}
                                  {:port 9200
                                   :protocol "tcp"
+                                  :cidr_blocks [all-external]}
+                                 {:port 9200
+                                  :protocol "udp"
                                   :cidr_blocks [all-external]})
 
              (vpc-resource "aws_eip" "logstash"
