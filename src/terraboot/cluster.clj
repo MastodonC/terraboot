@@ -356,7 +356,8 @@
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"
                    :sgs (concat (mapv cluster-unique ["master-security-group" "admin-security-group" "sends_gelf"])
-                                [(vpc-unique "sends_influx")])
+                                [(vpc-unique "sends_influx")
+                                 (vpc-unique "all-servers")])
                    :role (cluster-unique "master-role")
                    :public_ip true
                    :tags {:Key "role"
@@ -431,7 +432,8 @@
                    :instance_type "m4.xlarge"
                    :sgs [(cluster-unique "public-slave-security-group")
                          (cluster-unique "sends_gelf")
-                         (vpc-unique "sends_influx")]
+                         (vpc-unique "sends_influx")
+                         (vpc-unique "all-servers")]
                    :role (cluster-unique "slave-role")
                    :public_ip true
                    :tags {:Key "role"
@@ -493,7 +495,8 @@
                    :instance_type "m4.xlarge"
                    :sgs [(cluster-unique "slave-security-group")
                          (cluster-unique "sends_gelf")
-                         (vpc-unique "sends_influx")]
+                         (vpc-unique "sends_influx")
+                         (vpc-unique "all-servers")]
                    :role (cluster-unique "slave-role")
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
@@ -527,7 +530,8 @@
              (cluster-resource "template_file" "logstash-user-data"
                                {:vars {:internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :fallback-dns  (vpc/fallback-dns vpc/vpc-cidr-block)}
-                                :template (logstash-user-data)})
+                                :template (logstash-user-data)
+                                :lifecycle {:create_before_destroy true}})
 
              (aws-instance (cluster-unique "logstash")
                            {:user_data (cluster-output-of "template_file" "logstash-user-data" "rendered")

@@ -82,9 +82,6 @@
                                                 "151.230.75.151/32" ; Tom Temp
                                                 ]}
                                  {:port 9200
-                                  :protocol "tcp"
-                                  :cidr_blocks [all-external]}
-                                 {:port 9200
                                   :protocol "udp"
                                   :cidr_blocks [all-external]})
 
@@ -133,6 +130,17 @@
                                            "allow_external_http_https"
                                            (vpc-unique "elb-kibana")
                                            ]})
+
+             ;; alerting server needs access to all servers
+             (vpc-security-group "nrpe" {})
+             (vpc-security-group "all-servers" {}
+                                 {:port 5666
+                                  :source_security_group_id (vpc-id-of "aws_security_group" "nrpe")})
+
+             (aws-instance (vpc-unique "alerts")
+                           {:ami ubuntu
+                            :subnet_id (vpc-id-of "aws_subnet" "private-a")
+                            :vpc_security_group_ids [(vpc-id-of "aws_security_group" "nrpe")]})
 
              (route53_record "kibana" {:type "CNAME"
                                        :records [(output-of "aws_elb" "kibana" "dns_name")]})
