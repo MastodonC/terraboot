@@ -71,7 +71,7 @@
              (vpc-security-group "logstash" {}
                                  {:port 12201
                                   :protocol "udp"
-                                  :source_security_group_id (vpc-id-of "aws_security_group" "sends_logstash")}
+                                  :source_security_group_id (vpc-id-of "aws_security_group" "sends_gelf")}
                                  {:port 12201
                                   :protocol "udp"
                                   :cidr_blocks [(str (vpc-output-of "aws_eip" "public-a-nat" "public_ip") "/32")
