@@ -104,6 +104,7 @@
                                                     :vpc_security_group_ids [(vpc-id-of "aws_security_group" "logstash")
                                                                              (id-of "aws_security_group" "allow_ssh")
                                                                              (vpc-id-of "aws_security_group" "sends_influx")
+                                                                             (vpc-id-of "aws_security_group" "all-servers")
                                                                              ]
                                                     :associate_public_ip_address true
                                                     :subnet_id (vpc-id-of "aws_subnet" "public-a")
@@ -134,9 +135,7 @@
 
              ;; alerting server needs access to all servers
              (vpc-security-group "nrpe" {})
-             (vpc-security-group "all-servers" {}
-                                 {:port 5666
-                                  :source_security_group_id (vpc-id-of "aws_security_group" "nrpe")})
+
 
              (database {:name (vpc-unique "alerts")
                         :subnet vpc_name})
@@ -146,7 +145,8 @@
                             :subnet_id (vpc-id-of "aws_subnet" "private-a")
                             :vpc_security_group_ids [(vpc-id-of "aws_security_group" "nrpe")
                                                      (id-of "aws_security_group" (str "uses-db-" (vpc-unique "alerts")))
-                                                     (vpc-id-of "aws_security_group" "allow-elb-alerts")]})
+                                                     (vpc-id-of "aws_security_group" "allow-elb-alerts")
+                                                     (vpc-id-of "aws_security_group" "all-servers")]})
 
              (elb "alerts" resource {:name "alerts"
                                      :health_check {:healthy_threshold 2

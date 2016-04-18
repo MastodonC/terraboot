@@ -7,7 +7,7 @@
             [clojure.set :as set]))
 
 (def account-id "165664414043")
-(def default-sgs ["allow_outbound" "allow_ssh"])
+(def default-sgs ["allow_ssh"])
 
 (letfn [(sensitive-merge-in*
           [mfns]

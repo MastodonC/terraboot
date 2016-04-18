@@ -96,7 +96,6 @@
                                                :subnet_id (vpc-id-of "aws_subnet" "public-b")
                                                :ami "ami-bc5b48d0"
                                                :vpc_security_group_ids [(vpc-id-of "aws_security_group" "vpn")
-                                                                        (id-of "aws_security_group" "allow_outbound")
                                                                         (vpc-id-of "aws_security_group" "sends_influx")
                                                                         (vpc-id-of "aws_security_group" "all-servers")
                                                                         ]
@@ -130,7 +129,7 @@
                                          :cert_name "StartMastodoncNet"
                                          :instances [(id-of "aws_instance" "influxdb")]
                                          :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
-                                         :sgs ["allow_outbound"
+                                         :sgs [(vpc-unique "all-servers")
                                                "allow_external_http_https"
                                                "sandpit-elb_chronograf"
                                                ]})
@@ -183,6 +182,15 @@
                               :protocol -1
                               :cidr_blocks [all-external]
                               })
+
+             (vpc-security-group "all-servers" {}
+                                 {:port 5666
+                                  :source_security_group_id (vpc-id-of "aws_security_group" "nrpe")}
+                                 {:type "egress"
+                                  :from_port 0
+                                  :to_port 0
+                                  :protocol -1
+                                  :cidr_blocks [all-external]})
 
              (security-group "allow_ssh" {}
                              {:port 22
