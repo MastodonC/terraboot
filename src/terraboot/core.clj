@@ -310,7 +310,7 @@
 (defn snippet [path]
   (slurp (clojure.java.io/resource path)))
 
-(defn database [name]
+(defn database [{:keys [name subnet] :as spec}]
   (merge-in
    (resource "aws_db_parameter_group" name
              {:name name
@@ -328,6 +328,7 @@
               :parameter_group_name name
               :vpc_security_group_ids [(id-of "aws_security_group" "allow_outbound")
                                        (id-of "aws_security_group" (str "db-" name))]
+              :db_subnet_group_name (id-of "aws_db_subnet_group" subnet)
               })
 
    (security-group (str "uses-db-" name) {})

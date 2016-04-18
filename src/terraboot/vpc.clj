@@ -98,6 +98,7 @@
                                                :vpc_security_group_ids [(vpc-id-of "aws_security_group" "vpn")
                                                                         (id-of "aws_security_group" "allow_outbound")
                                                                         (vpc-id-of "aws_security_group" "sends_influx")
+                                                                        (vpc-id-of "aws_security_group" "all-servers")
                                                                         ]
                                                :associate_public_ip_address true
                                                })
@@ -111,6 +112,7 @@
                                        :vpc_security_group_ids [(vpc-id-of "aws_security_group" "influxdb")
                                                                 (id-of "aws_security_group" "allow_ssh")
                                                                 (vpc-id-of "aws_security_group" "allow_elb_chronograf")
+                                                                (vpc-id-of "aws_security_group" "all-servers")
                                                                 ]
                                        :subnet_id (vpc-id-of "aws_subnet" "public-a")})
 
@@ -229,6 +231,12 @@
                                                        :route { :cidr_block all-external
                                                                :gateway_id (id-of "aws_internet_gateway" vpc-name)}
                                                        :vpc_id (id-of "aws_vpc" vpc-name)})
+
+
+             (resource "aws_db_subnet_group" vpc-name
+                       {:name vpc-name
+                        :subnet_ids (map #(id-of "aws_subnet" (stringify vpc-name "-private-" %)) azs)
+                        :description "subnet for dbs"})
 
              ;; Public Subnets
              (resource-seq

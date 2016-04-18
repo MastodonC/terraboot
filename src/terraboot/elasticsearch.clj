@@ -13,7 +13,8 @@
                                        :bootcmd ["echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections"
                                                  "wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -" ]
                                        :apt_sources [{:source "ppa:webupd8team/java"}
-                                                     {:source "http://packages.elastic.co/logstash/2.2/debian"}]
+                                                     {:source "http://packages.elastic.co/logstash/2.2/debian"
+                                                      :key (snippet "system-files/elasticsearch-apt.pem")                                                      }]
                                        :packages ["oracle-java8-installer"
                                                   "oracle-java8-set-default"
                                                   "logstash"]
@@ -137,7 +138,8 @@
                                  {:port 5666
                                   :source_security_group_id (vpc-id-of "aws_security_group" "nrpe")})
 
-             (database (vpc-unique "alerts"))
+             (database {:name (vpc-unique "alerts")
+                        :subnet vpc_name})
 
              (aws-instance (vpc-unique "alerts")
                            {:ami ubuntu
