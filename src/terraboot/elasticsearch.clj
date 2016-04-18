@@ -145,7 +145,8 @@
                            {:ami ubuntu
                             :subnet_id (vpc-id-of "aws_subnet" "private-a")
                             :vpc_security_group_ids [(vpc-id-of "aws_security_group" "nrpe")
-                                                     (id-of "aws_security_group" (str "uses-db-" (vpc-unique "alerts")))]})
+                                                     (id-of "aws_security_group" (str "uses-db-" (vpc-unique "alerts")))
+                                                     (vpc-id-of "aws_security_group" "allow-elb-alerts")]})
 
              (elb "alerts" resource {:name "alerts"
                                      :health_check {:healthy_threshold 2
