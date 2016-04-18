@@ -309,3 +309,29 @@
 
 (defn snippet [path]
   (slurp (clojure.java.io/resource path)))
+
+(defn database [name]
+  (merge-in
+   (resource "aws_db_parameter_group" name
+             {:name name
+              :family "postgres9.4"
+              :description "RDS parameter group"
+              })
+   (resource "aws_db_instance" name
+             {:allocated_storage 10
+              :engine "postgres"
+              :engine_version "9.4.7"
+              :instance_class "db.t2.small"
+              :identifier name
+              :username "kixi"
+              :password "abcdefgh12" ;; TO CHANGE
+              :parameter_group_name name
+              :vpc_security_group_ids [(id-of "aws_security_group" "allow_outbound")
+                                       (id-of "aws_security_group" (str "db-" name))]
+              })
+
+   (security-group (str "uses-db-" name) {})
+
+   (security-group (str "db-" name) {}
+                   {:port 5432
+                    :source_security_group_id (id-of "aws_security_group" (str "uses-db-" name))})))

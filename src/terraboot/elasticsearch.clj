@@ -137,10 +137,13 @@
                                  {:port 5666
                                   :source_security_group_id (vpc-id-of "aws_security_group" "nrpe")})
 
+             (database (vpc-unique "alerts"))
+
              (aws-instance (vpc-unique "alerts")
                            {:ami ubuntu
                             :subnet_id (vpc-id-of "aws_subnet" "private-a")
-                            :vpc_security_group_ids [(vpc-id-of "aws_security_group" "nrpe")]})
+                            :vpc_security_group_ids [(vpc-id-of "aws_security_group" "nrpe")
+                                                     (id-of "aws_security_group" (str "uses-db-" (vpc-unique "alerts")))]})
 
              (route53_record "kibana" {:type "CNAME"
                                        :records [(output-of "aws_elb" "kibana" "dns_name")]})
