@@ -124,7 +124,7 @@
                                                     :target "HTTP:80/status"
                                                     :timeout 5
                                                     :interval 30}
-                                     :cert_name "292734452238465379497651307889223835840467-2016-06-30-kibana_mastodonc_net" ; This was obtained via Lets Encrypt
+                                     :cert_name "StartMastodoncNet"
                                      :subnets (mapv #(id-of "aws_subnet" (stringify  vpc_name "-public-" %)) azs)
                                      :instances [(id-of "aws_instance" (vpc-unique "kibana"))]
                                      :sgs ["allow_outbound"

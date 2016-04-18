@@ -386,6 +386,7 @@
                                          :target "HTTP:5050/health"
                                          :timeout 5
                                          :interval 30}
+                          :cert_name "StartMastodoncNet"
                           :subnets public-subnets
                           :sgs (mapv cluster-unique ["lb-security-group"
                                                      "admin-security-group"])}
