@@ -191,9 +191,9 @@
                    :key (snippet "system-files/elasticsearch-apt.pem")} ]
                  :write_files
                  [{:path "/etc/logstash/conf.d/in-gelf.conf"
-                   :content (snippet "system-files/in-gelf.conf")}
+                   :content (snippet "cluster-logstash/in-gelf.conf")}
                   {:path "/etc/logstash/conf.d/out-logstash.conf"
-                   :content (snippet "system-files/out-logstash.conf")}
+                   :content (snippet "cluster-logstash/out-logstash.conf")}
                   {:path "/etc/ssl/ca.cert"
                    :content (snippet "vpn-keys/ca.crt")}
                   {:path "/etc/dnsmasq.conf"
