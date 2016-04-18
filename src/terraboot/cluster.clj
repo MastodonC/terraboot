@@ -191,9 +191,9 @@
                    :key (snippet "system-files/elasticsearch-apt.pem")} ]
                  :write_files
                  [{:path "/etc/logstash/conf.d/in-gelf.conf"
-                   :content (snippet "cluster-logstash/in-gelf.conf")}
+                   :content (snippet "vpc-logstash/in-gelf.conf")}
                   {:path "/etc/logstash/conf.d/out-logstash.conf"
-                   :content (snippet "cluster-logstash/out-logstash.conf")}
+                   :content (snippet "vpc-logstash/out-logstas.conf")}
                   {:path "/etc/ssl/ca.cert"
                    :content (snippet "vpn-keys/ca.crt")}
                   {:path "/etc/dnsmasq.conf"
@@ -202,6 +202,15 @@
                  ["cloud-init-per once accepted-oracle-license-v1-1 echo \"oracle-java8-installer shared/accepted-oracle-license-v1-1 select true\" | debconf-set-selections"]
                  :runcmd
                  ["update-rc.d logstash defaults"]}))
+
+(defn dns-user-data []
+  (cloud-config {:package_update true
+                 :packages ["dnsmasq"]
+                 :write_files
+                 [ {:path "/etc/dnsmasq.conf"
+                    :content (snippet "system-files/dnsmasq.conf")}]
+                 :runcmd
+                 ["update-rc.d dnsmasq defaults"]}))
 
 (defn cluster-infra
   [{:keys [vpc-name
@@ -221,7 +230,8 @@
         cluster-resource (partial resource cluster-unique)
         cluster-security-group (partial scoped-security-group cluster-unique)
         cluster-id-of (fn [type name] (id-of type (cluster-unique name)))
-        cluster-output-of (fn [type name & values] (apply (partial output-of type (cluster-unique name)) values))]
+        cluster-output-of (fn [type name & values] (apply (partial output-of type (cluster-unique name)) values))
+        dns-host (str cluster-name "-dns." (vpc-unique "kixi") ".mesos")]
     (merge-in
      (in-vpc vpc-name
              (cluster-security-group "admin-security-group" {}
@@ -345,7 +355,7 @@
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
                                        :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")
-                                       :logstash-ip (cluster-output-of "aws_instance" "logstash" "private_ip")
+                                       :dns dns-host
                                        :mesos-dns "127.0.0.1"}
                                 :lifecycle { :create_before_destroy true }
                                 })
@@ -355,9 +365,8 @@
                   cluster-unique
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"
-                   :sgs (concat (mapv cluster-unique ["master-security-group" "admin-security-group" "sends_gelf"])
-                                [(vpc-unique "sends_influx")
-                                 (vpc-unique "all-servers")])
+                   :sgs (concat (mapv cluster-unique ["master-security-group" "admin-security-group"])
+                                (mapv vpc-unique ["sends_influx" "sends_gelf" "all-servers"]))
                    :role (cluster-unique "master-role")
                    :public_ip true
                    :tags {:Key "role"
@@ -413,7 +422,7 @@
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
                                        :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")
-                                       :logstash-ip (cluster-output-of "aws_instance" "logstash" "private_ip")
+                                       :dns dns-host
                                        :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")}
                                 :lifecycle { :create_before_destroy true }})
 
@@ -431,9 +440,9 @@
                   {:image_id current-coreos-ami
                    :instance_type "m4.xlarge"
                    :sgs [(cluster-unique "public-slave-security-group")
-                         (cluster-unique "sends_gelf")
                          (vpc-unique "sends_influx")
-                         (vpc-unique "all-servers")]
+                         (vpc-unique "all-servers")
+                         (vpc-unique "sends_gelf")]
                    :role (cluster-unique "slave-role")
                    :public_ip true
                    :tags {:Key "role"
@@ -482,7 +491,7 @@
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
                                        :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")
-                                       :logstash-ip (cluster-output-of "aws_instance" "logstash" "private_ip")
+                                       :dns dns-host
                                        :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")}
                                 :lifecycle { :create_before_destroy true }
 
@@ -494,9 +503,9 @@
                   {:image_id current-coreos-ami
                    :instance_type "m4.xlarge"
                    :sgs [(cluster-unique "slave-security-group")
-                         (cluster-unique "sends_gelf")
                          (vpc-unique "sends_influx")
-                         (vpc-unique "all-servers")]
+                         (vpc-unique "all-servers")
+                         (vpc-unique "sends_gelf")]
                    :role (cluster-unique "slave-role")
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
@@ -513,12 +522,6 @@
                    })
 
 
-             (cluster-security-group "sends_gelf" {})
-             (cluster-security-group "logstash" {}
-                                     {:port 12201
-                                      :protocol "udp"
-                                      :source_security_group_id (cluster-id-of "aws_security_group" "sends_gelf")})
-
              (cluster-security-group "dns" {}
                                      {:port 53
                                       :protocol "udp"
@@ -527,25 +530,25 @@
                                       :protocol "tcp"
                                       :cidr_blocks [vpc/vpc-cidr-block]})
 
-             (cluster-resource "template_file" "logstash-user-data"
+             (cluster-resource "template_file" "dns-user-data"
                                {:vars {:internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :fallback-dns  (vpc/fallback-dns vpc/vpc-cidr-block)}
-                                :template (logstash-user-data)
+                                :template (dns-user-data)
                                 :lifecycle {:create_before_destroy true}})
 
-             (aws-instance (cluster-unique "logstash")
-                           {:user_data (cluster-output-of "template_file" "logstash-user-data" "rendered")
-                            :subnet_id (vpc-id-of "aws_subnet" "public-a")
-                            :vpc_security_group_ids [(vpc-id-of "aws_security_group" "sends_logstash") (cluster-id-of "aws_security_group" "logstash") (cluster-id-of "aws_security_group" "dns")]
+             (aws-instance (cluster-unique "dns")
+                           {:user_data (cluster-output-of "template_file" "dns-user-data" "rendered")
+                            :subnet_id (vpc-id-of "aws_subnet" "private-a")
+                            :vpc_security_group_ids [(cluster-id-of "aws_security_group" "dns")]
                             :ami "ami-9b9c86f7"
                             :associate_public_ip_address true})
 
-             (resource "aws_route53_record" (cluster-unique "logstash")
+             (resource "aws_route53_record" (cluster-unique "dns")
                        {:zone_id (id-of "aws_route53_zone" (vpc-unique "mesos"))
-                        :name (str cluster-name "-logstash." (vpc-unique "kixi") ".mesos")
+                        :name dns-host
                         :type "A"
                         :ttl 300
-                        :records [(cluster-output-of "aws_instance" "logstash" "private_ip")]})
+                        :records [(cluster-output-of "aws_instance" "dns" "private_ip")]})
 
              (local-deploy-scripts {:cluster-name cluster-name
                                     :name-fn cluster-unique
