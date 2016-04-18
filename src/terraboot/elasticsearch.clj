@@ -147,6 +147,25 @@
                             :vpc_security_group_ids [(vpc-id-of "aws_security_group" "nrpe")
                                                      (id-of "aws_security_group" (str "uses-db-" (vpc-unique "alerts")))]})
 
+             (elb "alerts" resource {:name "alerts"
+                                     :health_check {:healthy_threshold 2
+                                                    :unhealthy_threshold 3
+                                                    :target "HTTP:80/"
+                                                    :timeout 5
+                                                    :interval 30}
+                                     :cert_name "StartMastodoncNet"
+                                     :subnets (mapv #(id-of "aws_subnet" (stringify  vpc_name "-public-" %)) azs)
+                                     :instances [(id-of "aws_instance" (vpc-unique "alerts"))]
+                                     :sgs ["allow_outbound"
+                                           "allow_external_http_https"
+                                           (vpc-unique "elb-alerts")
+                                           ]})
+
+             (vpc-security-group "elb-alerts" {})
+             (vpc-security-group "allow-elb-alerts" {}
+                                 {:port 80
+                                  :source_security_group_id (vpc-id-of "aws_security_group" "elb-alerts")})
+
              (route53_record "kibana" {:type "CNAME"
                                        :records [(output-of "aws_elb" "kibana" "dns_name")]})
 

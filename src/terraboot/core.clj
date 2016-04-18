@@ -166,6 +166,7 @@
                                       (merge-in spec)
                                       (update-in [:vpc_security_group_ids] concat default-sg-ids)))))
 
+;; TODO add elbs security group and allow-elbs for the ones that talk to elb
 (defn elb [name cluster-resource spec]
   (let [defaults {:cert_name false
                   :instances []
