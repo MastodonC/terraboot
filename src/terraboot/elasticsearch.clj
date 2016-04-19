@@ -115,7 +115,8 @@
                                                   :ami ubuntu
                                                   :vpc_security_group_ids [(vpc-id-of "aws_security_group" "kibana")
                                                                            (vpc-id-of "aws_security_group" "allow-elb-kibana")
-                                                                           (vpc-id-of "aws_security_group" "sends_influx")]
+                                                                           (vpc-id-of "aws_security_group" "sends_influx")
+                                                                           (vpc-id-of "aws_security_group" "all-servers")]
                                                   :subnet_id (vpc-id-of "aws_subnet" "private-a")
                                                   })
 

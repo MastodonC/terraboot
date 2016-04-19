@@ -536,7 +536,8 @@
              (aws-instance (cluster-unique "dns")
                            {:user_data (cluster-output-of "template_file" "dns-user-data" "rendered")
                             :subnet_id (vpc-id-of "aws_subnet" "private-a")
-                            :vpc_security_group_ids [(cluster-id-of "aws_security_group" "dns")]
+                            :vpc_security_group_ids [(cluster-id-of "aws_security_group" "dns")
+                                                     (vpc-id-of "aws_security_group" "all-servers")]
                             :ami "ami-9b9c86f7"
                             :associate_public_ip_address true})
 
