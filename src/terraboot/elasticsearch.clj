@@ -92,6 +92,7 @@
 
 
              (route53_record "logstash" {:records [(vpc-output-of "aws_eip" "logstash" "public_ip")]})
+
              (vpc-security-group "sends_gelf" {})
 
              (vpc-security-group "sends_logstash" {})
@@ -126,7 +127,7 @@
                                                     :timeout 5
                                                     :interval 30}
                                      :cert_name "StartMastodoncNet"
-                                     :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
+                                     :subnets (mapv #(id-of "aws_subnet" (stringify vpc-name "-public-" %)) azs)
                                      :instances [(id-of "aws_instance" (vpc-unique "kibana"))]
                                      :sgs ["allow_outbound"
                                            "allow_external_http_https"

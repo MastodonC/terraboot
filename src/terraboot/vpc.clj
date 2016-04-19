@@ -75,6 +75,22 @@
                                 :permissions "744"}]
                  }))
 
+(defn vpc-dns-zone [name]
+  (str name "-kixi.mesos" ))
+
+(defn vpc-dns-zone-id [name]
+  (str name "-mesos"))
+
+(defn private_route53_record [prefix vpc-name spec]
+  (let [dns-zone (vpc-dns-zone vpc-name)
+        name (str prefix "." dns-zone)]
+    (resource "aws_route53_record" (safe-name name)
+              (merge {:zone_id (id-of "aws_route53_zone" (vpc-dns-zone-id vpc-name))
+                      :name name
+                      :type "A" }
+                     (if (:alias spec) {} {:ttl "300"})
+                     spec))))
+
 (defn vpc-vpn-infra
   [vpc-name]
   (let [vpc-unique (fn [name] (str vpc-name "-" name))
@@ -134,12 +150,9 @@
                                                "sandpit-elb_chronograf"
                                                ]})
 
-             (resource "aws_route53_record" (vpc-unique "influxdb")
-                       {:zone_id (id-of "aws_route53_zone" (vpc-unique "mesos"))
-                        :name (str "influxdb." (vpc-unique "kixi") ".mesos")
-                        :type "A"
-                        :ttl 300
-                        :records [(output-of "aws_instance" "influxdb" "private_ip")]})
+             (private_route53_record "influxdb" vpc-name {:records [(output-of "aws_instance" "influxdb" "private_ip")]})
+
+             (private_route53_record "logstash" vpc-name {:records [(vpc-output-of "aws_eip" "logstash" "private_ip")]})
 
              (route53_record "chronograf" {:type "CNAME"
                                            :records [(output-of "aws_elb" "chronograf" "dns_name")]})
