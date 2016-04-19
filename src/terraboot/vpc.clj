@@ -87,7 +87,7 @@
                {:tags {:Name vpc-name}
                 :cidr_block vpc-cidr-block})
 
-     (elasticsearch-cluster "elasticsearch" {:vpc_name vpc-name})
+     (elasticsearch-cluster "elasticsearch" {:vpc-name vpc-name})
 
      (in-vpc vpc-name
              (aws-instance (vpc-unique "vpn") {

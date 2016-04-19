@@ -28,10 +28,10 @@
 
 (def ubuntu "ami-9b9c86f7")
 
-(defn elasticsearch-cluster [name {:keys [vpc_name] :as spec}]
+(defn elasticsearch-cluster [name {:keys [vpc-name] :as spec}]
   ;; http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs
   ;; See for what instance-types and storage is possible
-  (let [vpc-unique (fn [name] (str vpc_name "-" name))
+  (let [vpc-unique (fn [name] (str vpc-name "-" name))
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
         vpc-output-of (fn [type name & values] (apply (partial output-of type (vpc-unique name)) values))
@@ -67,7 +67,7 @@
                                   },
                     :snapshot_options { :automated_snapshot_start_hour 23}})
 
-     (in-vpc vpc_name
+     (in-vpc vpc-name
              (vpc-security-group "logstash" {}
                                  {:port 12201
                                   :protocol "udp"
@@ -126,7 +126,7 @@
                                                     :timeout 5
                                                     :interval 30}
                                      :cert_name "StartMastodoncNet"
-                                     :subnets (mapv #(id-of "aws_subnet" (stringify  vpc_name "-public-" %)) azs)
+                                     :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
                                      :instances [(id-of "aws_instance" (vpc-unique "kibana"))]
                                      :sgs ["allow_outbound"
                                            "allow_external_http_https"
@@ -138,7 +138,7 @@
 
 
              (database {:name (vpc-unique "alerts")
-                        :subnet vpc_name})
+                        :subnet vpc-name})
 
              (aws-instance (vpc-unique "alerts")
                            {:ami ubuntu
@@ -155,7 +155,7 @@
                                                     :timeout 5
                                                     :interval 30}
                                      :cert_name "StartMastodoncNet"
-                                     :subnets (mapv #(id-of "aws_subnet" (stringify  vpc_name "-public-" %)) azs)
+                                     :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
                                      :instances [(id-of "aws_instance" (vpc-unique "alerts"))]
                                      :sgs ["allow_outbound"
                                            "allow_external_http_https"
