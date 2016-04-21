@@ -148,7 +148,8 @@
                             :vpc_security_group_ids [(vpc-id-of "aws_security_group" "nrpe")
                                                      (id-of "aws_security_group" (str "uses-db-" (vpc-unique "alerts")))
                                                      (vpc-id-of "aws_security_group" "allow-elb-alerts")
-                                                     (vpc-id-of "aws_security_group" "all-servers")]})
+                                                     (vpc-id-of "aws_security_group" "all-servers")
+                                                     (vpc-id-of "aws_security_group" "sends_influx")]})
 
              (elb "alerts" resource {:name "alerts"
                                      :health_check {:healthy_threshold 2
