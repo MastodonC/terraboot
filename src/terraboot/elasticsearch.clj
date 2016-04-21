@@ -169,6 +169,10 @@
                                  {:port 80
                                   :source_security_group_id (vpc-id-of "aws_security_group" "elb-alerts")})
 
+             (route53_record "alerts" {:type "CNAME"
+                                       :records [(output-of "aws_elb" "alerts" "dns_name")]})
+
+
              (route53_record "kibana" {:type "CNAME"
                                        :records [(output-of "aws_elb" "kibana" "dns_name")]})
 
