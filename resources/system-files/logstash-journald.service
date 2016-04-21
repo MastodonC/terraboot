@@ -1,0 +1,10 @@
+[Unit]
+Description=Forwarding journald logs to logstash
+Requires=docker.service
+After=docker.service
+[Service]
+User=core
+TimeoutStartSec=15
+ExecStartPre=-/usr/bin/docker pull state/logstash:1.5.2
+ExecStart=/usr/bin/docker run --name=logstash-journald --label application=logstash-journald --rm -v /var/log/journal:/var/log/journal:ro  -v /home/core:/config-dir  state/logstash-journald:1.5.2   logstash -f /config-dir/logstash-journal.conf
+ExecStop=-/usr/bin/docker stop -t logstash-journald; /usr/bin/docker rm -f logstash-journald
