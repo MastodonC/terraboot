@@ -21,7 +21,8 @@
                     {:name "install-confd.service" :command "start" :content (snippet "systemd/install-confd.service")}
                     {:name "confd.service" :command "start" :content (snippet "systemd/confd.service") :enable true}
                     {:name "install-awscli.service" :command "start" :content (snippet "systemd/install-awscli.service") :enable true}
-                    {:name "dcos-gen-resolvconf.timer" :command "stop" :mask true}]
+                    {:name "dcos-gen-resolvconf.timer" :command "stop" :mask true}
+                    {:name "filebeat.service" :command "start" :content (snippet "systemd/filebeat.service") :enable true}]
             :update {:reboot-strategy "off"}}
    :write_files [{:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json"
                   :content "{}\n"}
