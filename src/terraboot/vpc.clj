@@ -154,6 +154,8 @@
 
              (private_route53_record "logstash" vpc-name {:records [(vpc-output-of "aws_eip" "logstash" "private_ip")]})
 
+             (private_route53_record "alerts" vpc-name {:records [(vpc-output-of "aws_instance" "alerts" "private_ip")]})
+
              (route53_record "chronograf" {:type "CNAME"
                                            :records [(output-of "aws_elb" "chronograf" "dns_name")]})
 
