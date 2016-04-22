@@ -22,7 +22,8 @@
                     {:name "confd.service" :command "start" :content (snippet "systemd/confd.service") :enable true}
                     {:name "install-awscli.service" :command "start" :content (snippet "systemd/install-awscli.service") :enable true}
                     {:name "dcos-gen-resolvconf.timer" :command "stop" :mask true}
-                    {:name "filebeat.service" :command "start" :content (snippet "systemd/filebeat.service") :enable true}]
+                    {:name "filebeat.service" :command "start" :content (snippet "systemd/filebeat.service") :enable true}
+                    {:name "nrpe.service" :command "start" :content (snippet "systemd/nrpe.service") :enable true}]
             :update {:reboot-strategy "off"}}
    :write_files [{:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json"
                   :content "{}\n"}
@@ -357,7 +358,8 @@
                                        :number-of-masters min-number-of-masters
                                        :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")
                                        :dns dns-host
-                                       :mesos-dns "127.0.0.1"}
+                                       :mesos-dns "127.0.0.1"
+                                       :alerts-server (str "alerts." (vpc-unique "kixi.mesos"))}
                                 :lifecycle { :create_before_destroy true }
                                 })
 
@@ -425,7 +427,8 @@
                                        :number-of-masters min-number-of-masters
                                        :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")
                                        :dns dns-host
-                                       :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")}
+                                       :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
+                                       :alerts-server (str "alerts." (vpc-unique "kixi.mesos"))}
                                 :lifecycle { :create_before_destroy true }})
 
              (vpc/private_route53_record (str cluster-name "-masters") vpc-name
@@ -490,7 +493,8 @@
                                        :number-of-masters min-number-of-masters
                                        :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")
                                        :dns dns-host
-                                       :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")}
+                                       :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
+                                       :alerts-server (str "alerts." (vpc-unique "kixi.mesos"))}
                                 :lifecycle { :create_before_destroy true }
 
                                 })
