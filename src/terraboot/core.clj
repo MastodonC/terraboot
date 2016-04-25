@@ -220,11 +220,11 @@
                    subnets
                    role
                    public_ip
-                   ebs_block_device] :as spec}]
-  (let [add-disk-if-present (fn [ebs_block_device map]
-                              (if ebs_block_device
-                                (assoc map :ebs_block_device ebs_block_device)
-                                map))
+                   root_block_device_size] :as spec}]
+  (let [size-disk-if-present (fn [root_block_device_size map]
+                               (if root_block_device_size
+                                 (assoc map :root_block_device {:volume_size root_block_device_size})
+                                 map))
         root_block_device (get spec :root_block_device {})
         cluster-resource (partial resource name-fn)
         cluster-id-of (fn [type name] (id-of type (name-fn name)))
@@ -237,19 +237,18 @@
                             :roles [(id-of "aws_iam_role" role)]})
 
          (cluster-resource "aws_launch_configuration" name
-                           (add-disk-if-present ebs_block_device
-                                                {:name_prefix (str (name-fn name) "-")
-                                                 :image_id image_id
-                                                 :instance_type instance_type
-                                                 :iam_instance_profile (cluster-id-of "aws_iam_instance_profile" name)
-                                                 :user_data user_data
-                                                 :lifecycle { :create_before_destroy true }
-                                                 :key_name (get spec :key_name "ops-terraboot")
-                                                 :security_groups security-groups
-                                                 :associate_public_ip_address (or public_ip false)
-                                                 :root_block_device root_block_device}
+                           (size-disk-if-present root_block_device_size
+                                                 {:name_prefix (str (name-fn name) "-")
+                                                  :image_id image_id
+                                                  :instance_type instance_type
+                                                  :iam_instance_profile (cluster-id-of "aws_iam_instance_profile" name)
+                                                  :user_data user_data
+                                                  :lifecycle { :create_before_destroy true }
+                                                  :key_name (get spec :key_name "ops-terraboot")
+                                                  :security_groups security-groups
+                                                  :associate_public_ip_address (or public_ip false)}
 
-                                                )
+                                                 )
                            )
 
          (cluster-resource "aws_autoscaling_group" name

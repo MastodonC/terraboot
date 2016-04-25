@@ -219,10 +219,13 @@
            cluster-name
            min-number-of-masters
            max-number-of-masters
+           master-disk-allocation
            min-number-of-slaves
            max-number-of-slaves
+           slave-disk-allocation
            min-number-of-public-slaves
-           max-number-of-public-slaves]}]
+           max-number-of-public-slaves
+           public-slave-disk-allocation]}]
   (let [public-subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
         private-subnets (mapv #(id-of "aws_subnet" (stringify vpc-name "-private-" %)) azs)
         vpc-unique (fn [name] (str vpc-name "-" name))
@@ -380,7 +383,7 @@
                    :min_size min-number-of-masters
                    :health_check_type "EC2"
                    :health_check_grace_period 20
-                   :root_block_device {:volume_size 20}
+                   :root_block_device_size master-disk-allocation
                    :subnets public-subnets
                    :lifecycle {:create_before_destroy true}
                    :elb [{:name "masters"
@@ -450,7 +453,7 @@
                           :PropagateAtLaunch "true"
                           :Value "mesos-slave"}
                    :user_data (cluster-output-of "template_file" "public-slave-user-data" "rendered")
-                   ;;:root_block_device {:volume_size 20}
+                   :root_block_device_size public-slave-disk-allocation
                    :max_size max-number-of-public-slaves
                    :min_size min-number-of-public-slaves
                    :health_check_type "EC2"
@@ -513,7 +516,7 @@
                           :PropagateAtLaunch "true"
                           :Value "mesos-slave"}
                    :user_data  (cluster-output-of "template_file" "slave-user-data" "rendered")
-                   ;;:root_block_device {:volume_size 20}
+                   :root_block_device_size slave-disk-allocation
                    :max_size max-number-of-slaves
                    :min_size min-number-of-slaves
                    :health_check_type "EC2" ;; or "ELB"?

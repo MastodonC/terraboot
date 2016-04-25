@@ -20,11 +20,12 @@
                              :cluster-name "staging"
                              :min-number-of-masters 3
                              :max-number-of-masters 3
+                             :master-disk-allocation 20
                              :min-number-of-slaves 2
                              :max-number-of-slaves 2
                              :min-number-of-public-slaves 1
                              :max-number-of-public-slaves 1}) (str infra-path "staging.tf"))))
 
-;; Possible extra option: to make directory a parameter
+
 (defn -main []
   (generate-json))
