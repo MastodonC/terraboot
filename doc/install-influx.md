@@ -31,3 +31,9 @@ server {
         }
 }
 ```
+
+
+Note: databases shoudl be created manually.
+create database cadvisor_staging
+!! Add a retention policy otherwise they will fill up quickly
+create retention policy one_week on cadvisor_staging duration 1w replication 1
