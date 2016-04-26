@@ -3,4 +3,5 @@ Description=Regularly cleanup unused docker images
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/docker rmi $(/usr/bin/docker images -a -q)
+ExecStartPre=-/usr/bin/bash -c "/usr/bin/docker rm $(/usr/bin/docker ps -a -q)"
+ExecStart=-/usr/bin/bash -c "/usr/bin/docker rmi $(/usr/bin/docker images -a -q)"
