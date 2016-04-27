@@ -27,9 +27,9 @@
           [fn-seq]
           (partial merge-with
                    ((first fn-seq) (rest fn-seq))))]
+  ;; todo rediscover duplicates but not for the :output tree
   (def merge-in
-    (merge-with-fn-seq (conj (repeat merge-in*) sensitive-merge-in*
-                             merge-in*))))
+    (merge-with-fn-seq (repeat merge-in*))))
 
 (defn output-of [type resource-name & values]
   (str "${"
@@ -57,6 +57,12 @@
                                      (#(if (get-in % [:tags :Name])
                                          (assoc-in % [:tags :Name] (name-fn (get-in % [:tags :Name])))
                                          %))))))
+
+(defn output
+  [output-name type resource-name value]
+  {:output
+   {output-name
+    {:value (output-of type resource-name value)}}})
 
 (defn provider [type spec]
   {:provider
@@ -336,3 +342,13 @@
    (security-group (str "db-" name) {}
                    {:port 5432
                     :source_security_group_id (id-of "aws_security_group" (str "uses-db-" name))})))
+
+(defn remote-state [name]
+  (resource "terraform_remote_state" name
+            {:backend "s3"
+             :config {:bucket "terraboot"
+                      :key (str name ".tf")
+                      :region region}}))
+
+(defn remote-output-of [module name]
+  (output-of (str "terraform_remote_state." module) "output" name))
