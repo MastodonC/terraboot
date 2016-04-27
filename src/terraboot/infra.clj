@@ -5,27 +5,19 @@
 
 (def infra-path "infra/")
 
-(defn generate-json []
-  (do
-    (to-file (vpc-vpn-infra "sandpit") (str infra-path "vpc.tf"))
-    #_(to-file (cluster-infra {:vpc-name vpc-name
-                               :cluster-name "production"
-                               :min-number-of-masters 3
-                               :max-number-of-masters 3
-                               :min-number-of-slaves 2
-                               :max-number-of-slaves 2
-                               :min-number-of-public-slaves 1
-                               :max-number-of-public-slaves 2}) (str infra-path "cluster.tf"))
-    (to-file (cluster-infra {:vpc-name vpc-name
-                             :cluster-name "staging"
-                             :min-number-of-masters 3
-                             :max-number-of-masters 3
-                             :master-disk-allocation 20
-                             :min-number-of-slaves 2
-                             :max-number-of-slaves 2
-                             :min-number-of-public-slaves 1
-                             :max-number-of-public-slaves 1}) (str infra-path "staging.tf"))))
+(defn generate-json [target]
+  (condp = target
+    "vpc"     (to-file (vpc-vpn-infra vpc-name) "vpc/vpc.tf")
+    "staging" (to-file (cluster-infra {:vpc-name vpc-name
+                                       :cluster-name "staging"
+                                       :min-number-of-masters 3
+                                       :max-number-of-masters 3
+                                       :master-disk-allocation 20
+                                       :min-number-of-slaves 2
+                                       :max-number-of-slaves 2
+                                       :min-number-of-public-slaves 1
+                                       :max-number-of-public-slaves 1}) "staging/staging.tf")))
 
 
-(defn -main []
-  (generate-json))
+(defn -main [target]
+  (generate-json target))
