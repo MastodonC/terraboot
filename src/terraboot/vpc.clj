@@ -110,7 +110,7 @@
                                                :user_data (vpn-user-data {:range-start (cidr-start vpc-cidr-block)
                                                                           :fallback-dns (fallback-dns vpc-cidr-block)})
                                                :subnet_id (vpc-id-of "aws_subnet" "public-b")
-                                               :ami "ami-bc5b48d0"
+                                               :ami ec2-ami
                                                :vpc_security_group_ids [(vpc-id-of "aws_security_group" "vpn")
                                                                         (vpc-id-of "aws_security_group" "sends_influx")
                                                                         (vpc-id-of "aws_security_group" "all-servers")

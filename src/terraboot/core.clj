@@ -9,6 +9,10 @@
 (def account-id "165664414043")
 (def default-sgs ["allow_ssh"])
 
+(def ubuntu "ami-9b9c86f7")
+(def current-coreos-ami "ami-1807e377")
+(def ec2-ami "ami-bc5b48d0")
+
 (letfn [(sensitive-merge-in*
           [mfns]
           (fn [a b]

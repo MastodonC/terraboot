@@ -3,8 +3,6 @@
             [terraboot.vpc :as vpc]
             [terraboot.cloud-config :refer [cloud-config]]))
 
-(def current-coreos-ami "ami-1807e377")
-
 (defn mesos-instance-user-data []
   {:coreos {:units [{:name "etcd.service" :command "stop" :mask true}
                     {:name "update-engine.service" :command "stop" :mask true}
@@ -551,7 +549,7 @@
                             :subnet_id (remote-output-of "vpc" "subnet-private-a-id")
                             :vpc_security_group_ids [(cluster-id-of "aws_security_group" "dns")
                                                      (remote-output-of "vpc" "sg-all-servers")]
-                            :ami "ami-9b9c86f7"
+                            :ami ubuntu
                             :associate_public_ip_address true})
 
              (vpc/private_route53_record (str cluster-name "-dns") vpc-name
