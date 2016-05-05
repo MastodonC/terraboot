@@ -26,8 +26,6 @@
                                                       :permissions "644"
                                                       :content (snippet "system-files/out-es.conf")}]}))
 
-(def ubuntu "ami-9b9c86f7")
-
 (defn elasticsearch-cluster [name {:keys [vpc-name] :as spec}]
   ;; http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs
   ;; See for what instance-types and storage is possible
