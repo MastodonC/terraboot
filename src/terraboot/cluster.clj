@@ -237,7 +237,7 @@
         dns-host (str cluster-name "-dns." (vpc-unique "kixi") ".mesos")]
     (merge-in
      (remote-state "vpc")
-     (in-vpc vpc-name
+     (in-vpc (remote-output-of "vpc" "vpc-id")
              (cluster-security-group "admin-security-group" {}
                                      {:from_port 0
                                       :to_port 65535

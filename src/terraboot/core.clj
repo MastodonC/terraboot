@@ -86,9 +86,8 @@
                (assoc m k (assoc v key value))) {} map))
 
 (defn in-vpc
-  [vpc-name & resources]
-  (let [vpc-id (id-of "aws_vpc" vpc-name)
-        add-to-resources-if-present (fn [type resources]
+  [vpc-id & resources]
+  (let [add-to-resources-if-present (fn [type resources]
                                       (if (get-in resources [:resource type])
                                         (update-in resources [:resource type] (fn [spec] (add-to-every-value-map spec :vpc_id vpc-id)))
                                         resources))]

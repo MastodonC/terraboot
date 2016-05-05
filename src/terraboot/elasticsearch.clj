@@ -67,7 +67,7 @@
                                   },
                     :snapshot_options { :automated_snapshot_start_hour 23}})
 
-     (in-vpc vpc-name
+     (in-vpc (id-of "aws_vpc" vpc-name)
              (vpc-security-group "logstash" {}
                                  {:port 12201
                                   :protocol "udp"

@@ -105,7 +105,7 @@
 
      (elasticsearch-cluster "elasticsearch" {:vpc-name vpc-name})
 
-     (in-vpc vpc-name
+     (in-vpc (id-of "aws_vpc" vpc-name)
              (aws-instance (vpc-unique "vpn") {
                                                :user_data (vpn-user-data {:range-start (cidr-start vpc-cidr-block)
                                                                           :fallback-dns (fallback-dns vpc-cidr-block)})
