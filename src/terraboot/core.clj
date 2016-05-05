@@ -176,6 +176,17 @@
                                       (merge-in spec)
                                       (update-in [:vpc_security_group_ids] concat default-sg-ids)))))
 
+(defn cluster-aws-instance [name spec]
+  (let [default-vpc-sgs [(remote-output-of "vpc" "sg-allow-ssh")
+                         (remote-output-of "vpc" "sg-all-servers")]]
+    (resource "aws_instance" name (-> {:tags {:Name name}
+                                       :instance_type "t2.micro"
+                                       :key_name "ops-terraboot"
+                                       :monitoring true
+                                       :subnet_id (id-of "aws_subnet" "private-a")}
+                                      (merge-in spec)
+                                      (update-in [:vpc_security_group_ids] concat default-vpc-sgs)))))
+
 ;; TODO add elbs security group and allow-elbs for the ones that talk to elb
 (defn elb [name cluster-resource spec]
   (let [defaults {:cert_name false

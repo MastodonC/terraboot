@@ -544,13 +544,13 @@
                                 :template (dns-user-data)
                                 :lifecycle {:create_before_destroy true}})
 
-             (aws-instance (cluster-unique "dns")
-                           {:user_data (cluster-output-of "template_file" "dns-user-data" "rendered")
-                            :subnet_id (remote-output-of "vpc" "subnet-private-a-id")
-                            :vpc_security_group_ids [(cluster-id-of "aws_security_group" "dns")
-                                                     (remote-output-of "vpc" "sg-all-servers")]
-                            :ami ubuntu
-                            :associate_public_ip_address true})
+             (cluster-aws-instance (cluster-unique "dns")
+                                   {:user_data (cluster-output-of "template_file" "dns-user-data" "rendered")
+                                    :subnet_id (remote-output-of "vpc" "subnet-private-a-id")
+                                    :vpc_security_group_ids [(cluster-id-of "aws_security_group" "dns")
+                                                             (remote-output-of "vpc" "sg-all-servers")]
+                                    :ami ubuntu
+                                    :associate_public_ip_address true})
 
              (vpc/private_route53_record (str cluster-name "-dns") vpc-name
                                          {:zone_id (remote-output-of "vpc" "private-dns-zone")
