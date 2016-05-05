@@ -226,8 +226,8 @@
            min-number-of-public-slaves
            max-number-of-public-slaves
            public-slave-disk-allocation]}]
-  (let [public-subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
-        private-subnets (mapv #(id-of "aws_subnet" (stringify vpc-name "-private-" %)) azs)
+  (let [public-subnets (mapv #(remote-output-of "vpc" (stringify  "subnet-public-" % "-id")) azs)
+        private-subnets (mapv #(remote-output-of "vpc" (stringify "subnet-private-" % "-id")) azs)
         vpc-unique (fn [name] (str vpc-name "-" name))
         vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
         cluster-identifier (str vpc-name "-" cluster-name)
@@ -238,6 +238,7 @@
         cluster-output-of (fn [type name & values] (apply (partial output-of type (cluster-unique name)) values))
         dns-host (str cluster-name "-dns." (vpc-unique "kixi") ".mesos")]
     (merge-in
+     (remote-state "vpc")
      (in-vpc vpc-name
              (cluster-security-group "admin-security-group" {}
                                      {:from_port 0
@@ -371,8 +372,11 @@
                   cluster-unique
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"
-                   :sgs (concat (mapv cluster-unique ["master-security-group" "admin-security-group"])
-                                (mapv vpc-unique ["sends_influx" "sends_gelf" "all-servers"]))
+                   :sgs [(cluster-id-of "aws_security_group" "master-security-group")
+                         (cluster-id-of "aws_security_group" "admin-security-group")
+                         (remote-output-of "vpc" "sg-sends-influx")
+                         (remote-output-of "vpc" "sg-sends-gelf")
+                         (remote-output-of "vpc" "sg-all-servers")]
                    :role (cluster-unique "master-role")
                    :public_ip true
                    :tags {:Key "role"
@@ -435,7 +439,8 @@
                                 :lifecycle { :create_before_destroy true }})
 
              (vpc/private_route53_record (str cluster-name "-masters") vpc-name
-                                         {:alias {:name (cluster-output-of "aws_elb" "internal-lb" "dns_name")
+                                         {:zone_id (remote-output-of "vpc" "private-dns-zone")
+                                          :alias {:name (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                                   :zone_id (cluster-output-of "aws_elb" "internal-lb" "zone_id")
                                                   :evaluate_target_health true}})
 
@@ -443,10 +448,10 @@
                   cluster-unique
                   {:image_id current-coreos-ami
                    :instance_type "m4.xlarge"
-                   :sgs [(cluster-unique "public-slave-security-group")
-                         (vpc-unique "sends_influx")
-                         (vpc-unique "all-servers")
-                         (vpc-unique "sends_gelf")]
+                   :sgs [(cluster-id-of "aws_security_group" "public-slave-security-group")
+                         (remote-output-of "vpc" "sg-sends-influx")
+                         (remote-output-of "vpc" "sg-sends-gelf")
+                         (remote-output-of "vpc" "sg-all-servers")]
                    :role (cluster-unique "slave-role")
                    :public_ip true
                    :tags {:Key "role"
@@ -507,10 +512,10 @@
                   cluster-unique
                   {:image_id current-coreos-ami
                    :instance_type "m4.xlarge"
-                   :sgs [(cluster-unique "slave-security-group")
-                         (vpc-unique "sends_influx")
-                         (vpc-unique "all-servers")
-                         (vpc-unique "sends_gelf")]
+                   :sgs [(cluster-id-of "aws_security-group" "slave-security-group")
+                         (vpc-id-of "aws_security_group" "all-servers")
+                         (remote-output-of "vpc" "sg-sends-influx")
+                         (remote-output-of "vpc" "sg-sends-gelf")]
                    :role (cluster-unique "slave-role")
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
@@ -543,14 +548,15 @@
 
              (aws-instance (cluster-unique "dns")
                            {:user_data (cluster-output-of "template_file" "dns-user-data" "rendered")
-                            :subnet_id (vpc-id-of "aws_subnet" "private-a")
+                            :subnet_id (remote-output-of "vpc" "subnet-private-a-id")
                             :vpc_security_group_ids [(cluster-id-of "aws_security_group" "dns")
-                                                     (vpc-id-of "aws_security_group" "all-servers")]
+                                                     (remote-output-of "vpc" "sg-all-servers")]
                             :ami "ami-9b9c86f7"
                             :associate_public_ip_address true})
 
              (vpc/private_route53_record (str cluster-name "-dns") vpc-name
-                                         {:records [(cluster-output-of "aws_instance" "dns" "private_ip")]})
+                                         {:zone_id (remote-output-of "vpc" "private-dns-zone")
+                                          :records [(cluster-output-of "aws_instance" "dns" "private_ip")]})
 
              (local-deploy-scripts {:cluster-name cluster-name
                                     :name-fn cluster-unique
