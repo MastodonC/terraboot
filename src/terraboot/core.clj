@@ -175,16 +175,7 @@
                                       (merge-in spec)
                                       (update-in [:vpc_security_group_ids] concat default-sg-ids)))))
 
-(defn cluster-aws-instance [name spec]
-  (let [default-vpc-sgs [(remote-output-of "vpc" "sg-allow-ssh")
-                         (remote-output-of "vpc" "sg-all-servers")]]
-    (resource "aws_instance" name (-> {:tags {:Name name}
-                                       :instance_type "t2.micro"
-                                       :key_name "ops-terraboot"
-                                       :monitoring true
-                                       :subnet_id (id-of "aws_subnet" "private-a")}
-                                      (merge-in spec)
-                                      (update-in [:vpc_security_group_ids] concat default-vpc-sgs)))))
+
 
 ;; TODO add elbs security group and allow-elbs for the ones that talk to elb
 (defn elb [name cluster-resource spec]
@@ -198,7 +189,7 @@
                 instances
                 cert_name
                 subnets
-                sgs
+                security-groups
                 internal]} spec
         secure_protocol (if (= lb_protocol "http")
                           "https"
@@ -216,11 +207,10 @@
                                                :lb_protocol secure_protocol
                                                :ssl_certificate_id (str "arn:aws:iam::" account-id ":server-certificate/" cert_name)}]
                             [default-listener])
-        listeners (concat default-listeners (:listeners spec))
-        elb-security-groups (concat sgs (map #(id-of "aws_security_group" %) default-sgs))]
+        listeners (concat default-listeners (:listeners spec))]
     (cluster-resource "aws_elb" name {:name name
                                       :subnets subnets
-                                      :security_groups elb-security-groups
+                                      :security_groups security-groups
                                       :listener listeners
                                       :instances instances
                                       :health_check health_check
@@ -249,8 +239,6 @@
         cluster-resource (partial resource name-fn)
         cluster-id-of (fn [type name] (id-of type (name-fn name)))
         cluster-output-of (fn [type name & values] (apply (partial output-of type (name-fn name)) values))
-        default-security-groups (map #(id-of "aws_security_group" %) default-sgs)
-        security-groups (concat default-security-groups sgs)
         asg-config
         (merge-in
          (cluster-resource "aws_iam_instance_profile" name
@@ -266,7 +254,7 @@
                                                   :user_data user_data
                                                   :lifecycle { :create_before_destroy true }
                                                   :key_name (get spec :key_name "ops-terraboot")
-                                                  :security_groups security-groups
+                                                  :security_groups sgs
                                                   :associate_public_ip_address (or public_ip false)}
 
                                                  )

@@ -3,6 +3,9 @@
             [terraboot.vpc :as vpc]
             [terraboot.cloud-config :refer [cloud-config]]))
 
+;; reflects default-sgs but uses the vpc remote output
+(def remote-default-sgs [(remote-output-of "vpc" "sg-allow-ssh")])
+
 (defn mesos-instance-user-data []
   {:coreos {:units [{:name "etcd.service" :command "stop" :mask true}
                     {:name "update-engine.service" :command "stop" :mask true}
@@ -134,6 +137,17 @@
                      "cloudwatch:PutMetricData"
                      "EC2:DescribeTags"]
            "Condition" {"Bool" {"aws:SecureTransport" "true"}}}))
+
+(defn cluster-aws-instance [name spec]
+  (let [default-vpc-sgs [(remote-output-of "vpc" "sg-allow-ssh")
+                         (remote-output-of "vpc" "sg-all-servers")]]
+    (resource "aws_instance" name (-> {:tags {:Name name}
+                                       :instance_type "t2.micro"
+                                       :key_name "ops-terraboot"
+                                       :monitoring true
+                                       :subnet_id (id-of "aws_subnet" "private-a")}
+                                      (merge-in spec)
+                                      (update-in [:vpc_security_group_ids] concat default-vpc-sgs)))))
 
 (defn elb-listener [{:keys [port lb_port protocol lb_protocol]}]
   {:instance_port port
@@ -370,11 +384,12 @@
                   cluster-unique
                   {:image_id current-coreos-ami
                    :instance_type "m4.large"
-                   :sgs [(cluster-id-of "aws_security_group" "master-security-group")
-                         (cluster-id-of "aws_security_group" "admin-security-group")
-                         (remote-output-of "vpc" "sg-sends-influx")
-                         (remote-output-of "vpc" "sg-sends-gelf")
-                         (remote-output-of "vpc" "sg-all-servers")]
+                   :sgs (concat [(cluster-id-of "aws_security_group" "master-security-group")
+                                 (cluster-id-of "aws_security_group" "admin-security-group")
+                                 (remote-output-of "vpc" "sg-sends-influx")
+                                 (remote-output-of "vpc" "sg-sends-gelf")
+                                 (remote-output-of "vpc" "sg-all-servers")]
+                                remote-default-sgs)
                    :role (cluster-unique "master-role")
                    :public_ip true
                    :tags {:Key "role"
@@ -396,8 +411,10 @@
                                          :interval 30}
                           :cert_name "StartMastodoncNet"
                           :subnets public-subnets
-                          :sgs (mapv cluster-unique ["lb-security-group"
-                                                     "admin-security-group"])}
+                          :security-groups (concat (mapv #(cluster-id-of "aws_security_group" %) ["lb-security-group"
+                                                                                                  "admin-security-group"])
+                                                   remote-default-sgs)
+                          }
                          {:name "internal-lb"
                           :listeners [(elb-listener {:port 5050 :protocol "HTTP"})
                                       (elb-listener {:port 2181 :protocol "TCP"})
@@ -411,9 +428,10 @@
                                          :interval 30}
                           :subnets public-subnets
                           :internal true
-                          :sgs (mapv cluster-unique ["lb-security-group"
-                                                     "admin-security-group"
-                                                     "master-security-group"])
+                          :security-groups (concat (mapv #(cluster-id-of "aws_security_group" %)  ["lb-security-group"
+                                                                                                   "admin-security-group"
+                                                                                                   "master-security-group"])
+                                                   remote-default-sgs)
                           }]})
 
              (cluster-resource "template_file" "public-slave-user-data"
@@ -463,6 +481,7 @@
                    :health_check_grace_period 20
                    :subnets public-subnets
                    :lifecycle {:create_before_destroy true}
+                   :default-security-groups remote-default-sgs
                    :elb [{:name "public-slaves"
                           :health_check {:healthy_threshold 2
                                          :unhealthy_threshold 2
@@ -471,7 +490,8 @@
                                          :interval 30}
                           :listeners [(elb-listener {:port 9501 :protocol "HTTP"})]
                           :subnets public-subnets
-                          :sgs (mapv cluster-unique ["public-slave-security-group"])}]})
+                          :security-groups (concat [(cluster-id-of "aws_security_group" "public-slave-security-group")]
+                                                   remote-default-sgs)}]})
 
              (route53_record (cluster-unique "deploy")
                              {:alias {:name (cluster-output-of "aws_elb" "public-slaves" "dns_name")
@@ -510,10 +530,11 @@
                   cluster-unique
                   {:image_id current-coreos-ami
                    :instance_type "m4.xlarge"
-                   :sgs [(cluster-id-of "aws_security-group" "slave-security-group")
-                         (vpc-id-of "aws_security_group" "all-servers")
-                         (remote-output-of "vpc" "sg-sends-influx")
-                         (remote-output-of "vpc" "sg-sends-gelf")]
+                   :sgs (concat [(cluster-id-of "aws_security_group" "slave-security-group")
+                                 (remote-output-of "vpc" "sg-all-servers")
+                                 (remote-output-of "vpc" "sg-sends-influx")
+                                 (remote-output-of "vpc" "sg-sends-gelf")]
+                                remote-default-sgs)
                    :role (cluster-unique "slave-role")
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
