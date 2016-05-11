@@ -561,7 +561,8 @@
 
              (cluster-resource "template_file" "dns-user-data"
                                {:vars {:internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                                       :fallback-dns  (vpc/fallback-dns vpc/vpc-cidr-block)}
+                                       :fallback-dns  (vpc/fallback-dns vpc/vpc-cidr-block)
+                                       :vpc-name vpc-name}
                                 :template (dns-user-data)
                                 :lifecycle {:create_before_destroy true}})
 
