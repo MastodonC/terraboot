@@ -10,7 +10,7 @@
   {:coreos {:units [{:name "etcd.service" :command "stop" :mask true}
                     {:name "update-engine.service" :command "stop" :mask true}
                     {:name "locksmithd.service" :command "stop" :mask true}
-                    {:name "systemd-resolved.service" :command "restart"}
+                    {:name "systemd-resolved.service" :command "stop"}
                     {:name "systemd-journald.service" :command "restart"}
                     {:name "docker.service" :command "restart" :enable true}
                     {:name "dcos-link-env.service" :command "start" :content (snippet "systemd/dcos-link-env.service")}
@@ -22,7 +22,6 @@
                     {:name "install-confd.service" :command "start" :content (snippet "systemd/install-confd.service")}
                     {:name "confd.service" :command "start" :content (snippet "systemd/confd.service") :enable true}
                     {:name "install-awscli.service" :command "start" :content (snippet "systemd/install-awscli.service") :enable true}
-                    {:name "dcos-gen-resolvconf.timer" :command "stop" :mask true}
                     {:name "filebeat.service" :command "start" :content (snippet "systemd/filebeat.service") :enable true}
                     {:name "nrpe.service" :command "start" :content (snippet "systemd/nrpe.service") :enable true}]
             :update {:reboot-strategy "off"}}
@@ -62,9 +61,7 @@
                  {:path "/etc/confd/conf.d/ssh-authorized-keys.toml"
                   :content (snippet "system-files/ssh-authorized-keys.toml")}
                  {:path "/etc/confd/templates/ssh-authorized-keys.tmpl"
-                  :content (snippet "system-files/ssh-authorized-keys.tmpl")}
-                 {:path "/etc/systemd/resolved.conf"
-                  :content (snippet "systemd/resolved.conf")}]})
+                  :content (snippet "system-files/ssh-authorized-keys.tmpl")}]})
 
 (defn mesos-master-user-data []
   (cloud-config (merge-with (comp vec concat)
@@ -217,15 +214,6 @@
                  :runcmd
                  ["update-rc.d logstash defaults"]}))
 
-(defn dns-user-data []
-  (cloud-config {:package_update true
-                 :packages ["dnsmasq"]
-                 :write_files
-                 [ {:path "/etc/dnsmasq.conf"
-                    :content (snippet "system-files/dnsmasq.conf")}]
-                 :runcmd
-                 ["update-rc.d dnsmasq defaults"]}))
-
 (defn cluster-infra
   [{:keys [vpc-name
            cluster-name
@@ -247,8 +235,7 @@
         cluster-resource (partial resource cluster-unique)
         cluster-security-group (partial scoped-security-group cluster-unique)
         cluster-id-of (fn [type name] (id-of type (cluster-unique name)))
-        cluster-output-of (fn [type name & values] (apply (partial output-of type (cluster-unique name)) values))
-        dns-host (str cluster-name "-dns." (vpc-unique "kixi") ".mesos")]
+        cluster-output-of (fn [type name & values] (apply (partial output-of type (cluster-unique name)) values))]
     (merge-in
      (remote-state "vpc")
      (in-vpc (remote-output-of "vpc" "vpc-id")
@@ -373,9 +360,8 @@
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
                                        :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")
-                                       :dns dns-host
                                        :mesos-dns "127.0.0.1"
-                                       :alerts-server (str "alerts." (vpc-unique "kixi.mesos"))}
+                                       :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))}
                                 :lifecycle { :create_before_destroy true }
                                 })
 
@@ -449,7 +435,6 @@
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
                                        :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")
-                                       :dns dns-host
                                        :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :alerts-server (str "alerts." (vpc-unique "kixi.mesos"))}
                                 :lifecycle { :create_before_destroy true }})
@@ -518,7 +503,6 @@
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
                                        :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")
-                                       :dns dns-host
                                        :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :alerts-server (str "alerts." (vpc-unique "kixi.mesos"))}
                                 :lifecycle { :create_before_destroy true }
@@ -558,25 +542,6 @@
                                      {:port 53
                                       :protocol "tcp"
                                       :cidr_blocks [vpc/vpc-cidr-block]})
-
-             (cluster-resource "template_file" "dns-user-data"
-                               {:vars {:internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                                       :fallback-dns  (vpc/fallback-dns vpc/vpc-cidr-block)
-                                       :vpc-name vpc-name}
-                                :template (dns-user-data)
-                                :lifecycle {:create_before_destroy true}})
-
-             (cluster-aws-instance (cluster-unique "dns")
-                                   {:user_data (cluster-output-of "template_file" "dns-user-data" "rendered")
-                                    :subnet_id (remote-output-of "vpc" "subnet-private-a-id")
-                                    :vpc_security_group_ids [(cluster-id-of "aws_security_group" "dns")
-                                                             (remote-output-of "vpc" "sg-all-servers")]
-                                    :ami ubuntu
-                                    :associate_public_ip_address true})
-
-             (vpc/private_route53_record (str cluster-name "-dns") vpc-name
-                                         {:zone_id (remote-output-of "vpc" "private-dns-zone")
-                                          :records [(cluster-output-of "aws_instance" "dns" "private_ip")]})
 
              (local-deploy-scripts {:cluster-name cluster-name
                                     :name-fn cluster-unique

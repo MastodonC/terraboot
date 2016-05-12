@@ -76,7 +76,7 @@
                  }))
 
 (defn vpc-dns-zone [name]
-  (str name "-kixi.mesos" ))
+  (str name "-vpc.kixi" ))
 
 (defn vpc-dns-zone-id [name]
   (str name "-mesos"))
@@ -86,7 +86,7 @@
         name (str prefix "." dns-zone)]
     (resource "aws_route53_record" (safe-name name)
               (merge {:zone_id (id-of "aws_route53_zone" (vpc-dns-zone-id vpc-name))
-                      :name name
+                      :name prefix
                       :type "A" }
                      (if (:alias spec) {} {:ttl "300"})
                      spec))))
@@ -145,10 +145,10 @@
                                          :cert_name "StartMastodoncNet"
                                          :instances [(id-of "aws_instance" "influxdb")]
                                          :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
-                                         :sgs [(vpc-unique "all-servers")
-                                               "allow_external_http_https"
-                                               "sandpit-elb_chronograf"
-                                               ]})
+                                         :security-groups (mapv #(id-of "aws_security_group" %) [(vpc-unique "all-servers")
+                                                                                                 "allow_external_http_https"
+                                                                                                 (vpc-unique "elb_chronograf")])
+                                         })
 
              (private_route53_record "influxdb" vpc-name {:records [(output-of "aws_instance" "influxdb" "private_ip")]})
 
@@ -186,7 +186,7 @@
              (route53_record "vpn" {:records [(vpc-output-of "aws_instance" "vpn" "public_ip")]})
 
              (vpc-resource "aws_route53_zone" "mesos"
-                           {:name "kixi.mesos"
+                           {:name "vpc.kixi"
                             :comment "private routes within vpc"
                             :vpc_id (id-of "aws_vpc" vpc-name)})
 

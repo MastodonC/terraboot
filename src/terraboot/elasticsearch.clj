@@ -7,7 +7,7 @@
                                                {:name "admin"
                                                 :sudo "ALL=(ALL) NOPASSWD:ALL"
                                                 :groups ["users" "admin"]
-                                                :ssh-authorized-keys ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDiRTaPy06VZVuYQZs7XvG2ytbw3hg7F/uLC8hLoPD4ugbtVAWSrlO9koietHedLFkWI/UVwCP3FcMgZYqQnCQTwnEJ5bsp2r+MOI+nUfojZ6O8j7XMxwMtxf60S3FmVeuvN38Bbh2cygv72+uPbdE2giH+scD7lslm5LWsYAqK79ZVJ2Gk3do+x/eWc3mLqDnW/PNghgT2jJxg1T16kFPYiVFRUSYP1+CbmmQoJ38x8Xc7CZb2PfFcqHoHVzz9nBqRdhHl7GO2lSl8ostyy5nqhTWMkpOPxsJoGvJCS+ZUh/PPtUlxGikH8XcY+6h9QvThTR/17Irc9Aa7YJFPEk5l thattommyhall@gmail.com"]}
+                                                }
                                                ]
                                        :package_update true
                                        :bootcmd ["echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections"
@@ -128,10 +128,11 @@
                                      :cert_name "StartMastodoncNet"
                                      :subnets (mapv #(id-of "aws_subnet" (stringify vpc-name "-public-" %)) azs)
                                      :instances [(id-of "aws_instance" (vpc-unique "kibana"))]
-                                     :sgs ["allow_outbound"
-                                           "allow_external_http_https"
-                                           (vpc-unique "elb-kibana")
-                                           ]})
+                                     :security-groups (map #(id-of "aws_security_group" %)
+                                                           ["allow_outbound"
+                                                            "allow_external_http_https"
+                                                            (vpc-unique "elb-kibana")
+                                                            ])})
 
              ;; alerting server needs access to all servers
              (vpc-security-group "nrpe" {})
@@ -158,10 +159,11 @@
                                      :cert_name "StartMastodoncNet"
                                      :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
                                      :instances [(id-of "aws_instance" (vpc-unique "alerts"))]
-                                     :sgs ["allow_outbound"
-                                           "allow_external_http_https"
-                                           (vpc-unique "elb-alerts")
-                                           ]})
+                                     :security-groups (map #(id-of "aws_security_group" %)
+                                                           ["allow_outbound"
+                                                            "allow_external_http_https"
+                                                            (vpc-unique "elb-alerts")
+                                                            ])})
 
              (vpc-security-group "elb-alerts" {})
              (vpc-security-group "allow-elb-alerts" {}
