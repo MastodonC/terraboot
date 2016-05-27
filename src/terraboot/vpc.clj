@@ -305,6 +305,7 @@
              (output "subnet-public-b-id" "aws_subnet" (vpc-unique "public-b") "id")
              (output "sg-all-servers" "aws_security_group" (vpc-unique "all-servers") "id")
              (output "sg-allow-ssh" "aws_security_group" "allow_ssh" "id")
+             (output "sg-allow-http-https" "aws_security_group" "allow_external_http_https" "id")
              (output "vpc-id" "aws_vpc" vpc-name  "id")
              (output "sg-sends-influx" "aws_security_group" (vpc-unique "sends_influx") "id")
              (output "sg-sends-gelf" "aws_security_group" (vpc-unique "sends_gelf") "id")

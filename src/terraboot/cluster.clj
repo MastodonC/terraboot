@@ -467,9 +467,12 @@
                                          :target "HTTP:80/"
                                          :timeout 5
                                          :interval 30}
+                          :lb_protocol "https"
+                          :cert_name "c512707d-bbec-4859-ab22-0f5fbad62a22"
                           :listeners [(elb-listener {:port 9501 :protocol "HTTP"})]
                           :subnets public-subnets
-                          :security-groups (concat [(cluster-id-of "aws_security_group" "public-slave-security-group")]
+                          :security-groups (concat [(cluster-id-of "aws_security_group" "public-slave-security-group")
+                                                    (remote-output-of "vpc" "sg-allow-http-https")]
                                                    remote-default-sgs)}]})
 
              (route53_record (cluster-unique "deploy")
