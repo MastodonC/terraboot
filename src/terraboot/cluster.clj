@@ -359,7 +359,7 @@
                                        :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
-                                       :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")
+                                       :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                                        :mesos-dns "127.0.0.1"
                                        :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))}
                                 :lifecycle { :create_before_destroy true }
@@ -434,9 +434,9 @@
                                        :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
-                                       :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")
+                                       :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                                        :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                                       :alerts-server (str "alerts." (vpc-unique "kixi.mesos"))}
+                                       :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name)) }
                                 :lifecycle { :create_before_destroy true }})
 
              (vpc/private_route53_record (str cluster-name "-masters") vpc-name
@@ -502,9 +502,10 @@
                                        :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
-                                       :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")
+                                       :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                                        :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                                       :alerts-server (str "alerts." (vpc-unique "kixi.mesos"))}
+                                       :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
+                                       }
                                 :lifecycle { :create_before_destroy true }
 
                                 })
