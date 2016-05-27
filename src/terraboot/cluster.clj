@@ -146,12 +146,6 @@
                                       (merge-in spec)
                                       (update-in [:vpc_security_group_ids] concat default-vpc-sgs)))))
 
-(defn elb-listener [{:keys [port lb_port protocol lb_protocol]}]
-  {:instance_port port
-   :instance_protocol protocol
-   :lb_port (or lb_port port)
-   :lb_protocol (or lb_protocol protocol)})
-
 
 (defn local-deploy-scripts [{:keys [cluster-name
                                     internal-lb
@@ -359,7 +353,7 @@
                                        :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
-                                       :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")
+                                       :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                                        :mesos-dns "127.0.0.1"
                                        :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))}
                                 :lifecycle { :create_before_destroy true }
@@ -434,9 +428,9 @@
                                        :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
-                                       :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")
+                                       :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                                        :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                                       :alerts-server (str "alerts." (vpc-unique "kixi.mesos"))}
+                                       :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name)) }
                                 :lifecycle { :create_before_destroy true }})
 
              (vpc/private_route53_record (str cluster-name "-masters") vpc-name
@@ -473,9 +467,12 @@
                                          :target "HTTP:80/"
                                          :timeout 5
                                          :interval 30}
+                          :lb_protocol "https"
+                          :cert_name "c512707d-bbec-4859-ab22-0f5fbad62a22"
                           :listeners [(elb-listener {:port 9501 :protocol "HTTP"})]
                           :subnets public-subnets
-                          :security-groups (concat [(cluster-id-of "aws_security_group" "public-slave-security-group")]
+                          :security-groups (concat [(cluster-id-of "aws_security_group" "public-slave-security-group")
+                                                    (remote-output-of "vpc" "sg-allow-http-https")]
                                                    remote-default-sgs)}]})
 
              (route53_record (cluster-unique "deploy")
@@ -502,9 +499,10 @@
                                        :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
-                                       :influxdb-dns (str "influxdb." (vpc-unique "kixi") ".mesos")
+                                       :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                                        :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                                       :alerts-server (str "alerts." (vpc-unique "kixi.mesos"))}
+                                       :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
+                                       }
                                 :lifecycle { :create_before_destroy true }
 
                                 })

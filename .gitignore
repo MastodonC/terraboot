@@ -12,4 +12,6 @@ pom.xml.asc
 /infra/*.tf
 /vpc/*.tf
 /staging/*.tf
+/staging/.terraform
+/vpc/.terraform
 terraform.tfstate.backup
