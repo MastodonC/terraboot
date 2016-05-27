@@ -146,12 +146,6 @@
                                       (merge-in spec)
                                       (update-in [:vpc_security_group_ids] concat default-vpc-sgs)))))
 
-(defn elb-listener [{:keys [port lb_port protocol lb_protocol]}]
-  {:instance_port port
-   :instance_protocol protocol
-   :lb_port (or lb_port port)
-   :lb_protocol (or lb_protocol protocol)})
-
 
 (defn local-deploy-scripts [{:keys [cluster-name
                                     internal-lb
