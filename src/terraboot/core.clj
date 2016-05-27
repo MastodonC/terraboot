@@ -7,7 +7,7 @@
             [clojure.set :as set]))
 
 (def account-id "165664414043")
-(def default-sgs ["allow_ssh"])
+(def default-sgs ["allow_ssh" "allow_outbound"])
 
 (def ubuntu "ami-9b9c86f7")
 (def current-coreos-ami "ami-1807e377")
