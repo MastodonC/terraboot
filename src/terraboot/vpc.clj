@@ -101,7 +101,8 @@
     (merge-in
      (resource "aws_vpc" vpc-name
                {:tags {:Name vpc-name}
-                :cidr_block vpc-cidr-block})
+                :cidr_block vpc-cidr-block
+                :enable_dns_hostnames true})
 
      (elasticsearch-cluster "elasticsearch" {:vpc-name vpc-name})
 
