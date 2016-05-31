@@ -92,7 +92,9 @@
                      spec))))
 
 (defn vpc-vpn-infra
-  [vpc-name]
+  [{:keys [vpc-name
+           account-number
+           azs]} ]
   (let [vpc-unique (fn [name] (str vpc-name "-" name))
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
@@ -104,7 +106,9 @@
                 :cidr_block vpc-cidr-block
                 :enable_dns_hostnames true})
 
-     (elasticsearch-cluster "elasticsearch" {:vpc-name vpc-name})
+     (elasticsearch-cluster "elasticsearch" {:vpc-name vpc-name
+                                             :account-number account-number
+                                             :azs azs})
 
      (in-vpc (id-of "aws_vpc" vpc-name)
              (aws-instance (vpc-unique "vpn") {

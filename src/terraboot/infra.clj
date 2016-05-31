@@ -6,17 +6,22 @@
 (def infra-path "infra/")
 
 (defn generate-json [target]
-  (condp = target
-    "vpc"     (to-file (vpc-vpn-infra vpc-name) "vpc/vpc.tf")
-    "staging" (to-file (cluster-infra {:vpc-name vpc-name
-                                       :cluster-name "staging"
-                                       :min-number-of-masters 3
-                                       :max-number-of-masters 3
-                                       :master-disk-allocation 20
-                                       :min-number-of-slaves 2
-                                       :max-number-of-slaves 2
-                                       :min-number-of-public-slaves 1
-                                       :max-number-of-public-slaves 1}) "staging/staging.tf")))
+  (let [account-number "165664414043"
+        azs [:a]]
+    (condp = target
+      "vpc"     (to-file (vpc-vpn-infra {:vpc-name vpc-name
+                                         :account-number account-number
+                                         :azs azs}) "vpc/vpc.tf")
+      "staging" (to-file (cluster-infra {:vpc-name vpc-name
+                                         :cluster-name "staging"
+                                         :min-number-of-masters 3
+                                         :max-number-of-masters 3
+                                         :master-disk-allocation 20
+                                         :min-number-of-slaves 2
+                                         :max-number-of-slaves 2
+                                         :min-number-of-public-slaves 1
+                                         :max-number-of-public-slaves 1
+                                         :azs azs}) "staging/staging.tf"))))
 
 
 (defn -main [target]

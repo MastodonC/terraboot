@@ -219,7 +219,8 @@
            slave-disk-allocation
            min-number-of-public-slaves
            max-number-of-public-slaves
-           public-slave-disk-allocation]}]
+           public-slave-disk-allocation
+           azs]}]
   (let [public-subnets (mapv #(remote-output-of "vpc" (stringify  "subnet-public-" % "-id")) azs)
         private-subnets (mapv #(remote-output-of "vpc" (stringify "subnet-private-" % "-id")) azs)
         vpc-unique (fn [name] (str vpc-name "-" name))

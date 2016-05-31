@@ -315,8 +315,6 @@
 
 (def region "eu-central-1")
 
-(def azs [:a :b])
-
 (defn from-template [template-name vars]
   (mustache/render-file template-name vars))
 

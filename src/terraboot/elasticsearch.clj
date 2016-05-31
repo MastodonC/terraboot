@@ -26,15 +26,14 @@
                                                       :permissions "644"
                                                       :content (snippet "system-files/out-es.conf")}]}))
 
-(defn elasticsearch-cluster [name {:keys [vpc-name] :as spec}]
+(defn elasticsearch-cluster [name {:keys [vpc-name account-number azs] :as spec}]
   ;; http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs
   ;; See for what instance-types and storage is possible
   (let [vpc-unique (fn [name] (str vpc-name "-" name))
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
         vpc-output-of (fn [type name & values] (apply (partial output-of type (vpc-unique name)) values))
-        vpc-security-group (partial scoped-security-group vpc-unique)
-        azs [:a :b]]
+        vpc-security-group (partial scoped-security-group vpc-unique)]
     (merge-in
      (vpc-resource "aws_elasticsearch_domain" name
                    {:domain_name (vpc-unique name)
@@ -42,7 +41,7 @@
                     :access_policies (json/generate-string {"Version" "2012-10-17",
                                                             "Statement" [{"Action" "es:*",
                                                                           "Principal" "*",
-                                                                          "Resource" "arn:aws:es:eu-central-1:165664414043:domain/sandpit-elasticsearch/*",
+                                                                          "Resource" (str "arn:aws:es:eu-central-1:" account-number ":domain/" vpc-name "-elasticsearch/*"),
                                                                           ;; There is currently a bug which means 'Resource' needs adding after the
                                                                           ;; cluster is created or it will constantly say it needs to change.
                                                                           ;; https://github.com/hashicorp/terraform/issues/5067
