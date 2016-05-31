@@ -94,7 +94,8 @@
 (defn vpc-vpn-infra
   [{:keys [vpc-name
            account-number
-           azs]} ]
+           azs
+           subnet-cidr-blocks]} ]
   (let [vpc-unique (fn [name] (str vpc-name "-" name))
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
@@ -114,7 +115,7 @@
              (aws-instance (vpc-unique "vpn") {
                                                :user_data (vpn-user-data {:range-start (cidr-start vpc-cidr-block)
                                                                           :fallback-dns (fallback-dns vpc-cidr-block)})
-                                               :subnet_id (vpc-id-of "aws_subnet" "public-b")
+                                               :subnet_id (vpc-id-of "aws_subnet" (stringify "public-" (first azs)))
                                                :ami ec2-ami
                                                :vpc_security_group_ids [(vpc-id-of "aws_security_group" "vpn")
                                                                         (vpc-id-of "aws_security_group" "sends_influx")
@@ -134,7 +135,7 @@
                                                                 (vpc-id-of "aws_security_group" "allow_elb_chronograf")
                                                                 (vpc-id-of "aws_security_group" "all-servers")
                                                                 ]
-                                       :subnet_id (vpc-id-of "aws_subnet" "public-a")})
+                                       :subnet_id (vpc-id-of "aws_subnet" (stringify "public-" (last azs)))})
 
              (vpc-resource "aws_volume_attachment" "influxdb_volume"
                            {:device_name "/dev/xvdh"
@@ -235,22 +236,6 @@
                                   :protocol "udp"
                                   :cidr_blocks [all-external]})
 
-             (vpc-security-group "allow-all-tcp-within-public-subnet" {}
-                                 {:from_port 0
-                                  :to_port 65535
-                                  :cidr_blocks (vals (:public cidr-block))})
-
-             (vpc-security-group "allow-all-udp-within-public-subnet" {}
-                                 {:from_port 0
-                                  :to_port 65535
-                                  :protocol "udp"
-                                  :cidr_blocks (vals (:public cidr-block))})
-
-             (vpc-security-group "allow-icmp-within-public-subnet" {}
-                                 {:from_port 0
-                                  :to_port 65535
-                                  :protocol "udp"
-                                  :cidr_blocks (vals (:public cidr-block))})
 
              (resource "aws_internet_gateway" vpc-name
                        {:tags {:Name "main"}})

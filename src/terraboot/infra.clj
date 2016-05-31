@@ -11,7 +11,9 @@
     (condp = target
       "vpc"     (to-file (vpc-vpn-infra {:vpc-name vpc-name
                                          :account-number account-number
-                                         :azs azs}) "vpc/vpc.tf")
+                                         :azs azs
+                                         :subnet-cidr-blocks {:a {:public "172.20.0.0/24"
+                                                                  :private "172.20.8.0/24"}}}) "vpc/vpc.tf")
       "staging" (to-file (cluster-infra {:vpc-name vpc-name
                                          :cluster-name "staging"
                                          :min-number-of-masters 3
@@ -21,7 +23,9 @@
                                          :max-number-of-slaves 2
                                          :min-number-of-public-slaves 1
                                          :max-number-of-public-slaves 1
-                                         :azs azs}) "staging/staging.tf"))))
+                                         :azs azs
+                                         :subnet-cidr-blocks {:a {:public "172.20.1.0/24"
+                                                                  :private "172.20.9.0/24"}}}) "staging/staging.tf"))))
 
 
 (defn -main [target]

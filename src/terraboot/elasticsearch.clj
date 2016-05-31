@@ -49,12 +49,9 @@
                                                                           "Condition"
                                                                           {
                                                                            "IpAddress"
-                                                                           {"aws:SourceIp" [(vpc-output-of "aws_eip" "public-a-nat" "public_ip")
-                                                                                            (vpc-output-of "aws_eip" "public-b-nat" "public_ip")
-                                                                                            (vpc-output-of "aws_eip" "logstash" "public_ip")
-                                                                                            "87.115.98.26/32" ; Tom
-                                                                                            "146.200.166.70/32"  ; Elise
-                                                                                            ]
+                                                                           {"aws:SourceIp" (concat
+                                                                                            (mapv #(vpc-output-of "aws_eip" (stringify "public-" % "-nat") "public_ip") azs)
+                                                                                            [(vpc-output-of "aws_eip" "logstash" "public_ip")])
                                                                             }}}]})
                     :cluster_config {:instance_count 2,
                                      :instance_type "t2.small.elasticsearch"}
@@ -71,14 +68,7 @@
                                   :source_security_group_id (vpc-id-of "aws_security_group" "sends_gelf")}
                                  {:port 12201
                                   :protocol "udp"
-                                  :cidr_blocks [(str (vpc-output-of "aws_eip" "public-a-nat" "public_ip") "/32")
-                                                (str (vpc-output-of "aws_eip" "public-b-nat" "public_ip") "/32")
-                                                "52.29.162.148/32"
-                                                "52.29.163.57/32"
-                                                "52.29.97.114/32"
-                                                "87.115.98.26/32"
-                                                "151.230.75.151/32" ; Tom Temp
-                                                ]}
+                                  :cidr_blocks (mapv #(str (vpc-output-of "aws_eip" (stringify "public-" % "-nat") "public_ip") "/32") azs)}
                                  {:port 9200
                                   :protocol "udp"
                                   :cidr_blocks [all-external]})
