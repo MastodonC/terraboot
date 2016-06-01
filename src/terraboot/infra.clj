@@ -5,6 +5,7 @@
 
 (def infra-path "infra/")
 
+;; other todo: public slave port and listeners being parameters (as this is determined by applications)
 (defn generate-json [target]
   (let [account-number "165664414043"
         azs [:a]]
