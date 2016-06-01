@@ -180,7 +180,7 @@
                                       (update-in [:vpc_security_group_ids] concat default-sg-ids)))))
 
 
-(defn private-public-subnets [naming-fn az cidr-blocks]
+(defn private-public-subnets [{:keys [naming-fn az cidr-blocks public-route-table]}]
   (let [public-subnet-name (naming-fn (stringify "public-" az))
         private-subnet-name (naming-fn (stringify "private-" az))
         nat-eip (stringify public-subnet-name "-nat")]
@@ -191,8 +191,9 @@
                                                  :cidr_block (:public cidr-blocks)
                                                  :availability_zone (stringify region az)})
 
-     (resource "aws_route_table_association" public-subnet-name {:route_table_id (id-of "aws_route_table" (naming-fn "public"))
+     (resource "aws_route_table_association" public-subnet-name {:route_table_id public-route-table
                                                                  :subnet_id (id-of "aws_subnet" public-subnet-name)})
+
 
      (resource "aws_nat_gateway" public-subnet-name {:allocation_id (id-of "aws_eip" nat-eip)
                                                      :subnet_id  (id-of "aws_subnet" public-subnet-name)})

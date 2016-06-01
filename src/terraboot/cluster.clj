@@ -220,20 +220,26 @@
            min-number-of-public-slaves
            max-number-of-public-slaves
            public-slave-disk-allocation
-           azs]}]
-  (let [public-subnets (mapv #(remote-output-of "vpc" (stringify  "subnet-public-" % "-id")) azs)
-        private-subnets (mapv #(remote-output-of "vpc" (stringify "subnet-private-" % "-id")) azs)
-        vpc-unique (fn [name] (str vpc-name "-" name))
+           azs
+           subnet-cidr-blocks]}]
+  (let [vpc-unique (fn [name] (str vpc-name "-" name))
         vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
         cluster-identifier (str vpc-name "-" cluster-name)
         cluster-unique (fn [name] (str cluster-identifier "-" name))
         cluster-resource (partial resource cluster-unique)
         cluster-security-group (partial scoped-security-group cluster-unique)
         cluster-id-of (fn [type name] (id-of type (cluster-unique name)))
-        cluster-output-of (fn [type name & values] (apply (partial output-of type (cluster-unique name)) values))]
+        cluster-output-of (fn [type name & values] (apply (partial output-of type (cluster-unique name)) values))
+        private-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "public-" %)) azs)
+        public-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "private-" %)) azs)]
     (merge-in
      (remote-state "vpc")
      (in-vpc (remote-output-of "vpc" "vpc-id")
+             (apply merge-in (map #(private-public-subnets {:naming-fn cluster-unique
+                                                            :az %
+                                                            :cidr-blocks (% subnet-cidr-blocks)
+                                                            :public-route-table (remote-output-of "vpc" "public-route-table")} ) azs))
+
              (cluster-security-group "admin-security-group" {}
                                      {:from_port 0
                                       :to_port 65535

@@ -253,8 +253,10 @@
 
 
              ;; all the subnets
-             (apply merge-in (map #(private-public-subnets vpc-unique % (% subnet-cidr-blocks)) azs))
-
+             (apply merge-in (map #(private-public-subnets {:naming-fn vpc-unique
+                                                            :az %
+                                                            :cidr-blocks (% subnet-cidr-blocks)
+                                                            :public-route-table (vpc-unique "public")}) azs))
              (apply merge-in (for [az azs
                                    name [:public :private]]
                                (output (stringify "subnet-" name "-" az "-id") "aws_subnet" (vpc-unique (stringify name "-" az)) "id")))
@@ -265,4 +267,5 @@
              (output "sg-sends-influx" "aws_security_group" (vpc-unique "sends_influx") "id")
              (output "sg-sends-gelf" "aws_security_group" (vpc-unique "sends_gelf") "id")
              (output "private-dns-zone" "aws_route53_zone" (vpc-unique "mesos") "id")
+             (output "public-route-table" "aws_route_table" (vpc-unique "public") "id")
              ))))
