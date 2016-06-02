@@ -92,7 +92,10 @@
                      spec))))
 
 (defn vpc-vpn-infra
-  [vpc-name]
+  [{:keys [vpc-name
+           account-number
+           azs
+           subnet-cidr-blocks]} ]
   (let [vpc-unique (fn [name] (str vpc-name "-" name))
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
@@ -104,13 +107,15 @@
                 :cidr_block vpc-cidr-block
                 :enable_dns_hostnames true})
 
-     (elasticsearch-cluster "elasticsearch" {:vpc-name vpc-name})
+     (elasticsearch-cluster "elasticsearch" {:vpc-name vpc-name
+                                             :account-number account-number
+                                             :azs azs})
 
      (in-vpc (id-of "aws_vpc" vpc-name)
              (aws-instance (vpc-unique "vpn") {
                                                :user_data (vpn-user-data {:range-start (cidr-start vpc-cidr-block)
                                                                           :fallback-dns (fallback-dns vpc-cidr-block)})
-                                               :subnet_id (vpc-id-of "aws_subnet" "public-b")
+                                               :subnet_id (vpc-id-of "aws_subnet" (stringify "public-" (first azs)))
                                                :ami ec2-ami
                                                :vpc_security_group_ids [(vpc-id-of "aws_security_group" "vpn")
                                                                         (vpc-id-of "aws_security_group" "sends_influx")
@@ -130,7 +135,7 @@
                                                                 (vpc-id-of "aws_security_group" "allow_elb_chronograf")
                                                                 (vpc-id-of "aws_security_group" "all-servers")
                                                                 ]
-                                       :subnet_id (vpc-id-of "aws_subnet" "public-a")})
+                                       :subnet_id (vpc-id-of "aws_subnet" (stringify "public-" (last azs)))})
 
              (vpc-resource "aws_volume_attachment" "influxdb_volume"
                            {:device_name "/dev/xvdh"
@@ -231,22 +236,6 @@
                                   :protocol "udp"
                                   :cidr_blocks [all-external]})
 
-             (vpc-security-group "allow-all-tcp-within-public-subnet" {}
-                                 {:from_port 0
-                                  :to_port 65535
-                                  :cidr_blocks (vals (:public cidr-block))})
-
-             (vpc-security-group "allow-all-udp-within-public-subnet" {}
-                                 {:from_port 0
-                                  :to_port 65535
-                                  :protocol "udp"
-                                  :cidr_blocks (vals (:public cidr-block))})
-
-             (vpc-security-group "allow-icmp-within-public-subnet" {}
-                                 {:from_port 0
-                                  :to_port 65535
-                                  :protocol "udp"
-                                  :cidr_blocks (vals (:public cidr-block))})
 
              (resource "aws_internet_gateway" vpc-name
                        {:tags {:Name "main"}})
@@ -262,47 +251,15 @@
                         :subnet_ids (map #(id-of "aws_subnet" (stringify vpc-name "-private-" %)) azs)
                         :description "subnet for dbs"})
 
-             ;; Public Subnets
-             (resource-seq
-              (apply concat
-                     (for [az azs]
-                       (let [subnet-name (stringify vpc-name "-public-" az)
-                             nat-eip (stringify subnet-name "-nat")]
-                         [["aws_subnet" subnet-name {:tags {:Name subnet-name}
-                                                     :cidr_block (get-in cidr-block [:public az])
-                                                     :availability_zone (stringify region az)
-                                                     }]
-                          ["aws_route_table_association" subnet-name {:route_table_id (vpc-id-of "aws_route_table" "public")
-                                                                      :subnet_id (id-of "aws_subnet" subnet-name)
-                                                                      }]
-                          ["aws_nat_gateway" subnet-name {:allocation_id (id-of "aws_eip" nat-eip)
-                                                          :subnet_id  (id-of "aws_subnet" subnet-name)}]
 
-                          ["aws_eip" nat-eip {:vpc true}]])
-                       )))
-             ;; Private Subnets
-
-             (resource-seq
-              (apply concat
-                     (for [az azs]
-                       (let [subnet-name (stringify vpc-name "-private-" az)
-                             public-subnet-name (stringify vpc-name "-public-" az)]
-                         [["aws_subnet" subnet-name {:tags {:Name subnet-name}
-                                                     :cidr_block (get-in cidr-block [:private az])
-                                                     :availability_zone (stringify region az)
-                                                     }]
-                          ["aws_route_table" subnet-name {:tags {:Name subnet-name}
-                                                          :route {:cidr_block all-external
-                                                                  :nat_gateway_id (id-of "aws_nat_gateway" public-subnet-name)}}
-
-                           ]
-                          ["aws_route_table_association" subnet-name {:route_table_id (id-of "aws_route_table" subnet-name)
-                                                                      :subnet_id (id-of "aws_subnet" subnet-name)
-                                                                      }]]))))
-             (output "subnet-private-a-id" "aws_subnet" (vpc-unique "private-a") "id")
-             (output "subnet-private-b-id" "aws_subnet" (vpc-unique "private-b") "id")
-             (output "subnet-public-a-id" "aws_subnet" (vpc-unique "public-a") "id")
-             (output "subnet-public-b-id" "aws_subnet" (vpc-unique "public-b") "id")
+             ;; all the subnets
+             (apply merge-in (map #(private-public-subnets {:naming-fn vpc-unique
+                                                            :az %
+                                                            :cidr-blocks (% subnet-cidr-blocks)
+                                                            :public-route-table (vpc-unique "public")}) azs))
+             (apply merge-in (for [az azs
+                                   name [:public :private]]
+                               (output (stringify "subnet-" name "-" az "-id") "aws_subnet" (vpc-unique (stringify name "-" az)) "id")))
              (output "sg-all-servers" "aws_security_group" (vpc-unique "all-servers") "id")
              (output "sg-allow-ssh" "aws_security_group" "allow_ssh" "id")
              (output "sg-allow-http-https" "aws_security_group" "allow_external_http_https" "id")
@@ -310,4 +267,5 @@
              (output "sg-sends-influx" "aws_security_group" (vpc-unique "sends_influx") "id")
              (output "sg-sends-gelf" "aws_security_group" (vpc-unique "sends_gelf") "id")
              (output "private-dns-zone" "aws_route53_zone" (vpc-unique "mesos") "id")
+             (output "public-route-table" "aws_route_table" (vpc-unique "public") "id")
              ))))

@@ -13,6 +13,13 @@
 (def current-coreos-ami "ami-1807e377")
 (def ec2-ami "ami-bc5b48d0")
 
+(def all-external "0.0.0.0/0")
+
+(def region "eu-central-1")
+
+(def dns-zone "mastodonc.net")
+(def dns-zone-id "Z1EFD0WXZUIXYT")
+
 (letfn [(sensitive-merge-in*
           [mfns]
           (fn [a b]
@@ -152,9 +159,6 @@
 (defn safe-name [s]
   (string/replace s #"\." "__"))
 
-(def dns-zone "mastodonc.net")
-(def dns-zone-id "Z1EFD0WXZUIXYT")
-
 (defn route53_record [prefix spec]
   (let [name (str prefix "." dns-zone)]
     (resource "aws_route53_record" (safe-name name)
@@ -175,6 +179,37 @@
                                       (merge-in spec)
                                       (update-in [:vpc_security_group_ids] concat default-sg-ids)))))
 
+
+(defn private-public-subnets [{:keys [naming-fn az cidr-blocks public-route-table]}]
+  (let [public-subnet-name (naming-fn (stringify "public-" az))
+        private-subnet-name (naming-fn (stringify "private-" az))
+        nat-eip (stringify public-subnet-name "-nat")]
+    (merge-in
+
+     ;; public
+     (resource "aws_subnet" public-subnet-name  {:tags {:Name public-subnet-name}
+                                                 :cidr_block (:public cidr-blocks)
+                                                 :availability_zone (stringify region az)})
+
+     (resource "aws_route_table_association" public-subnet-name {:route_table_id public-route-table
+                                                                 :subnet_id (id-of "aws_subnet" public-subnet-name)})
+
+
+     (resource "aws_nat_gateway" public-subnet-name {:allocation_id (id-of "aws_eip" nat-eip)
+                                                     :subnet_id  (id-of "aws_subnet" public-subnet-name)})
+     (resource "aws_eip" nat-eip {:vpc true})
+
+     ;; private
+     (resource "aws_subnet" private-subnet-name {:tags {:Name private-subnet-name}
+                                                 :cidr_block (:private cidr-blocks)
+                                                 :availability_zone (stringify region az)})
+
+     (resource "aws_route_table" private-subnet-name {:tags {:Name private-subnet-name}
+                                                      :route {:cidr_block all-external
+                                                              :nat_gateway_id (id-of "aws_nat_gateway" public-subnet-name)}})
+
+     (resource "aws_route_table_association" private-subnet-name {:route_table_id (id-of "aws_route_table" private-subnet-name)
+                                                                  :subnet_id (id-of "aws_subnet" private-subnet-name)}))))
 
 (defn elb-listener [{:keys [port lb_port protocol lb_protocol]}]
   {:instance_port port
@@ -311,11 +346,6 @@
                                      "Resource" "*"}}]
     (to-json (merge-in default-policy {"Statement" statement}))))
 
-(def all-external "0.0.0.0/0")
-
-(def region "eu-central-1")
-
-(def azs [:a :b])
 
 (defn from-template [template-name vars]
   (mustache/render-file template-name vars))
