@@ -33,7 +33,25 @@
                                          :azs azs
                                          :mesos-ami "ami-1807e377" ;; previous coreos
                                          :subnet-cidr-blocks {:a {:public "172.20.1.0/24"
-                                                                  :private "172.20.9.0/24"}}}) "staging/staging.tf"))))
+                                                                  :private "172.20.9.0/24"}}}) "staging/staging.tf")
+      (comment "production" (to-file (cluster-infra {:vpc-name vpc-name
+                                                     :cluster-name "production"
+                                                     :min-number-of-masters 3
+                                                     :max-number-of-masters 3
+                                                     :master-instance-type "m4.xlarge"
+                                                     :master-disk-allocation 20
+                                                     :min-number-of-slaves 3
+                                                     :max-number-of-slaves 3
+                                                     :slave-instance-type "m4.xlarge"
+                                                     :slave-disk-allocation 20
+                                                     :min-number-of-public-slaves 1
+                                                     :max-number-of-public-slaves 1
+                                                     :public-slave-instance-type "m4.xlarge"
+                                                     :public-slave-disk-allocation 20
+                                                     :mesos-ami mesos-ami
+                                                     :azs azs
+                                                     :subnet-cidr-blocks {:a {:public "172.20.3.0/22"
+                                                                              :private "172.20.10.0/22"}}}) "production/production.tf")))))
 
 
 (defn -main [target]
