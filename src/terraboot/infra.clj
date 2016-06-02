@@ -5,7 +5,6 @@
 
 (def infra-path "infra/")
 
-;; other todo: public slave port and listeners being parameters (as this is determined by applications)
 (defn generate-json [target]
   (let [account-number "165664414043"
         azs [:a]
@@ -30,6 +29,9 @@
                                          :min-number-of-public-slaves 1
                                          :max-number-of-public-slaves 1
                                          :public-slave-instance-type "t2.medium"
+                                         :public-slave-elb-listeners [{:lb_port 443 :lb_protocol "https" :port 80 :protocol "http"}
+                                                                      {:port 9501 :protocol "http"}]
+                                         :public-slave-elb-health "HTTP:9501/"
                                          :azs azs
                                          :mesos-ami "ami-1807e377" ;; previous coreos
                                          :subnet-cidr-blocks {:a {:public "172.20.1.0/24"
@@ -48,6 +50,8 @@
                                                      :max-number-of-public-slaves 1
                                                      :public-slave-instance-type "m4.xlarge"
                                                      :public-slave-disk-allocation 20
+                                                     :public-slave-elb-listeners [{:lb_port 443 :lb_protocol "https" :port 80 :protocol "http"}
+                                                                                  {:port 9501}]
                                                      :mesos-ami mesos-ami
                                                      :azs azs
                                                      :subnet-cidr-blocks {:a {:public "172.20.3.0/22"

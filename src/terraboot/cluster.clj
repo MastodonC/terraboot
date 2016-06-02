@@ -208,6 +208,10 @@
                  :runcmd
                  ["update-rc.d logstash defaults"]}))
 
+(defn open-elb-ports
+  [listeners]
+  (mapv #(assoc {} :port (or (:port %) (:lb_port %)) :cidr_blocks [all-external]) listeners))
+
 (defn cluster-infra
   [{:keys [vpc-name
            cluster-name
@@ -222,7 +226,9 @@
            public-slave-disk-allocation
            azs
            subnet-cidr-blocks
-           mesos-ami]}]
+           mesos-ami
+           public-slave-elb-listeners
+           public-slave-elb-health]}]
   (let [vpc-unique (fn [name] (str vpc-name "-" name))
         vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
         cluster-identifier (str vpc-name "-" cluster-name)
@@ -276,33 +282,13 @@
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "slave-security-group")}
                                      )
 
+             (apply (partial cluster-security-group "public-slave-elb" {}) (open-elb-ports public-slave-elb-listeners))
+
              (cluster-security-group "public-slave-security-group" {}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "master-security-group")}
-                                     {:from_port 0
-                                      :to_port 21
-                                      :cidr_blocks [all-external]}
-                                     {:from_port 0
-                                      :to_port 21
-                                      :protocol "udp"
-                                      :cidr_blocks [all-external]}
-                                     {:port 22
-                                      :cidr_blocks [vpc/vpc-cidr-block]}
-                                     {:from_port 23
-                                      :to_port 5050
-                                      :cidr_blocks [all-external]}
-                                     {:from_port 23
-                                      :to_port 5050
-                                      :protocol "udp"
-                                      :cidr_blocks [all-external]}
-                                     {:from_port 5052
-                                      :to_port 65535
-                                      :cidr_blocks [all-external]}
-                                     {:from_port 5052
-                                      :to_port 65535
-                                      :protocol "udp"
-                                      :cidr_blocks [all-external]}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-security-group")}
-                                     {:allow-all-sg (cluster-id-of "aws_security_group" "slave-security-group")})
+                                     {:allow-all-sg (cluster-id-of "aws_security_group" "slave-security-group")}
+                                     {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-elb")})
 
              (cluster-security-group "slave-security-group" {}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-security-group")}
@@ -472,12 +458,12 @@
                    :elb [{:name "public-slaves"
                           :health_check {:healthy_threshold 2
                                          :unhealthy_threshold 2
-                                         :target "HTTP:80/"
+                                         :target public-slave-elb-health
                                          :timeout 5
                                          :interval 30}
                           :lb_protocol "https"
                           :cert_name "c512707d-bbec-4859-ab22-0f5fbad62a22"
-                          :listeners [(elb-listener {:port 9501 :protocol "HTTP"})]
+                          :listeners (mapv elb-listener public-slave-elb-listeners)
                           :subnets public-subnets
                           :security-groups (concat [(cluster-id-of "aws_security_group" "public-slave-security-group")
                                                     (remote-output-of "vpc" "sg-allow-http-https")]
