@@ -26,7 +26,7 @@
                                                       :permissions "644"
                                                       :content (snippet "system-files/out-es.conf")}]}))
 
-(defn elasticsearch-cluster [name {:keys [vpc-name account-number azs] :as spec}]
+(defn elasticsearch-cluster [name {:keys [vpc-name account-number azs default-ami] :as spec}]
   ;; http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs
   ;; See for what instance-types and storage is possible
   (let [vpc-unique (fn [name] (str vpc-name "-" name))
@@ -88,7 +88,7 @@
                            {:template logstash-user-data
                             :vars {:elasticsearch-lb (id-of "aws_elb" "kibana")}})
 
-             (aws-instance (vpc-unique "logstash") {:ami ubuntu
+             (aws-instance (vpc-unique "logstash") {:ami default-ami
                                                     :vpc_security_group_ids [(vpc-id-of "aws_security_group" "logstash")
                                                                              (id-of "aws_security_group" "allow_ssh")
                                                                              (vpc-id-of "aws_security_group" "sends_influx")
@@ -99,7 +99,7 @@
                                                     })
 
              (aws-instance (vpc-unique "kibana") {
-                                                  :ami ubuntu
+                                                  :ami default-ami
                                                   :vpc_security_group_ids [(vpc-id-of "aws_security_group" "kibana")
                                                                            (vpc-id-of "aws_security_group" "allow-elb-kibana")
                                                                            (vpc-id-of "aws_security_group" "sends_influx")
@@ -131,7 +131,7 @@
                         :subnet vpc-name})
 
              (aws-instance (vpc-unique "alerts")
-                           {:ami ubuntu
+                           {:ami default-ami
                             :subnet_id (vpc-id-of "aws_subnet" "private-a")
                             :vpc_security_group_ids [(vpc-id-of "aws_security_group" "nrpe")
                                                      (id-of "aws_security_group" (str "uses-db-" (vpc-unique "alerts")))

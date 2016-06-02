@@ -221,7 +221,8 @@
            max-number-of-public-slaves
            public-slave-disk-allocation
            azs
-           subnet-cidr-blocks]}]
+           subnet-cidr-blocks
+           mesos-ami]}]
   (let [vpc-unique (fn [name] (str vpc-name "-" name))
         vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
         cluster-identifier (str vpc-name "-" cluster-name)
@@ -369,7 +370,7 @@
 
              (asg "masters"
                   cluster-unique
-                  {:image_id current-coreos-ami
+                  {:image_id mesos-ami
                    :instance_type "m4.large"
                    :sgs (concat [(cluster-id-of "aws_security_group" "master-security-group")
                                  (cluster-id-of "aws_security_group" "admin-security-group")
@@ -448,7 +449,7 @@
 
              (asg "public-slaves"
                   cluster-unique
-                  {:image_id current-coreos-ami
+                  {:image_id mesos-ami
                    :instance_type "m4.xlarge"
                    :sgs [(cluster-id-of "aws_security_group" "public-slave-security-group")
                          (remote-output-of "vpc" "sg-sends-influx")
@@ -517,7 +518,7 @@
 
              (asg "slaves"
                   cluster-unique
-                  {:image_id current-coreos-ami
+                  {:image_id mesos-ami
                    :instance_type "m4.xlarge"
                    :sgs (concat [(cluster-id-of "aws_security_group" "slave-security-group")
                                  (remote-output-of "vpc" "sg-all-servers")

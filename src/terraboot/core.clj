@@ -6,12 +6,8 @@
             [clojure.pprint :refer [pprint]]
             [clojure.set :as set]))
 
-(def account-id "165664414043")
-(def default-sgs ["allow_ssh" "allow_outbound"])
 
-(def ubuntu "ami-9b9c86f7")
-(def current-coreos-ami "ami-1807e377")
-(def ec2-ami "ami-bc5b48d0")
+(def default-sgs ["allow_ssh" "allow_outbound"])
 
 (def all-external "0.0.0.0/0")
 
@@ -229,7 +225,8 @@
                 cert_name
                 subnets
                 security-groups
-                internal]} spec
+                internal
+                account-number]} spec
         secure_protocol (if (= lb_protocol "http")
                           "https"
                           "ssl")
@@ -244,7 +241,7 @@
                                                :instance_protocol lb_protocol
                                                :lb_port 443
                                                :lb_protocol secure_protocol
-                                               :ssl_certificate_id (str "arn:aws:iam::" account-id ":server-certificate/" cert_name)}]
+                                               :ssl_certificate_id (str "arn:aws:iam::" account-number ":server-certificate/" cert_name)}]
                             [default-listener])
         listeners (concat default-listeners (:listeners spec))]
     (cluster-resource "aws_elb" name {:name name
