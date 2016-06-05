@@ -6,12 +6,8 @@
             [clojure.pprint :refer [pprint]]
             [clojure.set :as set]))
 
-(def account-id "165664414043")
-(def default-sgs ["allow_ssh" "allow_outbound"])
 
-(def ubuntu "ami-9b9c86f7")
-(def current-coreos-ami "ami-1807e377")
-(def ec2-ami "ami-bc5b48d0")
+(def default-sgs ["allow_ssh" "allow_outbound"])
 
 (def all-external "0.0.0.0/0")
 
@@ -211,16 +207,18 @@
      (resource "aws_route_table_association" private-subnet-name {:route_table_id (id-of "aws_route_table" private-subnet-name)
                                                                   :subnet_id (id-of "aws_subnet" private-subnet-name)}))))
 
-(defn elb-listener [{:keys [port lb_port protocol lb_protocol]}]
-  {:instance_port port
-   :instance_protocol protocol
-   :lb_port (or lb_port port)
-   :lb_protocol (or lb_protocol protocol)})
+
+(defn account-elb-listener[account-number]
+  (fn [{:keys [port lb-port protocol lb-protocol cert-name]}]
+    (let [cert-id (str "arn:aws:iam:" account-number ":server-certificate/" cert-name)
+          add-cert-if-present #(if cert-name (assoc % :ssl_certificate_id cert-id) %)]
+      (add-cert-if-present {:instance_port port
+                            :instance_protocol protocol
+                            :lb_port (or lb-port port)
+                            :lb_protocol (or lb-protocol protocol)}))))
 
 (defn elb [name cluster-resource spec]
-  (let [defaults {:cert_name false
-                  :instances []
-                  :lb_protocol "http"
+  (let [defaults {:instances []
                   :internal false}
         spec (merge-in defaults spec)
         {:keys [health_check
@@ -229,24 +227,9 @@
                 cert_name
                 subnets
                 security-groups
-                internal]} spec
-        secure_protocol (if (= lb_protocol "http")
-                          "https"
-                          "ssl")
-        default-listener {:instance_port 80
-                          :instance_protocol lb_protocol
-                          :lb_port 80
-                          :lb_protocol lb_protocol}
-
-        default-listeners (if cert_name
-                            [default-listener {
-                                               :instance_port 80
-                                               :instance_protocol lb_protocol
-                                               :lb_port 443
-                                               :lb_protocol secure_protocol
-                                               :ssl_certificate_id (str "arn:aws:iam::" account-id ":server-certificate/" cert_name)}]
-                            [default-listener])
-        listeners (concat default-listeners (:listeners spec))]
+                internal
+                account-number
+                listeners]} spec]
     (cluster-resource "aws_elb" name {:name name
                                       :subnets subnets
                                       :security_groups security-groups

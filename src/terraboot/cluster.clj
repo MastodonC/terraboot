@@ -208,6 +208,10 @@
                  :runcmd
                  ["update-rc.d logstash defaults"]}))
 
+(defn open-elb-ports
+  [listeners]
+  (mapv #(assoc {} :port (or (:port %) (:lb_port %)) :cidr_blocks [all-external]) listeners))
+
 (defn cluster-infra
   [{:keys [vpc-name
            cluster-name
@@ -221,7 +225,11 @@
            max-number-of-public-slaves
            public-slave-disk-allocation
            azs
-           subnet-cidr-blocks]}]
+           subnet-cidr-blocks
+           mesos-ami
+           public-slave-elb-listeners
+           public-slave-elb-health
+           account-number]}]
   (let [vpc-unique (fn [name] (str vpc-name "-" name))
         vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
         cluster-identifier (str vpc-name "-" cluster-name)
@@ -231,7 +239,8 @@
         cluster-id-of (fn [type name] (id-of type (cluster-unique name)))
         cluster-output-of (fn [type name & values] (apply (partial output-of type (cluster-unique name)) values))
         private-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "public-" %)) azs)
-        public-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "private-" %)) azs)]
+        public-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "private-" %)) azs)
+        elb-listener (account-elb-listener account-number)]
     (merge-in
      (remote-state "vpc")
      (in-vpc (remote-output-of "vpc" "vpc-id")
@@ -275,33 +284,13 @@
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "slave-security-group")}
                                      )
 
+             (apply (partial cluster-security-group "public-slave-elb" {}) (open-elb-ports public-slave-elb-listeners))
+
              (cluster-security-group "public-slave-security-group" {}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "master-security-group")}
-                                     {:from_port 0
-                                      :to_port 21
-                                      :cidr_blocks [all-external]}
-                                     {:from_port 0
-                                      :to_port 21
-                                      :protocol "udp"
-                                      :cidr_blocks [all-external]}
-                                     {:port 22
-                                      :cidr_blocks [vpc/vpc-cidr-block]}
-                                     {:from_port 23
-                                      :to_port 5050
-                                      :cidr_blocks [all-external]}
-                                     {:from_port 23
-                                      :to_port 5050
-                                      :protocol "udp"
-                                      :cidr_blocks [all-external]}
-                                     {:from_port 5052
-                                      :to_port 65535
-                                      :cidr_blocks [all-external]}
-                                     {:from_port 5052
-                                      :to_port 65535
-                                      :protocol "udp"
-                                      :cidr_blocks [all-external]}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-security-group")}
-                                     {:allow-all-sg (cluster-id-of "aws_security_group" "slave-security-group")})
+                                     {:allow-all-sg (cluster-id-of "aws_security_group" "slave-security-group")}
+                                     {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-elb")})
 
              (cluster-security-group "slave-security-group" {}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-security-group")}
@@ -369,7 +358,7 @@
 
              (asg "masters"
                   cluster-unique
-                  {:image_id current-coreos-ami
+                  {:image_id mesos-ami
                    :instance_type "m4.large"
                    :sgs (concat [(cluster-id-of "aws_security_group" "master-security-group")
                                  (cluster-id-of "aws_security_group" "admin-security-group")
@@ -390,20 +379,9 @@
                    :root_block_device_size master-disk-allocation
                    :subnets public-subnets
                    :lifecycle {:create_before_destroy true}
-                   :elb [{:name "masters"
-                          :health_check {:healthy_threshold 2
-                                         :unhealthy_threshold 3
-                                         :target "HTTP:5050/health"
-                                         :timeout 5
-                                         :interval 30}
-                          :cert_name "StartMastodoncNet"
-                          :subnets public-subnets
-                          :security-groups (concat (mapv #(cluster-id-of "aws_security_group" %) ["lb-security-group"
-                                                                                                  "admin-security-group"])
-                                                   remote-default-sgs)
-                          }
-                         {:name "internal-lb"
-                          :listeners [(elb-listener {:port 5050 :protocol "HTTP"})
+                   :elb [{:name "internal-lb"
+                          :listeners [(elb-listener {:port 80 :protocol "HTTP"})
+                                      (elb-listener {:port 5050 :protocol "HTTP"})
                                       (elb-listener {:port 2181 :protocol "TCP"})
                                       (elb-listener {:port 8181 :protocol "HTTP"})
                                       (elb-listener {:port 8080 :protocol "HTTP"})
@@ -448,7 +426,7 @@
 
              (asg "public-slaves"
                   cluster-unique
-                  {:image_id current-coreos-ami
+                  {:image_id mesos-ami
                    :instance_type "m4.xlarge"
                    :sgs [(cluster-id-of "aws_security_group" "public-slave-security-group")
                          (remote-output-of "vpc" "sg-sends-influx")
@@ -471,12 +449,12 @@
                    :elb [{:name "public-slaves"
                           :health_check {:healthy_threshold 2
                                          :unhealthy_threshold 2
-                                         :target "HTTP:80/"
+                                         :target public-slave-elb-health
                                          :timeout 5
                                          :interval 30}
                           :lb_protocol "https"
-                          :cert_name "c512707d-bbec-4859-ab22-0f5fbad62a22"
-                          :listeners [(elb-listener {:port 9501 :protocol "HTTP"})]
+
+                          :listeners (mapv elb-listener public-slave-elb-listeners)
                           :subnets public-subnets
                           :security-groups (concat [(cluster-id-of "aws_security_group" "public-slave-security-group")
                                                     (remote-output-of "vpc" "sg-allow-http-https")]
@@ -517,7 +495,7 @@
 
              (asg "slaves"
                   cluster-unique
-                  {:image_id current-coreos-ami
+                  {:image_id mesos-ami
                    :instance_type "m4.xlarge"
                    :sgs (concat [(cluster-id-of "aws_security_group" "slave-security-group")
                                  (remote-output-of "vpc" "sg-all-servers")

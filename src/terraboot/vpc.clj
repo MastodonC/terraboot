@@ -95,7 +95,8 @@
   [{:keys [vpc-name
            account-number
            azs
-           subnet-cidr-blocks]} ]
+           subnet-cidr-blocks
+           default-ami]} ]
   (let [vpc-unique (fn [name] (str vpc-name "-" name))
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
@@ -109,14 +110,15 @@
 
      (elasticsearch-cluster "elasticsearch" {:vpc-name vpc-name
                                              :account-number account-number
-                                             :azs azs})
+                                             :azs azs
+                                             :default-ami default-ami})
 
      (in-vpc (id-of "aws_vpc" vpc-name)
              (aws-instance (vpc-unique "vpn") {
                                                :user_data (vpn-user-data {:range-start (cidr-start vpc-cidr-block)
                                                                           :fallback-dns (fallback-dns vpc-cidr-block)})
                                                :subnet_id (vpc-id-of "aws_subnet" (stringify "public-" (first azs)))
-                                               :ami ec2-ami
+                                               :ami default-ami
                                                :vpc_security_group_ids [(vpc-id-of "aws_security_group" "vpn")
                                                                         (vpc-id-of "aws_security_group" "sends_influx")
                                                                         (vpc-id-of "aws_security_group" "all-servers")
@@ -128,7 +130,7 @@
                            {:availability_zone (stringify region (first azs))
                             :size 20})
 
-             (aws-instance "influxdb" {:ami "ami-9b9c86f7"
+             (aws-instance "influxdb" {:ami default-ami
                                        :instance_type "m4.large"
                                        :vpc_security_group_ids [(vpc-id-of "aws_security_group" "influxdb")
                                                                 (id-of "aws_security_group" "allow_ssh")
