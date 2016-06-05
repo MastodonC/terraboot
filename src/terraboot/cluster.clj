@@ -228,7 +228,8 @@
            subnet-cidr-blocks
            mesos-ami
            public-slave-elb-listeners
-           public-slave-elb-health]}]
+           public-slave-elb-health
+           account-number]}]
   (let [vpc-unique (fn [name] (str vpc-name "-" name))
         vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
         cluster-identifier (str vpc-name "-" cluster-name)
@@ -238,7 +239,8 @@
         cluster-id-of (fn [type name] (id-of type (cluster-unique name)))
         cluster-output-of (fn [type name & values] (apply (partial output-of type (cluster-unique name)) values))
         private-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "public-" %)) azs)
-        public-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "private-" %)) azs)]
+        public-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "private-" %)) azs)
+        elb-listener (account-elb-listener account-number)]
     (merge-in
      (remote-state "vpc")
      (in-vpc (remote-output-of "vpc" "vpc-id")
@@ -377,20 +379,9 @@
                    :root_block_device_size master-disk-allocation
                    :subnets public-subnets
                    :lifecycle {:create_before_destroy true}
-                   :elb [{:name "masters"
-                          :health_check {:healthy_threshold 2
-                                         :unhealthy_threshold 3
-                                         :target "HTTP:5050/health"
-                                         :timeout 5
-                                         :interval 30}
-                          :cert_name "StartMastodoncNet"
-                          :subnets public-subnets
-                          :security-groups (concat (mapv #(cluster-id-of "aws_security_group" %) ["lb-security-group"
-                                                                                                  "admin-security-group"])
-                                                   remote-default-sgs)
-                          }
-                         {:name "internal-lb"
-                          :listeners [(elb-listener {:port 5050 :protocol "HTTP"})
+                   :elb [{:name "internal-lb"
+                          :listeners [(elb-listener {:port 80 :protocol "HTTP"})
+                                      (elb-listener {:port 5050 :protocol "HTTP"})
                                       (elb-listener {:port 2181 :protocol "TCP"})
                                       (elb-listener {:port 8181 :protocol "HTTP"})
                                       (elb-listener {:port 8080 :protocol "HTTP"})
@@ -462,7 +453,7 @@
                                          :timeout 5
                                          :interval 30}
                           :lb_protocol "https"
-                          :cert_name "c512707d-bbec-4859-ab22-0f5fbad62a22"
+
                           :listeners (mapv elb-listener public-slave-elb-listeners)
                           :subnets public-subnets
                           :security-groups (concat [(cluster-id-of "aws_security_group" "public-slave-security-group")

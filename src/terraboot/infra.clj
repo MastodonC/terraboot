@@ -18,6 +18,7 @@
                                          :subnet-cidr-blocks {:a {:public "172.20.0.0/24"
                                                                   :private "172.20.8.0/24"}}}) "vpc/vpc.tf")
       "staging" (to-file (cluster-infra {:vpc-name vpc-name
+                                         :account-number account-number
                                          :cluster-name "staging"
                                          :min-number-of-masters 3
                                          :max-number-of-masters 3
@@ -29,7 +30,7 @@
                                          :min-number-of-public-slaves 1
                                          :max-number-of-public-slaves 1
                                          :public-slave-instance-type "t2.medium"
-                                         :public-slave-elb-listeners [{:lb_port 443 :lb_protocol "https" :port 80 :protocol "http"}
+                                         :public-slave-elb-listeners [{:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name "c512707d-bbec-4859-ab22-0f5fbad62a22"}
                                                                       {:port 9501 :protocol "http"}]
                                          :public-slave-elb-health "HTTP:9501/"
                                          :azs azs
