@@ -518,14 +518,6 @@
                    })
 
 
-             (cluster-security-group "dns" {}
-                                     {:port 53
-                                      :protocol "udp"
-                                      :cidr_blocks [vpc/vpc-cidr-block]}
-                                     {:port 53
-                                      :protocol "tcp"
-                                      :cidr_blocks [vpc/vpc-cidr-block]})
-
              (local-deploy-scripts {:cluster-name cluster-name
                                     :name-fn cluster-unique
                                     :min-number-of-slaves min-number-of-slaves
