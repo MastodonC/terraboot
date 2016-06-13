@@ -138,7 +138,7 @@
                                                                 (vpc-id-of "aws_security_group" "allow_elb_chronograf")
                                                                 (vpc-id-of "aws_security_group" "all-servers")
                                                                 ]
-                                       :subnet_id (vpc-id-of "aws_subnet" (stringify "public-" (last azs)))})
+                                       :subnet_id (vpc-id-of "aws_subnet" (stringify "public-" (first azs)))})
 
              (vpc-resource "aws_volume_attachment" "influxdb_volume"
                            {:device_name "/dev/xvdh"
@@ -249,17 +249,17 @@
                                                        :vpc_id (id-of "aws_vpc" vpc-name)})
 
 
-             (resource "aws_db_subnet_group" vpc-name
+            (resource "aws_db_subnet_group" vpc-name
                        {:name vpc-name
                         :subnet_ids (map #(id-of "aws_subnet" (stringify vpc-name "-private-" %)) azs)
                         :description "subnet for dbs"})
 
 
              ;; all the subnets
-             (apply merge-in (map #(private-public-subnets {:naming-fn vpc-unique
+             (apply merge-in (mapv #(private-public-subnets {:naming-fn vpc-unique
                                                             :az %
                                                             :cidr-blocks (% subnet-cidr-blocks)
-                                                            :public-route-table (vpc-unique "public")}) azs))
+                                                            :public-route-table (vpc-id-of "aws_route_table" "public")}) azs))
              (apply merge-in (for [az azs
                                    name [:public :private]]
                                (output (stringify "subnet-" name "-" az "-id") "aws_subnet" (vpc-unique (stringify name "-" az)) "id")))

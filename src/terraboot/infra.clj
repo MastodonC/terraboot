@@ -13,10 +13,12 @@
     (condp = target
       "vpc"     (to-file (vpc-vpn-infra {:vpc-name vpc-name
                                          :account-number account-number
-                                         :azs azs
+                                         :azs [:a :b]
                                          :default-ami default-ami
                                          :subnet-cidr-blocks {:a {:public "172.20.0.0/24"
-                                                                  :private "172.20.8.0/24"}}}) "vpc/vpc.tf")
+                                                                  :private "172.20.8.0/24"}
+                                                              :b {:public "172.20.1.0/24"
+                                                                  :private "172.20.9.0/24"}}}) "vpc/vpc.tf")
       "staging" (to-file (cluster-infra {:vpc-name vpc-name
                                          :account-number account-number
                                          :cluster-name "staging"
@@ -35,8 +37,8 @@
                                          :public-slave-elb-health "HTTP:9501/"
                                          :azs azs
                                          :mesos-ami "ami-1807e377" ;; previous coreos
-                                         :subnet-cidr-blocks {:a {:public "172.20.1.0/24"
-                                                                  :private "172.20.9.0/24"}}}) "staging/staging.tf")
+                                         :subnet-cidr-blocks {:a {:public "172.20.2.0/24"
+                                                                  :private "172.20.10.0/24"}}}) "staging/staging.tf")
       (comment "production" (to-file (cluster-infra {:vpc-name vpc-name
                                                      :cluster-name "production"
                                                      :min-number-of-masters 3
@@ -56,7 +58,7 @@
                                                      :mesos-ami mesos-ami
                                                      :azs azs
                                                      :subnet-cidr-blocks {:a {:public "172.20.3.0/22"
-                                                                              :private "172.20.10.0/22"}}}) "production/production.tf")))))
+                                                                              :private "172.20.11.0/22"}}}) "production/production.tf")))))
 
 
 (defn -main [target]
