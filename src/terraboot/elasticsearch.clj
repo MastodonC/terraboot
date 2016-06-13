@@ -33,7 +33,8 @@
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
         vpc-output-of (fn [type name & values] (apply (partial output-of type (vpc-unique name)) values))
-        vpc-security-group (partial scoped-security-group vpc-unique)]
+        vpc-security-group (partial scoped-security-group vpc-unique)
+        elb-listener (account-elb-listener account-number)]
     (merge-in
      (vpc-resource "aws_elasticsearch_domain" name
                    {:domain_name (vpc-unique name)
@@ -114,8 +115,8 @@
                                                     :target "HTTP:80/status"
                                                     :timeout 5
                                                     :interval 30}
-                                     :cert_name "StartMastodoncNet"
                                      :subnets (mapv #(id-of "aws_subnet" (stringify vpc-name "-public-" %)) azs)
+                                     :listeners [(elb-listener {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name "StartMastodoncNet"})]
                                      :instances [(id-of "aws_instance" (vpc-unique "kibana"))]
                                      :security-groups (map #(id-of "aws_security_group" %)
                                                            ["allow_outbound"
@@ -145,7 +146,7 @@
                                                     :target "HTTP:80/"
                                                     :timeout 5
                                                     :interval 30}
-                                     :cert_name "StartMastodoncNet"
+                                     :listeners [(elb-listener {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name "StartMastodoncNet"})]
                                      :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
                                      :instances [(id-of "aws_instance" (vpc-unique "alerts"))]
                                      :security-groups (map #(id-of "aws_security_group" %)

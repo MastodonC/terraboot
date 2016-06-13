@@ -101,7 +101,8 @@
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
         vpc-output-of (fn [type name & values] (apply (partial output-of type (vpc-unique name)) values))
-        vpc-security-group (partial scoped-security-group vpc-unique)]
+        vpc-security-group (partial scoped-security-group vpc-unique)
+        elb-listener (account-elb-listener account-number)]
     (merge-in
      (resource "aws_vpc" vpc-name
                {:tags {:Name vpc-name}
@@ -150,7 +151,7 @@
                                                         :target "HTTP:80/status"
                                                         :timeout 5
                                                         :interval 30}
-                                         :cert_name "StartMastodoncNet"
+                                         :listeners [(elb-listener {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name "StartMastodoncNet"})]
                                          :instances [(id-of "aws_instance" "influxdb")]
                                          :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
                                          :security-groups (mapv #(id-of "aws_security_group" %) [(vpc-unique "all-servers")
