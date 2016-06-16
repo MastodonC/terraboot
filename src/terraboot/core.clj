@@ -367,7 +367,7 @@
   (resource "terraform_remote_state" name
             {:backend "s3"
              :config {:bucket "terraboot"
-                      :key (str name ".tf")
+                      :key (str name ".tfstate")
                       :region region}}))
 
 (defn remote-output-of [module name]
