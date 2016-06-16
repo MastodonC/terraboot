@@ -4,7 +4,8 @@
             [terraboot.cloud-config :refer [cloud-config]]))
 
 ;; reflects default-sgs but uses the vpc remote output
-(def remote-default-sgs [(remote-output-of "vpc" "sg-allow-ssh")])
+(def remote-default-sgs [(remote-output-of "vpc" "sg-allow-ssh")
+                         (remote-output-of "vpc" "sg-allow-outbound")])
 
 (defn mesos-instance-user-data []
   {:coreos {:units [{:name "etcd.service" :command "stop" :mask true}
