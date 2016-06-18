@@ -239,8 +239,8 @@
         cluster-security-group (partial scoped-security-group cluster-unique)
         cluster-id-of (fn [type name] (id-of type (cluster-unique name)))
         cluster-output-of (fn [type name & values] (apply (partial output-of type (cluster-unique name)) values))
-        private-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "public-" %)) azs)
-        public-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "private-" %)) azs)
+        private-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "private-" %)) azs)
+        public-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "public-" %)) azs)
         elb-listener (account-elb-listener account-number)]
     (merge-in
      (remote-state "vpc")
