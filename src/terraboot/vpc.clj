@@ -6,8 +6,6 @@
 
 (def vpc-name "sandpit")
 
-(def vpc-cidr-block "172.20.0.0/20")
-
 (defn cidr-start
   [cidr-block]
   (first (string/split cidr-block #"/")))
@@ -96,7 +94,8 @@
            account-number
            azs
            subnet-cidr-blocks
-           default-ami]} ]
+           default-ami
+           vpc-cidr-block]} ]
   (let [vpc-unique (fn [name] (str vpc-name "-" name))
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (fn [type name] (id-of type (vpc-unique name)))

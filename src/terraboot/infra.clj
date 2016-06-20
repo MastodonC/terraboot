@@ -9,9 +9,12 @@
   (let [account-number "165664414043"
         azs [:a]
         mesos-ami "ami-cfca25a0"
-        default-ami "ami-9b9c86f7"]
+        default-ami "ami-9b9c86f7"
+        vpc-cidr-block "172.20.0.0/20"
+        ]
     (condp = target
       "vpc"     (to-file (vpc-vpn-infra {:vpc-name vpc-name
+                                         :vpc-cidr-block vpc-cidr-block
                                          :account-number account-number
                                          :azs [:a :b]
                                          :default-ami default-ami
@@ -20,6 +23,7 @@
                                                               :b {:public "172.20.1.0/24"
                                                                   :private "172.20.9.0/24"}}}) "vpc/vpc.tf")
       "staging" (to-file (cluster-infra {:vpc-name vpc-name
+                                         :vpc-cidr-block vpc-cidr-block
                                          :account-number account-number
                                          :cluster-name "staging"
                                          :min-number-of-masters 3

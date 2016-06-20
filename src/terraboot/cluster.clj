@@ -215,6 +215,7 @@
 
 (defn cluster-infra
   [{:keys [vpc-name
+           vpc-cidr-block
            cluster-name
            min-number-of-masters
            max-number-of-masters
@@ -253,11 +254,11 @@
              (cluster-security-group "admin-security-group" {}
                                      {:from_port 0
                                       :to_port 65535
-                                      :cidr_blocks [vpc/vpc-cidr-block]}
+                                      :cidr_blocks [vpc-cidr-block]}
                                      {:from_port 0
                                       :to_port 65535
                                       :protocol "udp"
-                                      :cidr_blocks [vpc/vpc-cidr-block]}
+                                      :cidr_blocks [vpc-cidr-block]}
                                      )
 
              (cluster-security-group "lb-security-group" {}
@@ -348,7 +349,7 @@
                                        :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
                                        :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
                                        :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                                       :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
+                                       :fallback-dns (vpc/fallback-dns vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
                                        :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                                        :mesos-dns "127.0.0.1"
@@ -412,7 +413,7 @@
                                        :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
                                        :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
                                        :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                                       :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
+                                       :fallback-dns (vpc/fallback-dns vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
                                        :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                                        :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
@@ -483,7 +484,7 @@
                                        :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
                                        :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
                                        :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                                       :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
+                                       :fallback-dns (vpc/fallback-dns vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
                                        :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                                        :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
