@@ -26,7 +26,7 @@
                                                       :permissions "644"
                                                       :content (snippet "system-files/out-es.conf")}]}))
 
-(defn elasticsearch-cluster [name {:keys [vpc-name account-number azs default-ami] :as spec}]
+(defn elasticsearch-cluster [name {:keys [vpc-name account-number azs default-ami vpc-cidr-block] :as spec}]
   ;; http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs
   ;; See for what instance-types and storage is possible
   (let [vpc-unique (fn [name] (str vpc-name "-" name))
@@ -115,6 +115,7 @@
                                                     :target "HTTP:80/status"
                                                     :timeout 5
                                                     :interval 30}
+                                     :internal true
                                      :subnets (mapv #(id-of "aws_subnet" (stringify vpc-name "-public-" %)) azs)
                                      :listeners [(elb-listener {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name "StartMastodoncNet"})]
                                      :instances [(id-of "aws_instance" (vpc-unique "kibana"))]
@@ -167,10 +168,21 @@
              (route53_record "kibana" {:type "CNAME"
                                        :records [(output-of "aws_elb" "kibana" "dns_name")]})
 
-             (vpc-security-group "elb-kibana" {})
+             (vpc-security-group "elb-kibana" {}
+                                 {:port 80
+                                  :cidr_blocks [vpc-cidr-block]}
+                                 {:port 443
+                                  :cidr_blocks [vpc-cidr-block]})
              (vpc-security-group "allow-elb-kibana" {}
                                  {:port 80
+                                  :source_security_group_id (vpc-id-of "aws_security_group" "elb-kibana")}
+                                 {:port 443
                                   :source_security_group_id (vpc-id-of "aws_security_group" "elb-kibana")})
-             (vpc-security-group  "kibana" {})
+             (vpc-security-group  "kibana" {}
+                                  {:type "egress"
+                                   :from_port 0
+                                   :to_port 0
+                                   :protocol -1
+                                   :cidr_blocks [all-external]})
 
              ))))
