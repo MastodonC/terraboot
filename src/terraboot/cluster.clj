@@ -457,7 +457,7 @@
 
                           :listeners (mapv elb-listener public-slave-elb-listeners)
                           :subnets public-subnets
-                          :security-groups (concat [(cluster-id-of "aws_security_group" "public-slave-security-group")
+                          :security-groups (concat [(cluster-id-of "aws_security_group" "public-slave-elb")
                                                     (remote-output-of "vpc" "sg-allow-http-https")]
                                                    remote-default-sgs)}]})
 
