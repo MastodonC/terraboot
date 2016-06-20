@@ -1,9 +1,15 @@
 (ns terraboot.infra
   (:require [terraboot.core :refer :all]
             [terraboot.vpc :refer [vpc-vpn-infra vpc-name]]
-            [terraboot.cluster :refer [cluster-infra]]))
+            [terraboot.cluster :refer [cluster-infra]]
+            [clojure.edn :as edn]))
 
 (def infra-path "infra/")
+
+(defn get-config
+  "Gets info from a config file."
+  [url]
+  (edn/read-string (slurp url)))
 
 (defn generate-json [target]
   (let [account-number "165664414043"
@@ -37,7 +43,11 @@
                                          :max-number-of-public-slaves 1
                                          :public-slave-instance-type "t2.medium"
                                          :public-slave-elb-listeners [{:port 80 :protocol "http"}
-                                                                      {:port 9501 :protocol "http"}]
+                                                                      {:port 9501 :protocol "http"}
+                                                                      {:port 5001 :protocol "tcp"}]
+                                         :public-slave-elb-sg [{:port 9501 :cidr_blocks [all-external]}
+                                                               {:port 80 :cidr_blocks [all-external]}
+                                                               {:port 5001 :cidr_blocks [vpc-cidr-block]}]
                                          :public-slave-elb-health "HTTP:9501/"
                                          :azs azs
                                          :mesos-ami "ami-1807e377" ;; previous coreos

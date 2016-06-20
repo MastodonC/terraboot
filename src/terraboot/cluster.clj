@@ -230,6 +230,7 @@
            subnet-cidr-blocks
            mesos-ami
            public-slave-elb-listeners
+           public-slave-elb-sg
            public-slave-elb-health
            account-number]}]
   (let [vpc-unique (fn [name] (str vpc-name "-" name))
@@ -286,7 +287,7 @@
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "slave-security-group")}
                                      )
 
-             (apply (partial cluster-security-group "public-slave-elb" {}) (open-elb-ports public-slave-elb-listeners))
+             (apply (partial cluster-security-group "public-slave-elb" {}) public-slave-elb-sg)
 
              (cluster-security-group "public-slave-security-group" {}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "master-security-group")}
