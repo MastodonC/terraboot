@@ -112,7 +112,8 @@
      (elasticsearch-cluster "elasticsearch" {:vpc-name vpc-name
                                              :account-number account-number
                                              :azs azs
-                                             :default-ami default-ami})
+                                             :default-ami default-ami
+                                             :vpc-cidr-block vpc-cidr-block})
 
      (in-vpc (id-of "aws_vpc" vpc-name)
              (aws-instance (vpc-unique "vpn") {
@@ -249,7 +250,7 @@
                                                        :vpc_id (id-of "aws_vpc" vpc-name)})
 
 
-            (resource "aws_db_subnet_group" vpc-name
+             (resource "aws_db_subnet_group" vpc-name
                        {:name vpc-name
                         :subnet_ids (map #(id-of "aws_subnet" (stringify vpc-name "-private-" %)) azs)
                         :description "subnet for dbs"})
@@ -257,9 +258,9 @@
 
              ;; all the subnets
              (apply merge-in (mapv #(private-public-subnets {:naming-fn vpc-unique
-                                                            :az %
-                                                            :cidr-blocks (% subnet-cidr-blocks)
-                                                            :public-route-table (vpc-id-of "aws_route_table" "public")}) azs))
+                                                             :az %
+                                                             :cidr-blocks (% subnet-cidr-blocks)
+                                                             :public-route-table (vpc-id-of "aws_route_table" "public")}) azs))
              (apply merge-in (for [az azs
                                    name [:public :private]]
                                (output (stringify "subnet-" name "-" az "-id") "aws_subnet" (vpc-unique (stringify name "-" az)) "id")))
