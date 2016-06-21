@@ -293,7 +293,9 @@
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "master-security-group")}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-security-group")}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "slave-security-group")}
-                                     {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-elb")})
+                                     {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-elb")}
+                                     {:port 5001
+                                      :cidr_blocks [vpc-cidr-block]})
 
              (cluster-security-group "slave-security-group" {}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-security-group")}
@@ -455,8 +457,6 @@
                                          :target public-slave-elb-health
                                          :timeout 5
                                          :interval 30}
-                          :lb_protocol "https"
-
                           :listeners (mapv elb-listener public-slave-elb-listeners)
                           :subnets public-subnets
                           :security-groups (concat [(cluster-id-of "aws_security_group" "public-slave-elb")
