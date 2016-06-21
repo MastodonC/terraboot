@@ -1,7 +1,8 @@
 (ns terraboot.cluster
   (:require [terraboot.core :refer :all]
             [terraboot.vpc :as vpc]
-            [terraboot.cloud-config :refer [cloud-config]]))
+            [terraboot.cloud-config :refer [cloud-config]]
+            [terraboot.utils :refer :all]))
 
 ;; reflects default-sgs but uses the vpc remote output
 (def remote-default-sgs [(remote-output-of "vpc" "sg-allow-ssh")
@@ -23,7 +24,6 @@
                     {:name "install-confd.service" :command "start" :content (snippet "systemd/install-confd.service")}
                     {:name "confd.service" :command "start" :content (snippet "systemd/confd.service") :enable true}
                     {:name "install-awscli.service" :command "start" :content (snippet "systemd/install-awscli.service") :enable true}
-                    {:name "filebeat.service" :command "start" :content (snippet "systemd/filebeat.service") :enable true}
                     {:name "nrpe.service" :command "start" :content (snippet "systemd/nrpe.service") :enable true}]
             :update {:reboot-strategy "off"}}
    :write_files [{:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json"
@@ -74,32 +74,40 @@
                                            {:path "/etc/mesosphere/roles/aws"
                                             :content ""}]})))
 
-(defn add-to-systemd
-  [m systemd]
-  (update-in m [:coreos :units] #(vec (concat % systemd))))
+(def filebeat-user-data
+  {:coreos {:units [{:name "filebeat.service" :command "start" :content (snippet "systemd/filebeat.service")}]}
+   :write_files [{:path "/etc/filebeat/filebeat.yml"
+                  :content (snippet "system-files/filebeat.yml")}]
+   :runcmd ["curl -o /home/core/filebeat-1.2.3-x86_64.tar.gz https://download.elastic.co/beats/filebeat/filebeat-1.2.3-x86_64.tar.gz"
+            "tar xvzf /home/core/filebeat-1.2.3-x86_64.tar.gz"
+            "mkdir -p /opt/bin"
+            "cp /home/core/filebeat-1.2.3-x86_64/filebeat /opt/bin/"
+            "mkdir -p /etc/filebeat"]})
 
 (defn mesos-slave-user-data
   []
-  (cloud-config (-> (merge-with (comp vec concat)
-                                (mesos-instance-user-data)
-                                {:write_files [{:path "/etc/mesosphere/roles/slave"
-                                                :content ""}
-                                               {:path "/etc/mesosphere/roles/aws"
-                                                :content ""}
-                                               {:path "/home/core/cassandra-backup/backup-witan.sh"
-                                                :content (snippet "system-files/backup-witan.sh")
-                                                :permissions "0744"}]})
-                    (add-to-systemd [{:name "backup.service" :content (snippet "systemd/backup.service")}
-                                     {:name "backup.timer" :command "start" :content (snippet "systemd/backup.timer")}] )  )))
+  (cloud-config (deep-merge-with (comp vec concat)
+                                 (mesos-instance-user-data)
+                                 {:write_files [{:path "/etc/mesosphere/roles/slave"
+                                                 :content ""}
+                                                {:path "/etc/mesosphere/roles/aws"
+                                                 :content ""}
+                                                {:path "/home/core/cassandra-backup/backup-witan.sh"
+                                                 :content (snippet "system-files/backup-witan.sh")
+                                                 :permissions "0744"}]
+                                  :coreos {:units [{:name "backup.service" :content (snippet "systemd/backup.service")}
+                                                   {:name "backup.timer" :command "start" :content (snippet "systemd/backup.timer")}]}}
+                                 filebeat-user-data)))
 
 (defn mesos-public-slave-user-data
   []
-  (cloud-config (merge-with (comp vec concat)
-                            (mesos-instance-user-data)
-                            {:write_files [{:path "/etc/mesosphere/roles/slave_public"
-                                            :content ""}
-                                           {:path "/etc/mesosphere/roles/aws"
-                                            :content ""}]})))
+  (cloud-config (deep-merge-with (comp vec concat)
+                                 (mesos-instance-user-data)
+                                 {:write_files [{:path "/etc/mesosphere/roles/slave_public"
+                                                 :content ""}
+                                                {:path "/etc/mesosphere/roles/aws"
+                                                 :content ""}]}
+                                 filebeat-user-data)))
 
 (defn exhibitor-bucket-policy [bucket-name]
   (let [bucket-arn (arn-of "aws_s3_bucket" bucket-name)]
@@ -235,6 +243,7 @@
            account-number]}]
   (let [vpc-unique (fn [name] (str vpc-name "-" name))
         vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
+        vpc-output-of (fn [type name & values] (apply (partial output-of type (vpc-unique name)) values))
         cluster-identifier (str vpc-name "-" cluster-name)
         cluster-unique (fn [name] (str cluster-identifier "-" name))
         cluster-resource (partial resource cluster-unique)
@@ -420,7 +429,8 @@
                                        :number-of-masters min-number-of-masters
                                        :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                                        :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                                       :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name)) }
+                                       :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
+                                       :logstash-ip (vpc-output-of "aws_eip" "logstash" "public_ip")}
                                 :lifecycle { :create_before_destroy true }})
 
              (vpc/private_route53_record (str cluster-name "-masters") vpc-name
@@ -490,7 +500,7 @@
                                        :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                                        :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
-                                       }
+                                       :logstash-ip (vpc-output-of "aws_eip" "logstash" "public_ip")}
                                 :lifecycle { :create_before_destroy true }
 
                                 })

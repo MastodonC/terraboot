@@ -1,9 +1,8 @@
 [Unit]
 Description=Filebeat
-Documentation=filebeat systemctl
 Wants=network-online.target
 After=network-online.target
 
 [Service]
-ExecStart=/home/core/filebeat-1.2.1-x86_64/filebeat -c /home/core/filebeat-1.2.1-x86_64/filebeat.yml
+ExecStart=/opt/bin/filebeat -c /etc/filebeat/filebeat.yml
 Restart=always

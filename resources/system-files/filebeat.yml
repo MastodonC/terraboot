@@ -1,0 +1,10 @@
+filebeat:
+  prospectors:
+    -
+      paths:
+        - /var/lib/mesos/slave/slaves/*/frameworks/*/executors/*/runs/latest/stdout
+        - /var/lib/mesos/slave/slaves/*/frameworks/*/executors/*/runs/latest/stderr
+
+output:
+  logstash:
+    hosts: ["${logstash-ip}:9200"]
