@@ -273,4 +273,5 @@
              (output "sg-sends-gelf" "aws_security_group" (vpc-unique "sends_gelf") "id")
              (output "private-dns-zone" "aws_route53_zone" (vpc-unique "mesos") "id")
              (output "public-route-table" "aws_route_table" (vpc-unique "public") "id")
+             (output "logstash-ip" "aws_eip" (vpc-unique "logstash") "public_ip")
              ))))

@@ -430,7 +430,7 @@
                                        :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                                        :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
-                                       :logstash-ip (vpc-output-of "aws_eip" "logstash" "public_ip")}
+                                       :logstash-ip (remote-output-of "vpc" "logstash-ip")}
                                 :lifecycle { :create_before_destroy true }})
 
              (vpc/private_route53_record (str cluster-name "-masters") vpc-name
@@ -500,7 +500,7 @@
                                        :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                                        :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
-                                       :logstash-ip (vpc-output-of "aws_eip" "logstash" "public_ip")}
+                                       :logstash-ip (remote-output-of "vpc" "logstash-ip")}
                                 :lifecycle { :create_before_destroy true }
 
                                 })
