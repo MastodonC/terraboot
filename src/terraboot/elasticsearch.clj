@@ -1,5 +1,6 @@
 (ns terraboot.elasticsearch
   (:require [terraboot.core :refer :all]
+            [terraboot.utils :refer :all]
             [terraboot.cloud-config :refer [cloud-config]]
             [cheshire.core :as json]))
 

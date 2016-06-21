@@ -4,7 +4,7 @@
             [stencil.core :as mustache]
             [clj-yaml.core :as yaml]
             [clojure.pprint :refer [pprint]]
-            [clojure.set :as set]))
+            [terraboot.utils :refer :all]))
 
 
 (def default-sgs ["allow_ssh" "allow_outbound"])
@@ -15,28 +15,6 @@
 
 (def dns-zone "mastodonc.net")
 (def dns-zone-id "Z1EFD0WXZUIXYT")
-
-(letfn [(sensitive-merge-in*
-          [mfns]
-          (fn [a b]
-            (if (map? a)
-              (do (when-let [dups (seq (set/intersection (set (keys a)) (set (keys b))))]
-                    (throw (Exception. (str "Duplicate keys: " dups))))
-                  (merge-with ((first mfns) (rest mfns)) a b))
-              b)))
-        (merge-in*
-          [mfns]
-          (fn [a b]
-            (if (map? a)
-              (merge-with ((first mfns) (rest mfns)) a b)
-              b)))
-        (merge-with-fn-seq
-          [fn-seq]
-          (partial merge-with
-                   ((first fn-seq) (rest fn-seq))))]
-  ;; todo rediscover duplicates but not for the :output tree
-  (def merge-in
-    (merge-with-fn-seq (repeat merge-in*))))
 
 (defn output-of [type resource-name & values]
   (str "${"

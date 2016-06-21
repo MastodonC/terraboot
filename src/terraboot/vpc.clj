@@ -1,5 +1,6 @@
 (ns terraboot.vpc
   (:require [terraboot.core :refer :all]
+            [terraboot.utils :refer :all]
             [terraboot.cloud-config :refer [cloud-config]]
             [terraboot.elasticsearch :refer [elasticsearch-cluster]]
             [clojure.string :as string]))
