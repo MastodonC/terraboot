@@ -210,7 +210,7 @@
 
 (defn account-elb-listener[account-number]
   (fn [{:keys [port lb-port protocol lb-protocol cert-name]}]
-    (let [cert-id (str "arn:aws:iam:" account-number ":server-certificate/" cert-name)
+    (let [cert-id (str "arn:aws:iam::" account-number ":server-certificate/" cert-name)
           add-cert-if-present #(if cert-name (assoc % :ssl_certificate_id cert-id) %)]
       (add-cert-if-present {:instance_port port
                             :instance_protocol protocol
@@ -367,7 +367,7 @@
   (resource "terraform_remote_state" name
             {:backend "s3"
              :config {:bucket "terraboot"
-                      :key (str name ".tf")
+                      :key (str name ".tfstate")
                       :region region}}))
 
 (defn remote-output-of [module name]

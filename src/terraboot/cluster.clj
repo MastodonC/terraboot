@@ -4,7 +4,8 @@
             [terraboot.cloud-config :refer [cloud-config]]))
 
 ;; reflects default-sgs but uses the vpc remote output
-(def remote-default-sgs [(remote-output-of "vpc" "sg-allow-ssh")])
+(def remote-default-sgs [(remote-output-of "vpc" "sg-allow-ssh")
+                         (remote-output-of "vpc" "sg-allow-outbound")])
 
 (defn mesos-instance-user-data []
   {:coreos {:units [{:name "etcd.service" :command "stop" :mask true}
@@ -214,6 +215,7 @@
 
 (defn cluster-infra
   [{:keys [vpc-name
+           vpc-cidr-block
            cluster-name
            min-number-of-masters
            max-number-of-masters
@@ -228,6 +230,7 @@
            subnet-cidr-blocks
            mesos-ami
            public-slave-elb-listeners
+           public-slave-elb-sg
            public-slave-elb-health
            account-number]}]
   (let [vpc-unique (fn [name] (str vpc-name "-" name))
@@ -238,8 +241,8 @@
         cluster-security-group (partial scoped-security-group cluster-unique)
         cluster-id-of (fn [type name] (id-of type (cluster-unique name)))
         cluster-output-of (fn [type name & values] (apply (partial output-of type (cluster-unique name)) values))
-        private-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "public-" %)) azs)
-        public-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "private-" %)) azs)
+        private-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "private-" %)) azs)
+        public-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "public-" %)) azs)
         elb-listener (account-elb-listener account-number)]
     (merge-in
      (remote-state "vpc")
@@ -252,11 +255,11 @@
              (cluster-security-group "admin-security-group" {}
                                      {:from_port 0
                                       :to_port 65535
-                                      :cidr_blocks [vpc/vpc-cidr-block]}
+                                      :cidr_blocks [vpc-cidr-block]}
                                      {:from_port 0
                                       :to_port 65535
                                       :protocol "udp"
-                                      :cidr_blocks [vpc/vpc-cidr-block]}
+                                      :cidr_blocks [vpc-cidr-block]}
                                      )
 
              (cluster-security-group "lb-security-group" {}
@@ -284,13 +287,15 @@
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "slave-security-group")}
                                      )
 
-             (apply (partial cluster-security-group "public-slave-elb" {}) (open-elb-ports public-slave-elb-listeners))
+             (apply (partial cluster-security-group "public-slave-elb" {}) public-slave-elb-sg)
 
              (cluster-security-group "public-slave-security-group" {}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "master-security-group")}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-security-group")}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "slave-security-group")}
-                                     {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-elb")})
+                                     {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-elb")}
+                                     {:port 5001
+                                      :cidr_blocks [vpc-cidr-block]})
 
              (cluster-security-group "slave-security-group" {}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-security-group")}
@@ -347,7 +352,7 @@
                                        :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
                                        :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
                                        :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                                       :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
+                                       :fallback-dns (vpc/fallback-dns vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
                                        :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                                        :mesos-dns "127.0.0.1"
@@ -411,7 +416,7 @@
                                        :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
                                        :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
                                        :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                                       :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
+                                       :fallback-dns (vpc/fallback-dns vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
                                        :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                                        :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
@@ -452,11 +457,9 @@
                                          :target public-slave-elb-health
                                          :timeout 5
                                          :interval 30}
-                          :lb_protocol "https"
-
                           :listeners (mapv elb-listener public-slave-elb-listeners)
                           :subnets public-subnets
-                          :security-groups (concat [(cluster-id-of "aws_security_group" "public-slave-security-group")
+                          :security-groups (concat [(cluster-id-of "aws_security_group" "public-slave-elb")
                                                     (remote-output-of "vpc" "sg-allow-http-https")]
                                                    remote-default-sgs)}]})
 
@@ -482,7 +485,7 @@
                                        :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
                                        :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
                                        :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                                       :fallback-dns (vpc/fallback-dns vpc/vpc-cidr-block)
+                                       :fallback-dns (vpc/fallback-dns vpc-cidr-block)
                                        :number-of-masters min-number-of-masters
                                        :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                                        :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
@@ -517,14 +520,6 @@
                    :elb []
                    })
 
-
-             (cluster-security-group "dns" {}
-                                     {:port 53
-                                      :protocol "udp"
-                                      :cidr_blocks [vpc/vpc-cidr-block]}
-                                     {:port 53
-                                      :protocol "tcp"
-                                      :cidr_blocks [vpc/vpc-cidr-block]})
 
              (local-deploy-scripts {:cluster-name cluster-name
                                     :name-fn cluster-unique

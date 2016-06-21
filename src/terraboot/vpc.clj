@@ -6,8 +6,6 @@
 
 (def vpc-name "sandpit")
 
-(def vpc-cidr-block "172.20.0.0/20")
-
 (defn cidr-start
   [cidr-block]
   (first (string/split cidr-block #"/")))
@@ -96,12 +94,14 @@
            account-number
            azs
            subnet-cidr-blocks
-           default-ami]} ]
+           default-ami
+           vpc-cidr-block]} ]
   (let [vpc-unique (fn [name] (str vpc-name "-" name))
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
         vpc-output-of (fn [type name & values] (apply (partial output-of type (vpc-unique name)) values))
-        vpc-security-group (partial scoped-security-group vpc-unique)]
+        vpc-security-group (partial scoped-security-group vpc-unique)
+        elb-listener (account-elb-listener account-number)]
     (merge-in
      (resource "aws_vpc" vpc-name
                {:tags {:Name vpc-name}
@@ -111,7 +111,8 @@
      (elasticsearch-cluster "elasticsearch" {:vpc-name vpc-name
                                              :account-number account-number
                                              :azs azs
-                                             :default-ami default-ami})
+                                             :default-ami default-ami
+                                             :vpc-cidr-block vpc-cidr-block})
 
      (in-vpc (id-of "aws_vpc" vpc-name)
              (aws-instance (vpc-unique "vpn") {
@@ -137,7 +138,7 @@
                                                                 (vpc-id-of "aws_security_group" "allow_elb_chronograf")
                                                                 (vpc-id-of "aws_security_group" "all-servers")
                                                                 ]
-                                       :subnet_id (vpc-id-of "aws_subnet" (stringify "public-" (last azs)))})
+                                       :subnet_id (vpc-id-of "aws_subnet" (stringify "public-" (first azs)))})
 
              (vpc-resource "aws_volume_attachment" "influxdb_volume"
                            {:device_name "/dev/xvdh"
@@ -150,7 +151,7 @@
                                                         :target "HTTP:80/status"
                                                         :timeout 5
                                                         :interval 30}
-                                         :cert_name "StartMastodoncNet"
+                                         :listeners [(elb-listener {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name "StartMastodoncNet"})]
                                          :instances [(id-of "aws_instance" "influxdb")]
                                          :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
                                          :security-groups (mapv #(id-of "aws_security_group" %) [(vpc-unique "all-servers")
@@ -255,15 +256,16 @@
 
 
              ;; all the subnets
-             (apply merge-in (map #(private-public-subnets {:naming-fn vpc-unique
-                                                            :az %
-                                                            :cidr-blocks (% subnet-cidr-blocks)
-                                                            :public-route-table (vpc-unique "public")}) azs))
+             (apply merge-in (mapv #(private-public-subnets {:naming-fn vpc-unique
+                                                             :az %
+                                                             :cidr-blocks (% subnet-cidr-blocks)
+                                                             :public-route-table (vpc-id-of "aws_route_table" "public")}) azs))
              (apply merge-in (for [az azs
                                    name [:public :private]]
                                (output (stringify "subnet-" name "-" az "-id") "aws_subnet" (vpc-unique (stringify name "-" az)) "id")))
              (output "sg-all-servers" "aws_security_group" (vpc-unique "all-servers") "id")
              (output "sg-allow-ssh" "aws_security_group" "allow_ssh" "id")
+             (output "sg-allow-outbound" "aws_security_group" "allow_outbound" "id")
              (output "sg-allow-http-https" "aws_security_group" "allow_external_http_https" "id")
              (output "vpc-id" "aws_vpc" vpc-name  "id")
              (output "sg-sends-influx" "aws_security_group" (vpc-unique "sends_influx") "id")
