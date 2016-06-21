@@ -43,11 +43,9 @@
                                          :max-number-of-public-slaves 1
                                          :public-slave-instance-type "t2.medium"
                                          :public-slave-elb-listeners [{:port 80 :protocol "http"}
-                                                                      {:port 9501 :protocol "http"}
-                                                                      {:port 5001 :protocol "tcp"}]
+                                                                      {:port 9501 :protocol "http"}]
                                          :public-slave-elb-sg [{:port 9501 :cidr_blocks [all-external]}
-                                                               {:port 80 :cidr_blocks [all-external]}
-                                                               {:port 5001 :cidr_blocks [vpc-cidr-block]}]
+                                                               {:port 80 :cidr_blocks [all-external]}]
                                          :public-slave-elb-health "HTTP:9501/"
                                          :azs azs
                                          :mesos-ami "ami-1807e377" ;; previous coreos
