@@ -501,9 +501,7 @@
                                        :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                        :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
                                        :logstash-ip (remote-output-of "vpc" "logstash-ip")}
-                                :lifecycle { :create_before_destroy true }
-
-                                })
+                                :lifecycle { :create_before_destroy true }})
 
 
              (asg "slaves"
