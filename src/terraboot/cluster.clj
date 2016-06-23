@@ -78,11 +78,12 @@
   {:coreos {:units [{:name "filebeat.service" :command "start" :content (snippet "systemd/filebeat.service")}]}
    :write_files [{:path "/etc/filebeat/filebeat.yml"
                   :content (snippet "system-files/filebeat.yml")}]
-   :runcmd ["curl -o /home/core/filebeat-1.2.3-x86_64.tar.gz https://download.elastic.co/beats/filebeat/filebeat-1.2.3-x86_64.tar.gz"
-            "tar xvzf /home/core/filebeat-1.2.3-x86_64.tar.gz"
-            "mkdir -p /opt/bin"
-            "cp /home/core/filebeat-1.2.3-x86_64/filebeat /opt/bin/"
-            "mkdir -p /etc/filebeat"]})
+   :runcmd (mapv #(str % "  >> /var/log/filebeat-install.log 2>&1")
+                 ["curl -o /home/core/filebeat-1.2.3-x86_64.tar.gz https://download.elastic.co/beats/filebeat/filebeat-1.2.3-x86_64.tar.gz"
+                  "tar xvzf /home/core/filebeat-1.2.3-x86_64.tar.gz"
+                  "mkdir -p /opt/bin"
+                  "cp /home/core/filebeat-1.2.3-x86_64/filebeat /opt/bin/"
+                  "mkdir -p /etc/filebeat"])})
 
 (defn mesos-slave-user-data
   []
