@@ -13,9 +13,6 @@
 
 (def region "eu-central-1")
 
-(def dns-zone "mastodonc.net")
-(def dns-zone-id "Z1EFD0WXZUIXYT")
-
 (defn output-of [type resource-name & values]
   (str "${"
        (name type) "."
@@ -133,15 +130,7 @@
 (defn safe-name [s]
   (string/replace s #"\." "__"))
 
-(defn route53_record [prefix spec]
-  (let [name (str prefix "." dns-zone)]
-    (resource "aws_route53_record" (safe-name name)
-              (merge
-               {:zone_id dns-zone-id
-                :name name
-                :type "A"}
-               (if (:alias spec) {} {:ttl "300"})
-               spec))))
+
 
 (defn aws-instance [name spec]
   (let [default-sg-ids (map (partial id-of "aws_security_group") default-sgs)]

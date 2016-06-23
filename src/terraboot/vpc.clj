@@ -136,7 +136,7 @@
                                        :instance_type "m4.large"
                                        :vpc_security_group_ids [(vpc-id-of "aws_security_group" "influxdb")
                                                                 (id-of "aws_security_group" "allow_ssh")
-                                                                (vpc-id-of "aws_security_group" "allow_elb_chronograf")
+                                                                (vpc-id-of "aws_security_group" "allow_elb_grafana")
                                                                 (vpc-id-of "aws_security_group" "all-servers")
                                                                 ]
                                        :subnet_id (vpc-id-of "aws_subnet" (stringify "public-" (first azs)))})
@@ -146,19 +146,19 @@
                             :instance_id (id-of "aws_instance" "influxdb")
                             :volume_id (vpc-id-of "aws_ebs_volume" "influxdb")})
 
-             (elb "chronograf" resource {:name "chronograf"
-                                         :health_check {:healthy_threshold 2
-                                                        :unhealthy_threshold 3
-                                                        :target "HTTP:80/status"
-                                                        :timeout 5
-                                                        :interval 30}
-                                         :listeners [(elb-listener {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name "StartMastodoncNet"})]
-                                         :instances [(id-of "aws_instance" "influxdb")]
-                                         :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
-                                         :security-groups (mapv #(id-of "aws_security_group" %) [(vpc-unique "all-servers")
-                                                                                                 "allow_external_http_https"
-                                                                                                 (vpc-unique "elb_chronograf")])
-                                         })
+             (elb "grafana" resource {:name "grafana"
+                                      :health_check {:healthy_threshold 2
+                                                     :unhealthy_threshold 3
+                                                     :target "HTTP:80/status"
+                                                     :timeout 5
+                                                     :interval 30}
+                                      :listeners [(elb-listener {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name "StartMastodoncNet"})]
+                                      :instances [(id-of "aws_instance" "influxdb")]
+                                      :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
+                                      :security-groups (mapv #(id-of "aws_security_group" %) [(vpc-unique "all-servers")
+                                                                                              "allow_external_http_https"
+                                                                                              (vpc-unique "elb_grafana")])
+                                      })
 
              (private_route53_record "influxdb" vpc-name {:records [(output-of "aws_instance" "influxdb" "private_ip")]})
 
@@ -166,13 +166,10 @@
 
              (private_route53_record "alerts" vpc-name {:records [(vpc-output-of "aws_instance" "alerts" "private_ip")]})
 
-             (route53_record "chronograf" {:type "CNAME"
-                                           :records [(output-of "aws_elb" "chronograf" "dns_name")]})
-
-             (vpc-security-group "elb_chronograf" {})
-             (vpc-security-group "allow_elb_chronograf" {}
+             (vpc-security-group "elb_grafana" {})
+             (vpc-security-group "allow_elb_grafana" {}
                                  {:port 80
-                                  :source_security_group_id (vpc-id-of "aws_security_group" "elb_chronograf")})
+                                  :source_security_group_id (vpc-id-of "aws_security_group" "elb_grafana")})
 
              (vpc-security-group "influxdb" {}
                                  {:port 222
@@ -188,12 +185,8 @@
                        {:vpc true
                         :instance (id-of "aws_instance" "influxdb")})
 
-             (route53_record "influxdb" { :records [(output-of "aws_eip" "influxdb" "public_ip")]})
-
-             #_(vpc-resource "aws_eip" "vpn" {:instance (vpc-id-of "aws_instance" "vpn")
-                                              :vpc true})
-
-             (route53_record "vpn" {:records [(vpc-output-of "aws_instance" "vpn" "public_ip")]})
+             (vpc-resource "aws_eip" "vpn" {:instance (vpc-id-of "aws_instance" "vpn")
+                                            :vpc true})
 
              (vpc-resource "aws_route53_zone" "mesos"
                            {:name "vpc.kixi"

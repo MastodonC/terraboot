@@ -473,16 +473,6 @@
                                                     (remote-output-of "vpc" "sg-allow-http-https")]
                                                    remote-default-sgs)}]})
 
-             (route53_record (cluster-unique "deploy")
-                             {:alias {:name (cluster-output-of "aws_elb" "public-slaves" "dns_name")
-                                      :zone_id (cluster-output-of "aws_elb" "public-slaves" "zone_id")
-                                      :evaluate_target_health true}})
-
-             (route53_record cluster-identifier
-                             {:alias {:name (cluster-output-of "aws_elb" "public-slaves" "dns_name")
-                                      :zone_id (cluster-output-of "aws_elb" "public-slaves" "zone_id")
-                                      :evaluate_target_health true}})
-
              (cluster-resource "template_file" "slave-user-data"
                                {:template (mesos-slave-user-data)
                                 :vars {:aws-region region
@@ -532,5 +522,4 @@
              (local-deploy-scripts {:cluster-name cluster-name
                                     :name-fn cluster-unique
                                     :min-number-of-slaves min-number-of-slaves
-                                    :internal-lb (cluster-output-of "aws_elb" "internal-lb" "dns_name")})
-             ))))
+                                    :internal-lb (cluster-output-of "aws_elb" "internal-lb" "dns_name")})))))

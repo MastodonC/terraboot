@@ -72,15 +72,13 @@
                                   :protocol "udp"
                                   :cidr_blocks (mapv #(str (vpc-output-of "aws_eip" (stringify "public-" % "-nat") "public_ip") "/32") azs)}
                                  {:port 9200
-                                  :protocol "udp"
-                                  :cidr_blocks [all-external]})
+                                  :protocol "tcp"
+                                  :cidr_blocks [vpc-cidr-block]})
 
              (vpc-resource "aws_eip" "logstash"
                            {:vpc true
                             :instance (vpc-id-of "aws_instance" "logstash")})
 
-
-             (route53_record "logstash" {:records [(vpc-output-of "aws_eip" "logstash" "public_ip")]})
 
              (vpc-security-group "sends_gelf" {})
 
@@ -161,13 +159,6 @@
              (vpc-security-group "allow-elb-alerts" {}
                                  {:port 80
                                   :source_security_group_id (vpc-id-of "aws_security_group" "elb-alerts")})
-
-             (route53_record "alerts" {:type "CNAME"
-                                       :records [(output-of "aws_elb" "alerts" "dns_name")]})
-
-
-             (route53_record "kibana" {:type "CNAME"
-                                       :records [(output-of "aws_elb" "kibana" "dns_name")]})
 
              (vpc-security-group "elb-kibana" {}
                                  {:port 80
