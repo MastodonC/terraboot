@@ -30,10 +30,10 @@
 (defn elasticsearch-cluster [name {:keys [vpc-name account-number azs default-ami vpc-cidr-block] :as spec}]
   ;; http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs
   ;; See for what instance-types and storage is possible
-  (let [vpc-unique (fn [name] (str vpc-name "-" name))
+  (let [vpc-unique (vpc-unique-fn vpc-name)
         vpc-resource (partial resource vpc-unique)
-        vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
-        vpc-output-of (fn [type name & values] (apply (partial output-of type (vpc-unique name)) values))
+        vpc-id-of (id-of-fn vpc-unique)
+        vpc-output-of (output-of-fn vpc-unique)
         vpc-security-group (partial scoped-security-group vpc-unique)
         elb-listener (account-elb-listener account-number)]
     (merge-in

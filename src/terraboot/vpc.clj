@@ -97,10 +97,10 @@
            subnet-cidr-blocks
            default-ami
            vpc-cidr-block]} ]
-  (let [vpc-unique (fn [name] (str vpc-name "-" name))
+  (let [vpc-unique (vpc-unique-fn vpc-name)
         vpc-resource (partial resource vpc-unique)
-        vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
-        vpc-output-of (fn [type name & values] (apply (partial output-of type (vpc-unique name)) values))
+        vpc-id-of (id-of-fn vpc-unique)
+        vpc-output-of (output-of-fn vpc-unique)
         vpc-security-group (partial scoped-security-group vpc-unique)
         elb-listener (account-elb-listener account-number)]
     (merge-in

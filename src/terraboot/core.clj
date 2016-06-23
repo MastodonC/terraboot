@@ -341,6 +341,29 @@
                    {:port 5432
                     :source_security_group_id (id-of "aws_security_group" (str "uses-db-" name))})))
 
+(defn vpc-unique-fn
+  "namespacing vpc resources"
+  [vpc-name]
+  (fn [name] (str vpc-name "-" name)))
+
+(defn cluster-identifier
+  [vpc-name cluster-name]
+  (str vpc-name "-" cluster-name))
+
+(defn cluster-unique-fn
+  "namespacing cluster resources"
+  [vpc-name cluster-name]
+  (let [cluster-identifier (cluster-identifier vpc-name cluster-name)]
+    (fn [name] (str cluster-identifier "-" name))))
+
+(defn output-of-fn
+  [naming-fn]
+  (fn [type name & values] (apply (partial output-of type (naming-fn name)) values)))
+
+(defn id-of-fn
+  [naming-fn]
+  (fn [type name] (id-of type (naming-fn name))))
+
 (defn remote-state [name]
   (resource "terraform_remote_state" name
             {:backend "s3"

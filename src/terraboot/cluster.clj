@@ -241,15 +241,15 @@
            public-slave-elb-sg
            public-slave-elb-health
            account-number]}]
-  (let [vpc-unique (fn [name] (str vpc-name "-" name))
-        vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
-        vpc-output-of (fn [type name & values] (apply (partial output-of type (vpc-unique name)) values))
-        cluster-identifier (str vpc-name "-" cluster-name)
-        cluster-unique (fn [name] (str cluster-identifier "-" name))
+  (let [vpc-unique (vpc-unique-fn vpc-name)
+        vpc-id-of (id-of-fn vpc-unique)
+        vpc-output-of (output-of-fn vpc-unique)
+        cluster-identifier (cluster-identifier vpc-name cluster-name)
+        cluster-unique (cluster-unique-fn vpc-name cluster-name)
         cluster-resource (partial resource cluster-unique)
         cluster-security-group (partial scoped-security-group cluster-unique)
-        cluster-id-of (fn [type name] (id-of type (cluster-unique name)))
-        cluster-output-of (fn [type name & values] (apply (partial output-of type (cluster-unique name)) values))
+        cluster-id-of (id-of-fn cluster-unique)
+        cluster-output-of (output-of-fn cluster-unique)
         private-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "private-" %)) azs)
         public-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "public-" %)) azs)
         elb-listener (account-elb-listener account-number)]
