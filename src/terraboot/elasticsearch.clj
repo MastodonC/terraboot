@@ -1,5 +1,6 @@
 (ns terraboot.elasticsearch
   (:require [terraboot.core :refer :all]
+            [terraboot.utils :refer :all]
             [terraboot.cloud-config :refer [cloud-config]]
             [cheshire.core :as json]))
 
@@ -29,10 +30,10 @@
 (defn elasticsearch-cluster [name {:keys [vpc-name account-number azs default-ami vpc-cidr-block] :as spec}]
   ;; http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs
   ;; See for what instance-types and storage is possible
-  (let [vpc-unique (fn [name] (str vpc-name "-" name))
+  (let [vpc-unique (vpc-unique-fn vpc-name)
         vpc-resource (partial resource vpc-unique)
-        vpc-id-of (fn [type name] (id-of type (vpc-unique name)))
-        vpc-output-of (fn [type name & values] (apply (partial output-of type (vpc-unique name)) values))
+        vpc-id-of (id-of-fn vpc-unique)
+        vpc-output-of (output-of-fn vpc-unique)
         vpc-security-group (partial scoped-security-group vpc-unique)
         elb-listener (account-elb-listener account-number)]
     (merge-in
@@ -71,15 +72,13 @@
                                   :protocol "udp"
                                   :cidr_blocks (mapv #(str (vpc-output-of "aws_eip" (stringify "public-" % "-nat") "public_ip") "/32") azs)}
                                  {:port 9200
-                                  :protocol "udp"
-                                  :cidr_blocks [all-external]})
+                                  :protocol "tcp"
+                                  :cidr_blocks [vpc-cidr-block]})
 
              (vpc-resource "aws_eip" "logstash"
                            {:vpc true
                             :instance (vpc-id-of "aws_instance" "logstash")})
 
-
-             (route53_record "logstash" {:records [(vpc-output-of "aws_eip" "logstash" "public_ip")]})
 
              (vpc-security-group "sends_gelf" {})
 
@@ -160,13 +159,6 @@
              (vpc-security-group "allow-elb-alerts" {}
                                  {:port 80
                                   :source_security_group_id (vpc-id-of "aws_security_group" "elb-alerts")})
-
-             (route53_record "alerts" {:type "CNAME"
-                                       :records [(output-of "aws_elb" "alerts" "dns_name")]})
-
-
-             (route53_record "kibana" {:type "CNAME"
-                                       :records [(output-of "aws_elb" "kibana" "dns_name")]})
 
              (vpc-security-group "elb-kibana" {}
                                  {:port 80

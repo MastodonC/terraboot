@@ -4,7 +4,7 @@
             [stencil.core :as mustache]
             [clj-yaml.core :as yaml]
             [clojure.pprint :refer [pprint]]
-            [clojure.set :as set]))
+            [terraboot.utils :refer :all]))
 
 
 (def default-sgs ["allow_ssh" "allow_outbound"])
@@ -12,31 +12,6 @@
 (def all-external "0.0.0.0/0")
 
 (def region "eu-central-1")
-
-(def dns-zone "mastodonc.net")
-(def dns-zone-id "Z1EFD0WXZUIXYT")
-
-(letfn [(sensitive-merge-in*
-          [mfns]
-          (fn [a b]
-            (if (map? a)
-              (do (when-let [dups (seq (set/intersection (set (keys a)) (set (keys b))))]
-                    (throw (Exception. (str "Duplicate keys: " dups))))
-                  (merge-with ((first mfns) (rest mfns)) a b))
-              b)))
-        (merge-in*
-          [mfns]
-          (fn [a b]
-            (if (map? a)
-              (merge-with ((first mfns) (rest mfns)) a b)
-              b)))
-        (merge-with-fn-seq
-          [fn-seq]
-          (partial merge-with
-                   ((first fn-seq) (rest fn-seq))))]
-  ;; todo rediscover duplicates but not for the :output tree
-  (def merge-in
-    (merge-with-fn-seq (repeat merge-in*))))
 
 (defn output-of [type resource-name & values]
   (str "${"
@@ -155,15 +130,7 @@
 (defn safe-name [s]
   (string/replace s #"\." "__"))
 
-(defn route53_record [prefix spec]
-  (let [name (str prefix "." dns-zone)]
-    (resource "aws_route53_record" (safe-name name)
-              (merge
-               {:zone_id dns-zone-id
-                :name name
-                :type "A"}
-               (if (:alias spec) {} {:ttl "300"})
-               spec))))
+
 
 (defn aws-instance [name spec]
   (let [default-sg-ids (map (partial id-of "aws_security_group") default-sgs)]
@@ -362,6 +329,29 @@
    (security-group (str "db-" name) {}
                    {:port 5432
                     :source_security_group_id (id-of "aws_security_group" (str "uses-db-" name))})))
+
+(defn vpc-unique-fn
+  "namespacing vpc resources"
+  [vpc-name]
+  (fn [name] (str vpc-name "-" name)))
+
+(defn cluster-identifier
+  [vpc-name cluster-name]
+  (str vpc-name "-" cluster-name))
+
+(defn cluster-unique-fn
+  "namespacing cluster resources"
+  [vpc-name cluster-name]
+  (let [cluster-identifier (cluster-identifier vpc-name cluster-name)]
+    (fn [name] (str cluster-identifier "-" name))))
+
+(defn output-of-fn
+  [naming-fn]
+  (fn [type name & values] (apply (partial output-of type (naming-fn name)) values)))
+
+(defn id-of-fn
+  [naming-fn]
+  (fn [type name] (id-of type (naming-fn name))))
 
 (defn remote-state [name]
   (resource "terraform_remote_state" name
