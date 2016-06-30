@@ -16,4 +16,4 @@ fi
 
 # We only want the snapshots dirs
 # For filters rationale see http://docs.aws.amazon.com/cli/latest/reference/s3/index.html#use-of-exclude-and-include-filters
-sudo -u core $AWS --profile backup s3 sync --exclude '*' --include '*/snapshots/*' $${CASSANDRA_DATA_DIR} s3://witan-cassandra-backup/$(hostname)/ --region eu-central-1
+sudo -u core $AWS s3 sync --exclude '*' --include '*/snapshots/*' $${CASSANDRA_DATA_DIR} s3://witan-cassandra-backup/$(hostname)/ --region eu-central-1
