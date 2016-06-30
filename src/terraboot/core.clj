@@ -177,8 +177,9 @@
 
 (defn account-elb-listener[account-number]
   (fn [{:keys [port lb-port protocol lb-protocol cert-name cert-id]}]
-    (let [cert-id (or cert-id (str "arn:aws:iam::" account-number ":server-certificate/" cert-name))
-          add-cert-if-present #(if (or cert-name cert-id) (assoc % :ssl_certificate_id cert-id) %)]
+    (let [iam-cert-id (str "arn:aws:iam::" account-number ":server-certificate/" cert-name)
+          cert (if cert-name iam-cert-id cert-id)
+          add-cert-if-present #(if cert (assoc % :ssl_certificate_id cert) %)]
       (add-cert-if-present {:instance_port port
                             :instance_protocol protocol
                             :lb_port (or lb-port port)
