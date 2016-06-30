@@ -212,7 +212,7 @@
 
              (security-group "allow_ssh" {}
                              {:port 22
-                              :cidr_blocks [all-external]
+                              :cidr_blocks [vpc-cidr-block]
                               })
 
              (security-group "allow_external_http_https" {}
