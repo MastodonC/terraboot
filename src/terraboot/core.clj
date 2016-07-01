@@ -11,8 +11,6 @@
 
 (def all-external "0.0.0.0/0")
 
-(def region "eu-central-1")
-
 (defn output-of [type resource-name & values]
   (str "${"
        (name type) "."
@@ -143,7 +141,7 @@
                                       (update-in [:vpc_security_group_ids] concat default-sg-ids)))))
 
 
-(defn private-public-subnets [{:keys [naming-fn az cidr-blocks public-route-table]}]
+(defn private-public-subnets [{:keys [naming-fn az cidr-blocks public-route-table region]}]
   (let [public-subnet-name (naming-fn (stringify "public-" az))
         private-subnet-name (naming-fn (stringify "private-" az))
         nat-eip (stringify public-subnet-name "-nat")]
@@ -354,7 +352,7 @@
   [naming-fn]
   (fn [type name] (id-of type (naming-fn name))))
 
-(defn remote-state [name]
+(defn remote-state [region name]
   (resource "terraform_remote_state" name
             {:backend "s3"
              :config {:bucket "terraboot"

@@ -27,7 +27,7 @@
                                                       :permissions "644"
                                                       :content (snippet "system-files/out-es.conf")}]}))
 
-(defn elasticsearch-cluster [name {:keys [vpc-name account-number azs default-ami vpc-cidr-block] :as spec}]
+(defn elasticsearch-cluster [name {:keys [vpc-name account-number region azs default-ami vpc-cidr-block] :as spec}]
   ;; http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs
   ;; See for what instance-types and storage is possible
   (let [vpc-unique (vpc-unique-fn vpc-name)
@@ -43,7 +43,7 @@
                     :access_policies (json/generate-string {"Version" "2012-10-17",
                                                             "Statement" [{"Action" "es:*",
                                                                           "Principal" "*",
-                                                                          "Resource" (str "arn:aws:es:eu-central-1:" account-number ":domain/" vpc-name "-elasticsearch/*"),
+                                                                          "Resource" (str "arn:aws:es:" region ":" account-number ":domain/" vpc-name "-elasticsearch/*"),
                                                                           ;; There is currently a bug which means 'Resource' needs adding after the
                                                                           ;; cluster is created or it will constantly say it needs to change.
                                                                           ;; https://github.com/hashicorp/terraform/issues/5067
