@@ -1,4 +1,4 @@
-(defproject terraboot "0.1.0"
+(defproject kixi/terraboot "0.1.0"
   :description "Terraform modules for kixi framework"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
