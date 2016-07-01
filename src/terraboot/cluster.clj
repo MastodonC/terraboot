@@ -221,6 +221,8 @@
 
 (defn cluster-infra
   [{:keys [vpc-name
+           region
+           azs
            vpc-cidr-block
            cluster-name
            min-number-of-masters
@@ -232,7 +234,6 @@
            min-number-of-public-slaves
            max-number-of-public-slaves
            public-slave-disk-allocation
-           azs
            subnet-cidr-blocks
            mesos-ami
            public-slave-elb-listeners
@@ -252,9 +253,10 @@
         public-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "public-" %)) azs)
         elb-listener (account-elb-listener account-number)]
     (merge-in
-     (remote-state "vpc")
+     (remote-state region "vpc")
      (in-vpc (remote-output-of "vpc" "vpc-id")
              (apply merge-in (map #(private-public-subnets {:naming-fn cluster-unique
+                                                            :region region
                                                             :az %
                                                             :cidr-blocks (% subnet-cidr-blocks)
                                                             :public-route-table (remote-output-of "vpc" "public-route-table")} ) azs))

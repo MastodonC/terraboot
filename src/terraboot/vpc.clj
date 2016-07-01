@@ -93,6 +93,7 @@
 (defn vpc-vpn-infra
   [{:keys [vpc-name
            account-number
+           region
            azs
            subnet-cidr-blocks
            default-ami
@@ -111,6 +112,7 @@
 
      (elasticsearch-cluster "elasticsearch" {:vpc-name vpc-name
                                              :account-number account-number
+                                             :region region
                                              :azs azs
                                              :default-ami default-ami
                                              :vpc-cidr-block vpc-cidr-block})
@@ -253,7 +255,8 @@
              (apply merge-in (mapv #(private-public-subnets {:naming-fn vpc-unique
                                                              :az %
                                                              :cidr-blocks (% subnet-cidr-blocks)
-                                                             :public-route-table (vpc-id-of "aws_route_table" "public")}) azs))
+                                                             :public-route-table (vpc-id-of "aws_route_table" "public")
+                                                             :region region}) azs))
              (apply merge-in (for [az azs
                                    name [:public :private]]
                                (output (stringify "subnet-" name "-" az "-id") "aws_subnet" (vpc-unique (stringify name "-" az)) "id")))
