@@ -176,9 +176,10 @@
 
 
 (defn account-elb-listener[account-number]
-  (fn [{:keys [port lb-port protocol lb-protocol cert-name]}]
-    (let [cert-id (str "arn:aws:iam::" account-number ":server-certificate/" cert-name)
-          add-cert-if-present #(if cert-name (assoc % :ssl_certificate_id cert-id) %)]
+  (fn [{:keys [port lb-port protocol lb-protocol cert-name cert-id]}]
+    (let [iam-cert-id (str "arn:aws:iam::" account-number ":server-certificate/" cert-name)
+          cert (if cert-name iam-cert-id cert-id)
+          add-cert-if-present #(if cert (assoc % :ssl_certificate_id cert) %)]
       (add-cert-if-present {:instance_port port
                             :instance_protocol protocol
                             :lb_port (or lb-port port)
@@ -261,7 +262,7 @@
                             :load_balancers (mapv #(cluster-output-of "aws_elb" (:name %) "name") (:elb spec))
                             :tag {
                                   :key "Name"
-                                  :value (str "autoscale-" name)
+                                  :value (name-fn name)
                                   :propagate_at_launch true
                                   }}))]
     (merge-in asg-config

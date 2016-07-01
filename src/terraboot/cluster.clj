@@ -444,7 +444,8 @@
                    :sgs [(cluster-id-of "aws_security_group" "public-slave-security-group")
                          (remote-output-of "vpc" "sg-sends-influx")
                          (remote-output-of "vpc" "sg-sends-gelf")
-                         (remote-output-of "vpc" "sg-all-servers")]
+                         (remote-output-of "vpc" "sg-all-servers")
+                         (remote-output-of "vpc" "sg-allow-ssh")]
                    :role (cluster-unique "slave-role")
                    :public_ip true
                    :tags {:Key "role"
