@@ -4,28 +4,25 @@
             [terraboot.cloud-config :refer [cloud-config]]
             [cheshire.core :as json]))
 
-(def logstash-user-data (cloud-config {:users ["default"
-                                               {:name "admin"
-                                                :sudo "ALL=(ALL) NOPASSWD:ALL"
-                                                :groups ["users" "admin"]
-                                                }
-                                               ]
-                                       :package_update true
+(def logstash-user-data (cloud-config {:package_update true
                                        :bootcmd ["echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections"
                                                  "wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -" ]
-                                       :apt_sources [{:source "ppa:webupd8team/java"}
-                                                     {:source "http://packages.elastic.co/logstash/2.2/debian"
-                                                      :key (snippet "system-files/elasticsearch-apt.pem")                                                      }]
+                                       :apt_mirror [{:source "deb ppa:webupd8team/java"}
+                                                    {:source "deb http://packages.elastic.co/logstash/2.2/debian stable main"
+                                                     :key (snippet "system-files/elasticsearch-apt.pem")                                                      }]
                                        :packages ["oracle-java8-installer"
                                                   "oracle-java8-set-default"
                                                   "logstash"]
-
-
-                                       :runcmd ["update-rc.d logstash defaults"
-                                                "/opt/logstash/bin/plugin install logstash-output-amazon_es"]
+                                       :runcmd ["update-rc.d logstash defaults"]
                                        :write_files [{:path "/etc/logstash/conf.d/out-es.conf"
                                                       :permissions "644"
-                                                      :content (snippet "system-files/out-es.conf")}]}))
+                                                      :content (snippet "vpc-logstash/out-es.conf")}
+                                                     {:path "/etc/logstash/conf.d/in-beats.conf"
+                                                      :permissions "644"
+                                                      :content (snippet "vpc-logstash/in-beats.conf")}
+                                                     {:path "/etc/logstash/conf.d/in-gelf.conf"
+                                                      :permissions "644"
+                                                      :content (snippet "vpc-logstash/in-gelf.conf")}]}))
 
 (defn elasticsearch-cluster [name {:keys [vpc-name account-number region azs default-ami vpc-cidr-block] :as spec}]
   ;; http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs
@@ -71,6 +68,9 @@
                                  {:port 12201
                                   :protocol "udp"
                                   :cidr_blocks (mapv #(str (vpc-output-of "aws_eip" (stringify "public-" % "-nat") "public_ip") "/32") azs)}
+                                 {:port 12201
+                                  :protocol "udp"
+                                  :cidr_blocks [vpc-cidr-block]}
                                  {:port 9200
                                   :protocol "tcp"
                                   :cidr_blocks [vpc-cidr-block]})
@@ -86,14 +86,16 @@
 
              (vpc-resource "template_file" "logstash-user-data"
                            {:template logstash-user-data
-                            :vars {:elasticsearch-lb (id-of "aws_elb" "kibana")}})
+                            :vars {:es-dns (vpc-output-of "aws_elasticsearch_domain" name "endpoint")}})
 
              (aws-instance (vpc-unique "logstash") {:ami default-ami
+                                                    :instance_type "m4.large"
                                                     :vpc_security_group_ids [(vpc-id-of "aws_security_group" "logstash")
                                                                              (id-of "aws_security_group" "allow_ssh")
                                                                              (vpc-id-of "aws_security_group" "sends_influx")
                                                                              (vpc-id-of "aws_security_group" "all-servers")
                                                                              ]
+                                                    :user_data logstash-user-data
                                                     :associate_public_ip_address true
                                                     :subnet_id (vpc-id-of "aws_subnet" "public-a")
                                                     })
