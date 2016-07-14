@@ -5,6 +5,14 @@ filebeat:
         - /var/lib/mesos/slave/slaves/*/frameworks/*/executors/*/runs/latest/stdout
         - /var/lib/mesos/slave/slaves/*/frameworks/*/executors/*/runs/latest/stderr
 
+multiline:
+    pattern: '^[[:space:]]+|^Caused by:'
+    negate: false
+    match: after
+
+fields:
+    tag: '%{cluster-name}'
+ 
 output:
   logstash:
-    hosts: ["${logstash-ip}:9200"]
+    hosts: ["172.20.0.36:9200"]
