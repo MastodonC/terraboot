@@ -12,7 +12,7 @@ multiline:
 
 fields:
     tag: '%{cluster-name}'
- 
+
 output:
   logstash:
-    hosts: ["172.20.0.36:9200"]
+    hosts: ["${logstash-ip}:9200"]
