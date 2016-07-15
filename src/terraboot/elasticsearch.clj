@@ -8,7 +8,7 @@
                                        :bootcmd ["echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections"
                                                  "wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -" ]
                                        :apt_mirror [{:source "deb ppa:webupd8team/java"}
-                                                    {:source "deb http://packages.elastic.co/logstash/2.2/debian stable main"
+                                                    {:source "deb http://packages.elastic.co/logstash/2.3/debian stable main"
                                                      :key (snippet "system-files/elasticsearch-apt.pem")                                                      }]
                                        :packages ["oracle-java8-installer"
                                                   "oracle-java8-set-default"
@@ -22,7 +22,10 @@
                                                       :content (snippet "vpc-logstash/in-beats.conf")}
                                                      {:path "/etc/logstash/conf.d/in-gelf.conf"
                                                       :permissions "644"
-                                                      :content (snippet "vpc-logstash/in-gelf.conf")}]}))
+                                                      :content (snippet "vpc-logstash/in-gelf.conf")}
+                                                     {:path "/opt/logstash/patterns/basic-batterns"
+                                                      :permissions "644"
+                                                      :content (snippet "vpc-logstash/basic-patterns")}]}))
 
 (defn elasticsearch-cluster [name {:keys [vpc-name account-number region azs default-ami vpc-cidr-block] :as spec}]
   ;; http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs

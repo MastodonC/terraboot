@@ -104,8 +104,7 @@
                                  {:write_files [{:path "/etc/mesosphere/roles/slave_public"
                                                  :content ""}
                                                 {:path "/etc/mesosphere/roles/aws"
-                                                 :content ""}]}
-                                 filebeat-user-data)))
+                                                 :content ""}]})))
 
 (defn exhibitor-bucket-policy [bucket-name]
   (let [bucket-arn (arn-of "aws_s3_bucket" bucket-name)]
