@@ -141,6 +141,9 @@
                      "EC2:DescribeTags"]
            "Condition" {"Bool" {"aws:SecureTransport" "true"}}}))
 
+(def send-email-policy
+  (policy {"Action" ["ses:SendEmail"]}))
+
 (defn cluster-aws-instance [name spec]
   (let [default-vpc-sgs [(remote-output-of "vpc" "sg-allow-ssh")
                          (remote-output-of "vpc" "sg-all-servers")]]
@@ -344,8 +347,9 @@
                                                     "cloudwatch:ListMetrics",
                                                     "cloudwatch:PutMetricData",
                                                     "EC2:DescribeTags" ]
-                                         "Condition" {"Bool" { "aws:SecureTransport" "true"}}
-                                         })})
+                                         "Condition" {"Bool" { "aws:SecureTransport" "true"}}})}
+                       {:name "slave-email-policy"
+                        :policy send-email-policy})
 
 
              (cluster-resource "template_file" "master-user-data"
