@@ -1,0 +1,5 @@
+{"uiConfiguration":{"plugins":{"banner":{"enabled":false,"backgroundColor":"#1E232F","foregroundColor":"#FFFFFF","headerTitle":null,"headerContent":null,"footerContent":null,"imagePath":null,"dismissible":null},"branding":{"enabled":false},"external-links": {"enabled": false},
+                               "authentication":{"enabled":false},
+                               "oauth":{"enabled": false,
+                                        "authHost":"https://dcos.auth0.com"},
+    "networking":{"enabled":false},"organization":{"enabled":false},"tracking":{"enabled":true}}}}
