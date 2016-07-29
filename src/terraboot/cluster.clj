@@ -232,12 +232,15 @@
            min-number-of-masters
            max-number-of-masters
            master-disk-allocation
+           master-instance-type
            min-number-of-slaves
            max-number-of-slaves
            slave-disk-allocation
+           slave-instance-type
            min-number-of-public-slaves
            max-number-of-public-slaves
            public-slave-disk-allocation
+           public-slave-instance-type
            subnet-cidr-blocks
            mesos-ami
            public-slave-elb-listeners
@@ -378,7 +381,7 @@
              (asg "masters"
                   cluster-unique
                   {:image_id mesos-ami
-                   :instance_type "m4.large"
+                   :instance_type master-instance-type
                    :sgs (concat [(cluster-id-of "aws_security_group" "master-security-group")
                                  (cluster-id-of "aws_security_group" "admin-security-group")
                                  (remote-output-of "vpc" "sg-sends-influx")
@@ -447,7 +450,7 @@
              (asg "public-slaves"
                   cluster-unique
                   {:image_id mesos-ami
-                   :instance_type "m4.xlarge"
+                   :instance_type public-slave-instance-type
                    :sgs [(cluster-id-of "aws_security_group" "public-slave-security-group")
                          (remote-output-of "vpc" "sg-sends-influx")
                          (remote-output-of "vpc" "sg-sends-gelf")
@@ -503,7 +506,7 @@
              (asg "slaves"
                   cluster-unique
                   {:image_id mesos-ami
-                   :instance_type "m4.xlarge"
+                   :instance_type slave-instance-type
                    :sgs (concat [(cluster-id-of "aws_security_group" "slave-security-group")
                                  (remote-output-of "vpc" "sg-all-servers")
                                  (remote-output-of "vpc" "sg-sends-influx")
