@@ -34,28 +34,30 @@
                   :content (str "MESOS_CLUSTER=${cluster-name}\n")}
                  {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/exhibitor"
                   :content (snippet "system-files/exhibitor")}
-                 {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/exhibitor.properties"
-                  :content (snippet "system-files/exhibitor.properties")}
                  {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/dns_config"
                   :content (snippet "system-files/dns_config")}
                  {:path "/etc/mesosphere/cluster-id"
                   :content "${cluster-id}"
                   :permissions "0644"}
                  {:path "/etc/mesosphere/setup-flags/repository-url"
-                  :content "https://downloads.mesosphere.com/dcos/stable\n"
+                  :content "https://downloads.dcos.io/dcos/EarlyAccess"
                   :owner "root"
-                  :permissions 420}
+                  :permissions "0644"}
                  {:path "/etc/mesosphere/setup-flags/bootstrap-id"
-                  :content "BOOTSTRAP_ID=18d094b1648521b017622180e3a8e05788a81e80"
+                  :content "BOOTSTRAP_ID=3a2b7e03c45cd615da8dfb1b103943894652cd71"
                   :owner "root"
                   :permissions 420}
                  {:path "/etc/mesosphere/setup-flags/cluster-packages.json"
-                  :content "[\"dcos-config--setup_39bcd04b14a990a870cdff4543566e78d7507ba5\", \"dcos-metadata--setup_39bcd04b14a990a870cdff4543566e78d7507ba5\"]\n"
+                  :content "[\"dcos-config--setup_b9372277c9fedaca077d7638e6e445af062d1d86\", \"dcos-metadata--setup_b9372277c9fedaca077d7638e6e445af062d1d86\"]\n"
                   :owner "root"
                   :permissions 420}
                  {:path "/etc/systemd/journald.conf.d/dcos.conf"
                   :content "[Journal]\nMaxLevelConsole=warning\n"
                   :owner "root"}
+                 {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/adminrouter.env"
+                  :content "ADMINROUTER_ACTIVATE_AUTH_MODULE=false"} ; OAUTH!
+                 {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/ui-config.json"
+                  :content (snippet "system-files/ui-config.json")} ; OAUTH!
                  {:path "/etc/systemd/journal-upload.conf"
                   :content (snippet "systemd/journal-upload.conf")
                   :owner "root"}
@@ -230,12 +232,15 @@
            min-number-of-masters
            max-number-of-masters
            master-disk-allocation
+           master-instance-type
            min-number-of-slaves
            max-number-of-slaves
            slave-disk-allocation
+           slave-instance-type
            min-number-of-public-slaves
            max-number-of-public-slaves
            public-slave-disk-allocation
+           public-slave-instance-type
            subnet-cidr-blocks
            mesos-ami
            public-slave-elb-listeners
@@ -376,7 +381,7 @@
              (asg "masters"
                   cluster-unique
                   {:image_id mesos-ami
-                   :instance_type "m4.large"
+                   :instance_type master-instance-type
                    :sgs (concat [(cluster-id-of "aws_security_group" "master-security-group")
                                  (cluster-id-of "aws_security_group" "admin-security-group")
                                  (remote-output-of "vpc" "sg-sends-influx")
@@ -445,7 +450,7 @@
              (asg "public-slaves"
                   cluster-unique
                   {:image_id mesos-ami
-                   :instance_type "m4.xlarge"
+                   :instance_type public-slave-instance-type
                    :sgs [(cluster-id-of "aws_security_group" "public-slave-security-group")
                          (remote-output-of "vpc" "sg-sends-influx")
                          (remote-output-of "vpc" "sg-sends-gelf")
@@ -501,7 +506,7 @@
              (asg "slaves"
                   cluster-unique
                   {:image_id mesos-ami
-                   :instance_type "m4.xlarge"
+                   :instance_type slave-instance-type
                    :sgs (concat [(cluster-id-of "aws_security_group" "slave-security-group")
                                  (remote-output-of "vpc" "sg-all-servers")
                                  (remote-output-of "vpc" "sg-sends-influx")
