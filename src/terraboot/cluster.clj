@@ -262,7 +262,7 @@
         public-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "public-" %)) azs)
         elb-listener (account-elb-listener account-number)]
     (merge-in
-     (remote-state region "vpc")
+     (remote-state region bucket profile "vpc")
      (in-vpc (remote-output-of "vpc" "vpc-id")
              (apply merge-in (map #(private-public-subnets {:naming-fn cluster-unique
                                                             :region region
