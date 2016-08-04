@@ -352,6 +352,7 @@
   [naming-fn]
   (fn [type name] (id-of type (naming-fn name))))
 
+
 ;; From http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region
 (def s3-endpoints
   {"us-east-1"      "s3.amazonaws.com"
@@ -370,6 +371,13 @@
   (resource "terraform_remote_state" name
             {:backend "s3"
              :config {:bucket "terraboot"
+
+
+(defn remote-state [region name bucket profile]
+  (resource "terraform_remote_state" name
+            {:backend "s3"
+             :config {:bucket bucket
+                      :profile profile
                       :encrypt true
                       :key (str name ".tfstate")
                       :region region

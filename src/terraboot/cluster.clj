@@ -226,6 +226,8 @@
 (defn cluster-infra
   [{:keys [vpc-name
            region
+           bucket
+           profile
            azs
            vpc-cidr-block
            cluster-name
