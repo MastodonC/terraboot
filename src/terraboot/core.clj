@@ -366,10 +366,11 @@
    "eu-west-1"      "s3-eu-west-1.amazonaws.com"
    "sa-east-1"      "s3-sa-east-1.amazonaws.com"})
 
-(defn remote-state [region name]
+(defn remote-state [region bucket profile name]
   (resource "terraform_remote_state" name
             {:backend "s3"
-             :config {:bucket "terraboot"
+             :config {:bucket bucket
+                      :profile profile
                       :encrypt true
                       :key (str name ".tfstate")
                       :region region
