@@ -352,12 +352,28 @@
   [naming-fn]
   (fn [type name] (id-of type (naming-fn name))))
 
+;; From http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region
+(def s3-endpoints
+  {"us-east-1"      "s3.amazonaws.com"
+   "us-west-1"      "s3-us-west-1.amazonaws.com"
+   "us-west-2"      "s3-us-west-2.amazonaws.com"
+   "ap-south-1"     "s3.ap-south-1.amazonaws.com"
+   "ap-northeast-2" "s3.ap-northeast-2.amazonaws.com"
+   "ap-southeast-1" "s3-ap-southeast-1.amazonaws.com"
+   "ap-southeast-2" "s3-ap-southeast-2.amazonaws.com"
+   "ap-northeast-1" "s3-ap-northeast-1.amazonaws.com"
+   "eu-central-1"   "s3.eu-central-1.amazonaws.com"
+   "eu-west-1"      "s3-eu-west-1.amazonaws.com"
+   "sa-east-1"      "s3-sa-east-1.amazonaws.com"})
+
 (defn remote-state [region name]
   (resource "terraform_remote_state" name
             {:backend "s3"
              :config {:bucket "terraboot"
+                      :encrypt true
                       :key (str name ".tfstate")
-                      :region region}}))
+                      :region region
+                      :endpoint (get s3-endpoints region)}}))
 
 (defn remote-output-of [module name]
   (output-of (str "terraform_remote_state." module) "output" name))
