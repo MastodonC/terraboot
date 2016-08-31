@@ -303,7 +303,7 @@
                                       :source_security_group_id (cluster-id-of "aws_security_group" "lb-security-group")}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-security-group")}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "slave-security-group")}
-                                     )
+                                     {:allow-all-sg (cluster-id-of "aws_security_group" "master-security-group")})
 
              (apply (partial cluster-security-group "public-slave-elb" {}) public-slave-elb-sg)
 
