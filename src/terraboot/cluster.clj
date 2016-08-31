@@ -322,7 +322,8 @@
                                      {:port 2181
                                       :source_security_group_id (cluster-id-of "aws_security_group" "lb-security-group")})
 
-             (cluster-resource "aws_s3_bucket" "exhibitor-s3-bucket" {:bucket (cluster-unique "exhibitor-s3-bucket")})
+             (cluster-resource "aws_s3_bucket" "exhibitor-s3-bucket" {:bucket (cluster-unique "exhibitor-s3-bucket")
+                                                                      :force_destroy true})
 
              (cluster-resource "aws_iam_user" "mesos-user" {:name "mesos-user"})
 
