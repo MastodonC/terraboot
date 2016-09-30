@@ -45,3 +45,20 @@ TCP, UDP:
     netstat -a | grep LISTEN
 
 to see all the listening ports.
+
+## Marathon
+
+### After starting a marathon framework and stopping it, it sometimes keeps a new one from starting (C*, kafka)
+
+Sometimes just removing a process from Marathon doesn't completely remove all the traces of a process.  Sometimes the framework needs torn down.
+
+    curl -d@delete.txt -X POST http://staging-masters.sandpit-vpc.kixi/mesos/master/teardown
+
+with delete.txt containing a string which is frameworkId=xyz
+
+Then all traces must be removed in Zookeeper and similar (described [here](https://docs.mesosphere.com/1.7/usage/managing-services/uninstall/)).
+For isntance for cassandra:
+
+```
+docker run mesosphere/janitor /janitor.py -r cassandra-role -p cassandra-principal -z dcos-service-cassandra
+```
