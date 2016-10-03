@@ -1,3 +1,4 @@
 MASTER_SOURCE=exhibitor
 EXHIBITOR_ADDRESS=${internal-lb-dns}
+EXHIBITOR_URI=http://${internal-lb-dns}:8181/exhibitor/v1/cluster/status
 RESOLVERS=${fallback-dns}

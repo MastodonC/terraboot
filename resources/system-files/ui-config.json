@@ -2,4 +2,4 @@
                                "authentication":{"enabled":false},
                                "oauth":{"enabled": false,
                                         "authHost":"https://dcos.auth0.com"},
-    "networking":{"enabled":false},"organization":{"enabled":false},"tracking":{"enabled":true}}}}
+    "tracking":{"enabled":true}}}}
