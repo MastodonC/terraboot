@@ -28,8 +28,6 @@
             :update {:reboot-strategy "off"}}
    :write_files [{:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json"
                   :content "{}\n"}
-                 {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/cloudenv"
-                  :content (snippet "system-files/cloudenv")}
                  {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/mesos-master-provider"
                   :content (str "MESOS_CLUSTER=${cluster-name}\n")}
                  {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/exhibitor"
@@ -40,20 +38,23 @@
                   :content "${cluster-id}"
                   :permissions "0644"}
                  {:path "/etc/mesosphere/setup-flags/repository-url"
-                  :content "https://downloads.dcos.io/dcos/EarlyAccess"
+                  :content "https://downloads.dcos.io/dcos/stable"
                   :owner "root"
                   :permissions "0644"}
                  {:path "/etc/mesosphere/setup-flags/bootstrap-id"
-                  :content "BOOTSTRAP_ID=3a2b7e03c45cd615da8dfb1b103943894652cd71"
+                  :content "BOOTSTRAP_ID=5b4aa43610c57ee1d60b4aa0751a1fb75824c083"
                   :owner "root"
                   :permissions 420}
                  {:path "/etc/mesosphere/setup-flags/cluster-packages.json"
-                  :content "[\"dcos-config--setup_b9372277c9fedaca077d7638e6e445af062d1d86\", \"dcos-metadata--setup_b9372277c9fedaca077d7638e6e445af062d1d86\"]\n"
+                  :content "[\"dcos-config--setup_59db72c6fef6fbca04d7dce3f8dd46a39e24da0f\", \"dcos-metadata--setup_59db72c6fef6fbca04d7dce3f8dd46a39e24da0f\"]\n"
                   :owner "root"
                   :permissions 420}
                  {:path "/etc/systemd/journald.conf.d/dcos.conf"
-                  :content "[Journal]\nMaxLevelConsole=warning\n"
+                  :content (snippet "system-files/dcos.conf")
                   :owner "root"}
+                 {:path "/etc/rexray/config.yml"
+                  :content (snippet "system-files/rexray.conf")
+                  :permissions "0644"}
                  {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/adminrouter.env"
                   :content "ADMINROUTER_ACTIVATE_AUTH_MODULE=false"} ; OAUTH!
                  {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/ui-config.json"

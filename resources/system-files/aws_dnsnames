@@ -1,0 +1,2 @@
+INTERNAL_MASTER_LB_DNSNAME=${interal-lb-dns}
+MASTER_LB_DNSNAME=${internal-lb-dns}
