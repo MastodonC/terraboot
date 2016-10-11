@@ -308,6 +308,7 @@
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "master-security-group")})
 
              (apply (partial cluster-security-group "public-slave-elb" {}) public-slave-elb-sg)
+             (apply (partial cluster-security-group "public-apps-alb" {}) public-slave-elb-sg)
 
              (cluster-security-group "public-slave-security-group" {}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "master-security-group")}
@@ -475,9 +476,12 @@
                    :subnets public-subnets
                    :lifecycle {:create_before_destroy true}
                    :default-security-groups remote-default-sgs
-                   :alb [{:name "public-slaves"
+                   :alb [{:name "public-apps"
                           :listeners (map #(assoc % :account-number account-number) public-slave-alb-listeners)
-                          :subnets public-subnets}]
+                          :subnets public-subnets
+                          :security-groups (concat [(cluster-id-of "aws_security_group" "public-slave-elb")
+                                                    (remote-output-of "vpc" "sg-allow-http-https")]
+                                                   remote-default-sgs)}]
                    :elb [{:name "public-slaves"
                           :health_check {:healthy_threshold 2
                                          :unhealthy_threshold 2
