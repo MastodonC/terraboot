@@ -249,6 +249,7 @@
            public-slave-elb-listeners
            public-slave-elb-sg
            public-slave-elb-health
+           public-slave-alb-listeners
            account-number]}]
   (let [vpc-unique (vpc-unique-fn vpc-name)
         vpc-id-of (id-of-fn vpc-unique)
@@ -474,6 +475,9 @@
                    :subnets public-subnets
                    :lifecycle {:create_before_destroy true}
                    :default-security-groups remote-default-sgs
+                   :alb [{:name "public-slaves"
+                          :listeners (map #(assoc % :account-number account-number) public-slave-alb-listeners)
+                          :subnets public-subnets}]
                    :elb [{:name "public-slaves"
                           :health_check {:healthy_threshold 2
                                          :unhealthy_threshold 2
