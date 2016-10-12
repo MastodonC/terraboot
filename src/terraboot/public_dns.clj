@@ -33,10 +33,10 @@
         cluster-output-of (core/output-of-fn cluster-unique)]
     (utils/merge-in
      (route53-record (cluster-unique "deploy")
-                     {:alias {:name (cluster-output-of "aws_elb" "public-slaves" "dns_name")
-                              :zone_id (cluster-output-of "aws_elb" "public-slaves" "zone_id")
+                     {:alias {:name (cluster-output-of "aws_alb" "public-apps" "dns_name")
+                              :zone_id (cluster-output-of "aws_alb" "public-apps" "zone_id")
                               :evaluate_target_health true}})
      (route53-record cluster-identifier
-                     {:alias {:name (cluster-output-of "aws_elb" "public-slaves" "dns_name")
-                              :zone_id (cluster-output-of "aws_elb" "public-slaves" "zone_id")
+                     {:alias {:name (cluster-output-of "aws_alb" "public-apps" "dns_name")
+                              :zone_id (cluster-output-of "aws_alb" "public-apps" "zone_id")
                               :evaluate_target_health true}}))))
