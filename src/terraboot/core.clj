@@ -429,4 +429,4 @@
                       :endpoint (get s3-endpoints region)}}))
 
 (defn remote-output-of [module name]
-  (output-of (str "terraform_remote_state." module) "output" name))
+  (output-of "terraform_remote_state" module name))
