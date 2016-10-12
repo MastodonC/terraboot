@@ -242,6 +242,7 @@
            slave-instance-type
            min-number-of-public-slaves
            max-number-of-public-slaves
+           elb-azs
            public-slave-disk-allocation
            public-slave-instance-type
            subnet-cidr-blocks
@@ -262,6 +263,7 @@
         cluster-output-of (output-of-fn cluster-unique)
         private-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "private-" %)) azs)
         public-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "public-" %)) azs)
+        elb-subnets (mapv #(remote-output-of "vpc" (stringify "subnet-public-" % "-id")) elb-azs)
         elb-listener (account-elb-listener account-number)]
     (merge-in
      (remote-state region bucket profile "vpc")
@@ -419,7 +421,7 @@
                                          :target "HTTP:8181/exhibitor/v1/cluster/status"
                                          :timeout 5
                                          :interval 30}
-                          :subnets public-subnets
+                          :subnets elb-subnets
                           :internal true
                           :security-groups (concat (mapv #(cluster-id-of "aws_security_group" %)  ["lb-security-group"
                                                                                                    "admin-security-group"
@@ -478,7 +480,7 @@
                    :default-security-groups remote-default-sgs
                    :alb [{:name "public-apps"
                           :listeners (map #(assoc % :account-number account-number) public-slave-alb-listeners)
-                          :subnets public-subnets
+                          :subnets elb-subnets
                           :security-groups (concat [(cluster-id-of "aws_security_group" "public-slave-elb")
                                                     (remote-output-of "vpc" "sg-allow-http-https")]
                                                    remote-default-sgs)}]
@@ -489,7 +491,7 @@
                                          :timeout 5
                                          :interval 30}
                           :listeners (mapv elb-listener public-slave-elb-listeners)
-                          :subnets public-subnets
+                          :subnets elb-subnets
                           :security-groups (concat [(cluster-id-of "aws_security_group" "public-slave-elb")
                                                     (remote-output-of "vpc" "sg-allow-http-https")]
                                                    remote-default-sgs)}]})
