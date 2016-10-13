@@ -242,13 +242,13 @@
            slave-instance-type
            min-number-of-public-slaves
            max-number-of-public-slaves
+           elb-azs
            public-slave-disk-allocation
            public-slave-instance-type
            subnet-cidr-blocks
            mesos-ami
-           public-slave-elb-listeners
-           public-slave-elb-sg
-           public-slave-elb-health
+           public-slave-alb-listeners
+           public-slave-alb-sg
            account-number]}]
   (let [vpc-unique (vpc-unique-fn vpc-name)
         vpc-id-of (id-of-fn vpc-unique)
@@ -261,6 +261,7 @@
         cluster-output-of (output-of-fn cluster-unique)
         private-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "private-" %)) azs)
         public-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "public-" %)) azs)
+        elb-subnets (mapv #(remote-output-of "vpc" (stringify "subnet-public-" % "-id")) elb-azs)
         elb-listener (account-elb-listener account-number)]
     (merge-in
      (remote-state region bucket profile "vpc")
@@ -306,13 +307,13 @@
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "slave-security-group")}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "master-security-group")})
 
-             (apply (partial cluster-security-group "public-slave-elb" {}) public-slave-elb-sg)
+             (apply (partial cluster-security-group "public-slave-alb-sg" {}) public-slave-alb-sg)
 
              (cluster-security-group "public-slave-security-group" {}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "master-security-group")}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-security-group")}
                                      {:allow-all-sg (cluster-id-of "aws_security_group" "slave-security-group")}
-                                     {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-elb")}
+                                     {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-alb-sg")}
                                      {:port 5001
                                       :cidr_blocks [vpc-cidr-block]})
 
@@ -417,7 +418,7 @@
                                          :target "HTTP:8181/exhibitor/v1/cluster/status"
                                          :timeout 5
                                          :interval 30}
-                          :subnets public-subnets
+                          :subnets elb-subnets
                           :internal true
                           :security-groups (concat (mapv #(cluster-id-of "aws_security_group" %)  ["lb-security-group"
                                                                                                    "admin-security-group"
@@ -474,17 +475,13 @@
                    :subnets public-subnets
                    :lifecycle {:create_before_destroy true}
                    :default-security-groups remote-default-sgs
-                   :elb [{:name "public-slaves"
-                          :health_check {:healthy_threshold 2
-                                         :unhealthy_threshold 2
-                                         :target public-slave-elb-health
-                                         :timeout 5
-                                         :interval 30}
-                          :listeners (mapv elb-listener public-slave-elb-listeners)
-                          :subnets public-subnets
-                          :security-groups (concat [(cluster-id-of "aws_security_group" "public-slave-elb")
+                   :alb [{:name "public-apps"
+                          :listeners (map #(assoc % :account-number account-number) public-slave-alb-listeners)
+                          :subnets elb-subnets
+                          :security-groups (concat [(cluster-id-of "aws_security_group" "public-slave-alb-sg")
                                                     (remote-output-of "vpc" "sg-allow-http-https")]
-                                                   remote-default-sgs)}]})
+                                                   remote-default-sgs)}]
+                   :elb []})
 
              (cluster-resource "template_file" "slave-user-data"
                                {:template (mesos-slave-user-data)

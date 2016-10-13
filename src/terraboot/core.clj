@@ -71,7 +71,8 @@
            (map (comp (partial add-to-resources-if-present "aws_security_group")
                       (partial add-to-resources-if-present "aws_internet_gateway")
                       (partial add-to-resources-if-present "aws_subnet")
-                      (partial add-to-resources-if-present "aws_route_table")) resources))))
+                      (partial add-to-resources-if-present "aws_route_table")
+                      (partial add-to-resources-if-present "aws_alb_target_group")) resources))))
 
 (def json-options {:key-fn name :pretty true})
 
@@ -209,6 +210,55 @@
                                       :internal internal
                                       :tags {:Name name}})))
 
+(defn alb-target-group
+  [cluster-resource
+   {:keys [protocol port name health_check]}]
+  (cluster-resource "aws_alb_target_group" name
+                    {:name name
+                     :protocol protocol
+                     :port port
+                     :health_check (or health_check [])}))
+;; health_check https://www.terraform.io/docs/providers/aws/r/alb_target_group.html# sensible defaults
+
+(defn alb-listener
+  [name-fn {:keys [account-number protocol port alb-name name ssl-policy cert]}]
+  (let [cluster-resource (partial resource name-fn)
+        cluster-output-of (fn [type name output] (output-of type (name-fn name) output))
+        ssl-cert-arn (str "arn:aws:iam::" account-number ":server-certificate/" cert)
+        add-cert-if-present #(if cert (assoc % :certificate_arn ssl-cert-arn) %)
+        alb-arn (cluster-output-of "aws_alb" alb-name "arn")]
+    (cluster-resource "aws_alb_listener" name
+                      (add-cert-if-present {:load_balancer_arn alb-arn
+                                            :port port
+                                            :protocol protocol
+                                            :default_action {:target_group_arn (cluster-output-of "aws_alb_target_group" name "arn")
+                                                             :type "forward"}}))))
+
+(defn alb
+  [name-fn
+   {:keys [account-number
+           name
+           subnets
+           cluster-resource
+           listeners
+           security-groups]}]
+  (let [cluster-resource (partial resource name-fn)]
+    (merge-in
+     (cluster-resource "aws_alb" name
+                       {:name name
+                        :security_groups security-groups
+                        :subnets subnets})
+     (apply merge-in
+            (mapv #(alb-target-group
+                    cluster-resource
+                    (select-keys % [:name :port :protocol :health_check])) listeners))
+     (apply merge-in
+            (mapv #(alb-listener
+                    name-fn
+                    (merge {:account-number account-number
+                            :alb-name name}
+                           (select-keys % [:name :port :protocol :ssl-policy :cert]))) listeners)))))
+
 (defn asg [name
            name-fn
            {:keys [sgs
@@ -257,14 +307,16 @@
                             :health_check_grace_period (spec :health_check_grace_period)
                             :launch_configuration (cluster-output-of "aws_launch_configuration" name "name")
                             :lifecycle { :create_before_destroy true }
-                            :load_balancers (mapv #(cluster-output-of "aws_elb" (:name %) "name") (:elb spec))
-                            :tag {
-                                  :key "Name"
+                            :load_balancers (concat (mapv #(cluster-output-of "aws_elb" (:name %) "name") (:elb spec))
+                                                    (mapv #(cluster-output-of "aws_alb" (:name %) "name") (:alb spec)))
+                            :tag {:key "Name"
                                   :value (name-fn name)
                                   :propagate_at_launch true
                                   }}))]
+
     (merge-in asg-config
-              (apply merge-in (map #(elb (:name %) cluster-resource %) (spec :elb))))))
+              (apply merge-in (map #(elb (:name %) cluster-resource %) (spec :elb)))
+              (apply merge-in (map #(alb name-fn %) (spec :alb))))))
 
 (def default-assume-policy
   (to-json {"Statement" [{"Action" ["sts:AssumeRole"]
@@ -377,4 +429,4 @@
                       :endpoint (get s3-endpoints region)}}))
 
 (defn remote-output-of [module name]
-  (output-of (str "terraform_remote_state." module) "output" name))
+  (output-of "terraform_remote_state" module name))
