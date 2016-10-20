@@ -109,7 +109,7 @@
                                                 {:path "/etc/mesosphere/roles/aws"
                                                  :content ""}]})))
 
-(defn exhibitor-bucket-policy [bucket-name]
+(defn bucket-policy [bucket-name]
   (let [bucket-arn (arn-of "aws_s3_bucket" bucket-name)]
     (policy {"Action" ["s3:AbortMultipartUpload",
                        "s3:DeleteObject",
@@ -249,6 +249,7 @@
            mesos-ami
            public-slave-alb-listeners
            public-slave-alb-sg
+           application-policies
            account-number]}]
   (let [vpc-unique (vpc-unique-fn vpc-name)
         vpc-id-of (id-of-fn vpc-unique)
@@ -332,34 +333,32 @@
              (cluster-resource "aws_iam_user_policy" "mesos-user-policy-s3"
                                {:name "mesos-user-policy-s3"
                                 :user (cluster-id-of "aws_iam_user" "mesos-user")
-                                :policy (exhibitor-bucket-policy (cluster-unique "exhibitor-s3-bucket"))})
+                                :policy (bucket-policy (cluster-unique "exhibitor-s3-bucket"))})
              (cluster-resource "aws_iam_access_key" "host-key" {:user (cluster-id-of "aws_iam_user" "mesos-user")})
 
 
              (iam-role "master-role"
                        cluster-unique
                        {:name "master-s3"
-                        :policy (exhibitor-bucket-policy (cluster-unique "exhibitor-s3-bucket"))}
+                        :policy (bucket-policy (cluster-unique "exhibitor-s3-bucket"))}
                        {:name "master-auto-scaling-policy"
                         :policy auto-scaling-policy}                       )
 
 
-             (iam-role "slave-role"
-                       cluster-unique
-                       {:name "amazon-s3-policy"
-                        :policy full-amazon-s3-access}
-                       {:name "cloudwatch-policy"
-                        :policy cloudwatch-metrics-policy}
-                       {:name "slave-eip-policy"
-                        :policy (policy {"Action" ["ec2:AssociateAddress"]})}
-                       {:name "slave-cloudwatch-policy"
-                        :policy (policy { "Action" ["cloudwatch:GetMetricStatistics",
-                                                    "cloudwatch:ListMetrics",
-                                                    "cloudwatch:PutMetricData",
-                                                    "EC2:DescribeTags" ]
-                                         "Condition" {"Bool" { "aws:SecureTransport" "true"}}})}
-                       {:name "slave-email-policy"
-                        :policy send-email-policy})
+             (apply (partial iam-role "slave-role"
+                             cluster-unique)
+                    (concat [{:name "cloudwatch-policy"
+                              :policy cloudwatch-metrics-policy}
+                             {:name "slave-eip-policy"
+                              :policy (policy {"Action" ["ec2:AssociateAddress"]})}
+                             {:name "slave-cloudwatch-policy"
+                              :policy (policy { "Action" ["cloudwatch:GetMetricStatistics",
+                                                          "cloudwatch:ListMetrics",
+                                                          "cloudwatch:PutMetricData",
+                                                          "EC2:DescribeTags" ]
+                                               "Condition" {"Bool" { "aws:SecureTransport" "true"}}})}
+                             {:name "slave-email-policy"
+                              :policy send-email-policy}] application-policies))
 
 
              (cluster-resource "template_file" "master-user-data"

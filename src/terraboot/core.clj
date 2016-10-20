@@ -221,7 +221,7 @@
 ;; health_check https://www.terraform.io/docs/providers/aws/r/alb_target_group.html# sensible defaults
 
 (defn alb-listener
-  [name-fn {:keys [account-number protocol port alb-name name ssl-policy cert]}]
+  [name-fn {:keys [account-number protocol lb-port port alb-name name ssl-policy cert]}]
   (let [cluster-resource (partial resource name-fn)
         cluster-output-of (fn [type name output] (output-of type (name-fn name) output))
         ssl-cert-arn (str "arn:aws:iam::" account-number ":server-certificate/" cert)
@@ -229,7 +229,7 @@
         alb-arn (cluster-output-of "aws_alb" alb-name "arn")]
     (cluster-resource "aws_alb_listener" name
                       (add-cert-if-present {:load_balancer_arn alb-arn
-                                            :port port
+                                            :port (or lb-port port) ;; lb-port is optional
                                             :protocol protocol
                                             :default_action {:target_group_arn (cluster-output-of "aws_alb_target_group" name "arn")
                                                              :type "forward"}}))))
@@ -307,8 +307,8 @@
                             :health_check_grace_period (spec :health_check_grace_period)
                             :launch_configuration (cluster-output-of "aws_launch_configuration" name "name")
                             :lifecycle { :create_before_destroy true }
-                            :load_balancers (concat (mapv #(cluster-output-of "aws_elb" (:name %) "name") (:elb spec))
-                                                    (mapv #(cluster-output-of "aws_alb" (:name %) "name") (:alb spec)))
+                            :load_balancers (mapv #(cluster-output-of "aws_elb" (:name %) "name") (:elb spec))
+                            :target_group_arns (mapv #(cluster-output-of "aws_alb_target_group" (:name %) "arn") (:listeners (spec :alb)))
                             :tag {:key "Name"
                                   :value (name-fn name)
                                   :propagate_at_launch true
