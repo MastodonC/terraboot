@@ -27,7 +27,7 @@
                                                       :permissions "644"
                                                       :content (snippet "vpc-logstash/basic-patterns")}]}))
 
-(defn elasticsearch-cluster [name {:keys [vpc-name account-number region azs default-ami vpc-cidr-block] :as spec}]
+(defn elasticsearch-cluster [name {:keys [vpc-name account-number region azs default-ami vpc-cidr-block cert-name] :as spec}]
   ;; http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs
   ;; See for what instance-types and storage is possible
   (let [vpc-unique (vpc-unique-fn vpc-name)
@@ -121,7 +121,9 @@
                                                     :interval 30}
                                      :internal true
                                      :subnets (mapv #(id-of "aws_subnet" (stringify vpc-name "-public-" %)) azs)
-                                     :listeners [(elb-listener {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name "StartMastodoncNet"})]
+                                     :listeners [(elb-listener (if cert-name
+                                                                 {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name "StartMastodoncNet"}
+                                                                 {:port 80 :protocol "http"}))]
                                      :instances [(id-of "aws_instance" (vpc-unique "kibana"))]
                                      :security-groups (map #(id-of "aws_security_group" %)
                                                            ["allow_outbound"
@@ -151,7 +153,9 @@
                                                     :target "HTTP:80/"
                                                     :timeout 5
                                                     :interval 30}
-                                     :listeners [(elb-listener {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name "StartMastodoncNet"})]
+                                     :listeners [(elb-listener (if cert-name
+                                                                 {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name "StartMastodoncNet"}
+                                                                 {:port 80 :protocol "http"}))]
                                      :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
                                      :instances [(id-of "aws_instance" (vpc-unique "alerts"))]
                                      :security-groups (map #(id-of "aws_security_group" %)

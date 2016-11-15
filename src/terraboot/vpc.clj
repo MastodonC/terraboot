@@ -97,7 +97,8 @@
            azs
            subnet-cidr-blocks
            default-ami
-           vpc-cidr-block]} ]
+           vpc-cidr-block
+           cert-name]}]
   (let [vpc-unique (vpc-unique-fn vpc-name)
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (id-of-fn vpc-unique)
@@ -115,7 +116,8 @@
                                              :region region
                                              :azs azs
                                              :default-ami default-ami
-                                             :vpc-cidr-block vpc-cidr-block})
+                                             :vpc-cidr-block vpc-cidr-block
+                                             :cert-name cert-name})
 
      (in-vpc (id-of "aws_vpc" vpc-name)
              (aws-instance (vpc-unique "vpn") {
@@ -154,7 +156,9 @@
                                                      :target "HTTP:80/status"
                                                      :timeout 5
                                                      :interval 30}
-                                      :listeners [(elb-listener {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name "StartMastodoncNet"})]
+                                      :listeners [(elb-listener (if cert-name
+                                                                  {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name cert-name}
+                                                                  {:port 80 :protocol "http"}))]
                                       :instances [(id-of "aws_instance" "influxdb")]
                                       :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
                                       :security-groups (mapv #(id-of "aws_security_group" %) [(vpc-unique "all-servers")
