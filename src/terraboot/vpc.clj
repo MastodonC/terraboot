@@ -116,7 +116,8 @@
                                              :region region
                                              :azs azs
                                              :default-ami default-ami
-                                             :vpc-cidr-block vpc-cidr-block})
+                                             :vpc-cidr-block vpc-cidr-block
+                                             :cert-name cert-name})
 
      (in-vpc (id-of "aws_vpc" vpc-name)
              (aws-instance (vpc-unique "vpn") {
