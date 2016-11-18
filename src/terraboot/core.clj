@@ -24,6 +24,11 @@
 (defn arn-of [type name]
   (output-of type name "arn"))
 
+(defn data
+  [type name spec]
+  {:data
+   {type
+    {name spec}}})
 (defn resource
   ([type name spec]
    {:resource
@@ -419,14 +424,14 @@
    "sa-east-1"      "s3-sa-east-1.amazonaws.com"})
 
 (defn remote-state [region bucket profile name]
-  (resource "terraform_remote_state" name
-            {:backend "s3"
-             :config {:bucket bucket
-                      :profile profile
-                      :encrypt true
-                      :key (str name ".tfstate")
-                      :region region
-                      :endpoint (get s3-endpoints region)}}))
+  (data "terraform_remote_state" name
+        {:backend "s3"
+         :config {:bucket bucket
+                  :profile profile
+                  :encrypt true
+                  :key (str name ".tfstate")
+                  :region region
+                  :endpoint (get s3-endpoints region)}}))
 
 (defn remote-output-of [module name]
-  (output-of "terraform_remote_state" module name))
+  (clojure.string/join "." ["data"  "terraform_remote_state" module name]))
