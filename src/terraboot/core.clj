@@ -434,4 +434,4 @@
                   :endpoint (get s3-endpoints region)}}))
 
 (defn remote-output-of [module name]
-  (clojure.string/join "." ["data"  "terraform_remote_state" module name]))
+  (str "${" (clojure.string/join "." ["data"  "terraform_remote_state" module name]) "}"))
