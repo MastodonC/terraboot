@@ -25,10 +25,28 @@
   (output-of type name "arn"))
 
 (defn data
-  [type name spec]
-  {:data
-   {type
-    {name spec}}})
+  ([type name spec]
+   {:data
+    {type
+     {name spec}}})
+  ([name-fn type name spec]
+   (data type (name-fn name) (-> (if (:name spec)
+                                   (assoc spec :name (name-fn (:name spec)))
+                                   spec)
+                                 (#(if (get-in % [:tags :Name])
+                                     (assoc-in % [:tags :Name] (name-fn (get-in % [:tags :Name])))
+                                     %))))))
+
+(defn template-file
+  [name content vars]
+  (data "template_file" name
+        {:template content
+         :vars vars}))
+
+(defn rendered-template-file
+  [name]
+  (str "${" (clojure.string/join "." ["data" "template_file" name "rendered"]) "}"))
+
 (defn resource
   ([type name spec]
    {:resource

@@ -87,9 +87,9 @@
 
              (vpc-security-group "sends_logstash" {})
 
-             (vpc-resource "template_file" "logstash-user-data"
-                           {:template logstash-user-data
-                            :vars {:es-dns (vpc-output-of "aws_elasticsearch_domain" name "endpoint")}})
+             (template-file (vpc-unique "logstash-user-data")
+                            logstash-user-data
+                            {:es-dns (vpc-output-of "aws_elasticsearch_domain" name "endpoint")})
 
              (aws-instance (vpc-unique "logstash") {:ami default-ami
                                                     :instance_type "m4.large"
@@ -98,7 +98,7 @@
                                                                              (vpc-id-of "aws_security_group" "sends_influx")
                                                                              (vpc-id-of "aws_security_group" "all-servers")
                                                                              ]
-                                                    :user_data logstash-user-data
+                                                    :user_data (rendered-template-file (vpc-unique "logstash-user-data"))
                                                     :associate_public_ip_address true
                                                     :subnet_id (vpc-id-of "aws_subnet" "public-a")
                                                     })
