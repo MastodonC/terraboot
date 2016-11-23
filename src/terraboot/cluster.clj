@@ -184,32 +184,6 @@
   [listeners]
   (mapv #(assoc {} :port (or (:port %) (:lb_port %)) :cidr_blocks [all-external]) listeners))
 
-(defn test-template
-  []
-  (merge-in
-   (data "template_file" "test_template"
-         {:template (mesos-slave-user-data)
-          :vars {:aws-region "eu-central-1"
-                 :cluster-name "sandpit"
-                 :cluster-id "sandpit-staging"
-                 :server-group "sandpit-staging-masters"
-                 :master-role "sandpit-staging-master-role"
-                 :slave-role "sandpit-staging-slave-role"
-                 :aws-access-key "host-key"
-                 :aws-secret-access-key "secret-key"
-                 :exhibitor-s3-bucket "sandpit-staging-exhibitor-s3-bucket"
-                 :internal-lb-dns "elb.dns.name"
-                 :fallback-dns "172.20.0.2"
-                 :number-of-masters 3
-                 :influxdb-dns "influxdb.sandpit-vpc.kixi"
-                 :mesos-dns "127.0.0.1"
-                 :alerts-server "alerts.sandpit-vpc.kixi"
-                 :logstash-ip "172.20.4.48"
-                 :logstash-dns "logstash.sandpit-vpc.kixi"}})
-   (resource "null_resource" "test-template-out"
-             {:provisioner [{"local-exec" {:command "echo '${data.template_file.test_template.rendered}' > ~/template"}}]}))
-  )
-
 (defn cluster-infra
   [{:keys [vpc-name
            region
