@@ -15,4 +15,4 @@ fields:
 
 output:
   logstash:
-    hosts: ["${logstash-ip}:9200"]
+    hosts: ["$${logstash-dns}:9200"]

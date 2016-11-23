@@ -29,13 +29,13 @@
    :write_files [{:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json"
                   :content "{}\n"}
                  {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/mesos-master-provider"
-                  :content (str "MESOS_CLUSTER=${cluster-name}\n")}
+                  :content (str "MESOS_CLUSTER=$${cluster-name}\n")}
                  {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/exhibitor"
                   :content (snippet "system-files/exhibitor")}
                  {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/dns_config"
                   :content (snippet "system-files/dns_config")}
                  {:path "/etc/mesosphere/cluster-id"
-                  :content "${cluster-id}"
+                  :content "$${cluster-id}"
                   :permissions "0644"}
                  {:path "/etc/mesosphere/setup-flags/repository-url"
                   :content "https://downloads.dcos.io/dcos/stable"
@@ -183,6 +183,32 @@
 (defn open-elb-ports
   [listeners]
   (mapv #(assoc {} :port (or (:port %) (:lb_port %)) :cidr_blocks [all-external]) listeners))
+
+(defn test-template
+  []
+  (merge-in
+   (data "template_file" "test_template"
+         {:template (mesos-slave-user-data)
+          :vars {:aws-region "eu-central-1"
+                 :cluster-name "sandpit"
+                 :cluster-id "sandpit-staging"
+                 :server-group "sandpit-staging-masters"
+                 :master-role "sandpit-staging-master-role"
+                 :slave-role "sandpit-staging-slave-role"
+                 :aws-access-key "host-key"
+                 :aws-secret-access-key "secret-key"
+                 :exhibitor-s3-bucket "sandpit-staging-exhibitor-s3-bucket"
+                 :internal-lb-dns "elb.dns.name"
+                 :fallback-dns "172.20.0.2"
+                 :number-of-masters 3
+                 :influxdb-dns "influxdb.sandpit-vpc.kixi"
+                 :mesos-dns "127.0.0.1"
+                 :alerts-server "alerts.sandpit-vpc.kixi"
+                 :logstash-ip "172.20.4.48"
+                 :logstash-dns "logstash.sandpit-vpc.kixi"}})
+   (resource "null_resource" "test-template-out"
+             {:provisioner [{"local-exec" {:command "echo '${data.template_file.test_template.rendered}' > ~/template"}}]}))
+  )
 
 (defn cluster-infra
   [{:keys [vpc-name
@@ -337,7 +363,8 @@
                              :number-of-masters min-number-of-masters
                              :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                              :mesos-dns "127.0.0.1"
-                             :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))})
+                             :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
+                             :logstash-dns (str "logstash." (vpc/vpc-dns-zone vpc-name))})
 
              (asg "masters"
                   cluster-unique
@@ -379,8 +406,7 @@
                           :security-groups (concat (mapv #(cluster-id-of "aws_security_group" %)  ["lb-security-group"
                                                                                                    "admin-security-group"
                                                                                                    "master-security-group"])
-                                                   remote-default-sgs)
-                          }]})
+                                                   remote-default-sgs)}]})
 
              (template-file (cluster-unique "public-slave-user-data")
                             (mesos-public-slave-user-data)
@@ -399,7 +425,8 @@
                              :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                              :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                              :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
-                             :logstash-ip (remote-output-of "vpc" "logstash-ip")})
+                             :logstash-ip (remote-output-of "vpc" "logstash-ip")
+                             :logstash-dns (str "logstash." (vpc/vpc-dns-zone vpc-name))})
 
              (vpc/private_route53_record (str cluster-name "-masters") vpc-name
                                          {:zone_id (remote-output-of "vpc" "private-dns-zone")
@@ -455,7 +482,8 @@
                              :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                              :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                              :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
-                             :logstash-ip (remote-output-of "vpc" "logstash-ip")})
+                             :logstash-ip (remote-output-of "vpc" "logstash-ip")
+                             :logstash-dns (str "logstash." (vpc/vpc-dns-zone vpc-name))})
 
              (asg "slaves"
                   cluster-unique
