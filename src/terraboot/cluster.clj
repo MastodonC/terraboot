@@ -29,13 +29,13 @@
    :write_files [{:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json"
                   :content "{}\n"}
                  {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/mesos-master-provider"
-                  :content (str "MESOS_CLUSTER=${cluster-name}\n")}
+                  :content (str "MESOS_CLUSTER=$${cluster-name}\n")}
                  {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/exhibitor"
                   :content (snippet "system-files/exhibitor")}
                  {:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/etc/dns_config"
                   :content (snippet "system-files/dns_config")}
                  {:path "/etc/mesosphere/cluster-id"
-                  :content "${cluster-id}"
+                  :content "$${cluster-id}"
                   :permissions "0644"}
                  {:path "/etc/mesosphere/setup-flags/repository-url"
                   :content "https://downloads.dcos.io/dcos/stable"
@@ -158,46 +158,6 @@
                                       (merge-in spec)
                                       (update-in [:vpc_security_group_ids] concat default-vpc-sgs)))))
 
-
-(defn local-deploy-scripts [{:keys [cluster-name
-                                    internal-lb
-                                    name-fn
-                                    min-number-of-slaves]}]
-  (let [cluster-resource (partial resource name-fn)
-        cluster-output-of (fn [type name & values] (apply (partial output-of type (name-fn name)) values))
-        directory-name (str "~/" cluster-name)
-        dump-local-file (fn [content file-name] (str "mkdir -p " directory-name "; echo '" content "' > " directory-name "/" file-name))
-        make-executable (fn [file-name] (str "chmod +x " directory-name "/" file-name))]
-    ;; local resources: easy customized local access to the cluster
-    (merge-in
-     (cluster-resource "template_file" "cassandra_deploy"
-                       {:template (snippet "local-exec/cassandra-production.json")
-                        :vars {:cassandra_node_count min-number-of-slaves
-                               :cassandra_seed_count (max (quot min-number-of-slaves 3) 1)}
-                        :provisioner {"local-exec" {"cassandra-marathon"
-                                                    {:command (dump-local-file (cluster-output-of "template_file" "cassandra_deploy" "rendered") (str "cassandra-marathon.json"))}}}})
-
-     (cluster-resource "template_file" "deploy-sh"
-                       {:template (snippet "local-exec/deploy.sh")
-                        :vars {:internal-lb internal-lb
-                               :cluster-name cluster-name}
-                        :provisioner {"local-exec" {"deploy-sh"
-                                                    {:command (str (dump-local-file (cluster-output-of "template_file" "deploy-sh" "rendered") "deploy.sh") ";"
-                                                                   (make-executable "deploy.sh"))}}}})
-
-     (cluster-resource "template_file" "dcos-cli-install"
-                       {:template (snippet "local-exec/dcos-cli-install.sh")
-                        :vars {:internal-lb internal-lb}
-                        :provisioner {"local-exec" {"dcos-cli-install"
-                                                    {:command (str (dump-local-file (cluster-output-of "template_file" "dcos-cli-install" "rendered") "dcos-cli-install.sh") ";"
-                                                                   (make-executable "dcos-cli-install.sh"))}}}})
-
-     (cluster-resource "template_file" "open-mesos-admin"
-                       {:template (str "open http://" internal-lb)
-                        :provisioner {"local-exec" {"open-mesos-admin"
-                                                    {:command (str (dump-local-file (cluster-output-of "template_file" "open-mesos-admin" "rendered") "open-mesos-admin.sh") ";"
-                                                                   (make-executable "open-mesos-admin.sh"))}}}}
-                       ))))
 
 (defn logstash-user-data []
   (cloud-config {:package_update true
@@ -361,26 +321,24 @@
                               :policy send-email-policy}] application-policies))
 
 
-             (cluster-resource "template_file" "master-user-data"
-                               {:template (mesos-master-user-data)
-                                :vars {:aws-region region
-                                       :cluster-name cluster-name
-                                       :cluster-id cluster-identifier
-                                       :server-group (cluster-unique "masters")
-                                       :master-role (cluster-id-of "aws_iam_role" "master-role")
-                                       :slave-role (cluster-id-of "aws_iam_role" "slave-role")
-                                       :aws-access-key (cluster-id-of "aws_iam_access_key" "host-key")
-                                       :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
-                                       :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
-                                       :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                                       :fallback-dns (vpc/fallback-dns vpc-cidr-block)
-                                       :number-of-masters min-number-of-masters
-                                       :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
-                                       :mesos-dns "127.0.0.1"
-                                       :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))}
-                                :lifecycle { :create_before_destroy true }
-                                })
-
+             (template-file (cluster-unique "master-user-data")
+                            (mesos-master-user-data)
+                            {:aws-region region
+                             :cluster-name cluster-name
+                             :cluster-id cluster-identifier
+                             :server-group (cluster-unique "masters")
+                             :master-role (cluster-id-of "aws_iam_role" "master-role")
+                             :slave-role (cluster-id-of "aws_iam_role" "slave-role")
+                             :aws-access-key (cluster-id-of "aws_iam_access_key" "host-key")
+                             :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
+                             :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
+                             :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
+                             :fallback-dns (vpc/fallback-dns vpc-cidr-block)
+                             :number-of-masters min-number-of-masters
+                             :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
+                             :mesos-dns "127.0.0.1"
+                             :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
+                             :logstash-dns (str "logstash." (vpc/vpc-dns-zone vpc-name))})
 
              (asg "masters"
                   cluster-unique
@@ -397,7 +355,7 @@
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
                           :Value "mesos-master"}
-                   :user_data (cluster-output-of "template_file" "master-user-data" "rendered")
+                   :user_data (rendered-template-file (cluster-unique "master-user-data"))
                    :max_size max-number-of-masters
                    :min_size min-number-of-masters
                    :health_check_type "EC2"
@@ -422,28 +380,27 @@
                           :security-groups (concat (mapv #(cluster-id-of "aws_security_group" %)  ["lb-security-group"
                                                                                                    "admin-security-group"
                                                                                                    "master-security-group"])
-                                                   remote-default-sgs)
-                          }]})
+                                                   remote-default-sgs)}]})
 
-             (cluster-resource "template_file" "public-slave-user-data"
-                               {:template (mesos-public-slave-user-data)
-                                :vars {:aws-region region
-                                       :cluster-name cluster-name
-                                       :cluster-id cluster-identifier
-                                       :server-group (cluster-unique "public-slaves")
-                                       :master-role (cluster-id-of "aws_iam_role" "master-role")
-                                       :slave-role (cluster-id-of "aws_iam_role" "slave-role")
-                                       :aws-access-key (cluster-id-of "aws_iam_access_key" "host-key")
-                                       :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
-                                       :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
-                                       :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                                       :fallback-dns (vpc/fallback-dns vpc-cidr-block)
-                                       :number-of-masters min-number-of-masters
-                                       :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
-                                       :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                                       :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
-                                       :logstash-ip (remote-output-of "vpc" "logstash-ip")}
-                                :lifecycle { :create_before_destroy true }})
+             (template-file (cluster-unique "public-slave-user-data")
+                            (mesos-public-slave-user-data)
+                            {:aws-region region
+                             :cluster-name cluster-name
+                             :cluster-id cluster-identifier
+                             :server-group (cluster-unique "public-slaves")
+                             :master-role (cluster-id-of "aws_iam_role" "master-role")
+                             :slave-role (cluster-id-of "aws_iam_role" "slave-role")
+                             :aws-access-key (cluster-id-of "aws_iam_access_key" "host-key")
+                             :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
+                             :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
+                             :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
+                             :fallback-dns (vpc/fallback-dns vpc-cidr-block)
+                             :number-of-masters min-number-of-masters
+                             :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
+                             :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
+                             :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
+                             :logstash-ip (remote-output-of "vpc" "logstash-ip")
+                             :logstash-dns (str "logstash." (vpc/vpc-dns-zone vpc-name))})
 
              (vpc/private_route53_record (str cluster-name "-masters") vpc-name
                                          {:zone_id (remote-output-of "vpc" "private-dns-zone")
@@ -465,7 +422,7 @@
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
                           :Value "mesos-slave"}
-                   :user_data (cluster-output-of "template_file" "public-slave-user-data" "rendered")
+                   :user_data (rendered-template-file (cluster-unique "public-slave-user-data"))
                    :root_block_device_size public-slave-disk-allocation
                    :max_size max-number-of-public-slaves
                    :min_size min-number-of-public-slaves
@@ -482,26 +439,25 @@
                                                    remote-default-sgs)}]
                    :elb []})
 
-             (cluster-resource "template_file" "slave-user-data"
-                               {:template (mesos-slave-user-data)
-                                :vars {:aws-region region
-                                       :cluster-name cluster-name
-                                       :cluster-id cluster-identifier
-                                       :server-group (cluster-unique "slaves")
-                                       :master-role (cluster-id-of "aws_iam_role" "master-role")
-                                       :slave-role (cluster-id-of "aws_iam_role" "slave-role")
-                                       :aws-access-key (cluster-id-of "aws_iam_access_key" "host-key")
-                                       :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
-                                       :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
-                                       :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                                       :fallback-dns (vpc/fallback-dns vpc-cidr-block)
-                                       :number-of-masters min-number-of-masters
-                                       :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
-                                       :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                                       :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
-                                       :logstash-ip (remote-output-of "vpc" "logstash-ip")}
-                                :lifecycle { :create_before_destroy true }})
-
+             (template-file (cluster-unique "slave-user-data")
+                            (mesos-slave-user-data)
+                            {:aws-region region
+                             :cluster-name cluster-name
+                             :cluster-id cluster-identifier
+                             :server-group (cluster-unique "slaves")
+                             :master-role (cluster-id-of "aws_iam_role" "master-role")
+                             :slave-role (cluster-id-of "aws_iam_role" "slave-role")
+                             :aws-access-key (cluster-id-of "aws_iam_access_key" "host-key")
+                             :aws-secret-access-key (cluster-output-of "aws_iam_access_key" "host-key" "secret")
+                             :exhibitor-s3-bucket (cluster-unique "exhibitor-s3-bucket")
+                             :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
+                             :fallback-dns (vpc/fallback-dns vpc-cidr-block)
+                             :number-of-masters min-number-of-masters
+                             :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
+                             :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
+                             :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
+                             :logstash-ip (remote-output-of "vpc" "logstash-ip")
+                             :logstash-dns (str "logstash." (vpc/vpc-dns-zone vpc-name))})
 
              (asg "slaves"
                   cluster-unique
@@ -516,7 +472,7 @@
                    :tags {:Key "role"
                           :PropagateAtLaunch "true"
                           :Value "mesos-slave"}
-                   :user_data  (cluster-output-of "template_file" "slave-user-data" "rendered")
+                   :user_data (rendered-template-file (cluster-unique "slave-user-data"))
                    :root_block_device_size slave-disk-allocation
                    :max_size max-number-of-slaves
                    :min_size min-number-of-slaves
@@ -525,10 +481,4 @@
                    :subnets private-subnets
                    :lifecycle {:create_before_destroy true}
                    :elb []
-                   })
-
-
-             (local-deploy-scripts {:cluster-name cluster-name
-                                    :name-fn cluster-unique
-                                    :min-number-of-slaves min-number-of-slaves
-                                    :internal-lb (cluster-output-of "aws_elb" "internal-lb" "dns_name")})))))
+                   })))))

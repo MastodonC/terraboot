@@ -6,5 +6,5 @@ After=docker.service
 User=core
 TimeoutStartSec=15
 ExecStartPre=-/usr/bin/docker pull mabitt/nrpe-server
-ExecStart=/usr/bin/docker run --detach=false --name nrpe-server -p 5666:5666 -e "NAGIOS_SERVER=${alerts-server}" mabitt/nrpe-server
+ExecStart=/usr/bin/docker run --detach=false --name nrpe-server -p 5666:5666 -e "NAGIOS_SERVER=$${alerts-server}" mabitt/nrpe-server
 ExecStop=-/usr/bin/docker stop -t nrpe-server; /usr/bin/docker rm -f nrpe-server
