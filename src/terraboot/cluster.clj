@@ -109,8 +109,9 @@
                                                 {:path "/etc/mesosphere/roles/aws"
                                                  :content ""}]})))
 
+;; arn:aws:s3:::my_corporate_bucket/exampleobject.png
 (defn bucket-policy [bucket-name]
-  (let [bucket-arn (arn-of "aws_s3_bucket" bucket-name)]
+  (let [bucket-arn (str "arn:aws:s3:::" bucket-name)]
     (policy {"Action" ["s3:AbortMultipartUpload",
                        "s3:DeleteObject",
                        "s3:GetBucketAcl",
@@ -210,6 +211,9 @@
            public-slave-alb-listeners
            public-slave-alb-sg
            application-policies
+           slave-alb-listeners
+           slave-alb-sg
+           slave-sg
            account-number]}]
   (let [vpc-unique (vpc-unique-fn vpc-name)
         vpc-id-of (id-of-fn vpc-unique)
@@ -222,7 +226,9 @@
         cluster-output-of (output-of-fn cluster-unique)
         private-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "private-" %)) azs)
         public-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "public-" %)) azs)
+        ;; these subnets are both slightly artificial hacks to put different azs under load balancers
         elb-subnets (mapv #(remote-output-of "vpc" (stringify "subnet-public-" % "-id")) elb-azs)
+        elb-private-subnets (mapv #(remote-output-of "vpc" (stringify "subnet-private-" % "-id")) elb-azs)
         elb-listener (account-elb-listener account-number)]
     (merge-in
      (remote-state region bucket profile "vpc")
@@ -278,12 +284,14 @@
                                      {:port 5001
                                       :cidr_blocks [vpc-cidr-block]})
 
-             (cluster-security-group "slave-security-group" {}
-                                     {:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-security-group")}
-                                     {:allow-all-sg (cluster-id-of "aws_security_group" "slave-security-group")}
-                                     {:allow-all-sg (cluster-id-of "aws_security_group" "master-security-group")}
-                                     {:port 2181
-                                      :source_security_group_id (cluster-id-of "aws_security_group" "lb-security-group")})
+             (apply (partial cluster-security-group "slave-alb-sg" {}) slave-alb-sg)
+             (apply (partial cluster-security-group "slave-security-group" {})
+                    (concat [{:allow-all-sg (cluster-id-of "aws_security_group" "public-slave-security-group")}
+                             {:allow-all-sg (cluster-id-of "aws_security_group" "slave-security-group")}
+                             {:allow-all-sg (cluster-id-of "aws_security_group" "master-security-group")}
+                             {:port 2181
+                              :source_security_group_id (cluster-id-of "aws_security_group" "lb-security-group")}]
+                            (or slave-sg [])))
 
              (cluster-resource "aws_s3_bucket" "exhibitor-s3-bucket" {:bucket (cluster-unique "exhibitor-s3-bucket")
                                                                       :force_destroy true})
@@ -365,14 +373,11 @@
                    :lifecycle {:create_before_destroy true}
                    :elb [{:name "internal-lb"
                           :listeners [(elb-listener {:port 80 :protocol "HTTP"})
-                                      (elb-listener {:port 5050 :protocol "HTTP"})
                                       (elb-listener {:port 2181 :protocol "TCP"})
-                                      (elb-listener {:port 8181 :protocol "HTTP"})
-                                      (elb-listener {:port 8080 :protocol "HTTP"})
                                       (elb-listener {:port 53 :protocol "TCP"})]
                           :health_check {:healthy_threshold 2
                                          :unhealthy_threshold 3
-                                         :target "HTTP:8181/exhibitor/v1/cluster/status"
+                                         :target "HTTP:80/exhibitor/exhibitor/v1/cluster/status"
                                          :timeout 5
                                          :interval 30}
                           :subnets elb-subnets
@@ -481,4 +486,14 @@
                    :subnets private-subnets
                    :lifecycle {:create_before_destroy true}
                    :elb []
-                   })))))
+                   :alb [{:name "internal-tasks"
+                          :internal true
+                          :listeners (map #(assoc % :account-number account-number) slave-alb-listeners)
+                          :subnets elb-private-subnets
+                          :security-groups (concat [(cluster-id-of "aws_security_group" "slave-alb-sg")]
+                                                   remote-default-sgs)}] })
+             (vpc/private_route53_record (str cluster-name "-slaves") vpc-name
+                                         {:zone_id (remote-output-of "vpc" "private-dns-zone")
+                                          :alias {:name (cluster-output-of "aws_alb" "internal-tasks" "dns_name")
+                                                  :zone_id (cluster-output-of "aws_alb" "internal-tasks" "zone_id")
+                                                  :evaluate_target_health true}})))))
