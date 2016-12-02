@@ -211,7 +211,7 @@
            public-slave-alb-listeners
            public-slave-alb-sg
            application-policies
-           slave-internal-alb-listeners
+           slave-alb-listeners
            slave-alb-sg
            slave-sg
            account-number]}]
@@ -488,7 +488,7 @@
                    :elb []
                    :alb [{:name "internal-tasks"
                           :internal true
-                          :listeners (map #(assoc % :account-number account-number) slave-internal-alb-listeners)
+                          :listeners (map #(assoc % :account-number account-number) slave-alb-listeners)
                           :subnets elb-private-subnets
                           :security-groups (concat [(cluster-id-of "aws_security_group" "slave-alb-sg")]
                                                    remote-default-sgs)}] })
