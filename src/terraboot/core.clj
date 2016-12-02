@@ -262,6 +262,7 @@
    {:keys [account-number
            name
            subnets
+           internal
            cluster-resource
            listeners
            security-groups]}]
@@ -269,6 +270,7 @@
     (merge-in
      (cluster-resource "aws_alb" name
                        {:name name
+                        :internal (or internal false)
                         :security_groups security-groups
                         :subnets subnets})
      (apply merge-in
