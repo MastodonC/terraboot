@@ -365,14 +365,11 @@
                    :lifecycle {:create_before_destroy true}
                    :elb [{:name "internal-lb"
                           :listeners [(elb-listener {:port 80 :protocol "HTTP"})
-                                      (elb-listener {:port 5050 :protocol "HTTP"})
                                       (elb-listener {:port 2181 :protocol "TCP"})
-                                      (elb-listener {:port 8181 :protocol "HTTP"})
-                                      (elb-listener {:port 8080 :protocol "HTTP"})
                                       (elb-listener {:port 53 :protocol "TCP"})]
                           :health_check {:healthy_threshold 2
                                          :unhealthy_threshold 3
-                                         :target "HTTP:8181/exhibitor/v1/cluster/status"
+                                         :target "HTTP:80/exhibitor/exhibitor/v1/cluster/status"
                                          :timeout 5
                                          :interval 30}
                           :subnets elb-subnets
