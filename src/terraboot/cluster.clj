@@ -226,7 +226,9 @@
         cluster-output-of (output-of-fn cluster-unique)
         private-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "private-" %)) azs)
         public-subnets (mapv #(cluster-id-of "aws_subnet" (stringify "public-" %)) azs)
+        ;; these subnets are both slightly artificial hacks to put different azs under load balancers
         elb-subnets (mapv #(remote-output-of "vpc" (stringify "subnet-public-" % "-id")) elb-azs)
+        elb-private-subnets (mapv #(remote-output-of "vpc" (stringify "subnet-private-" % "-id")) elb-azs)
         elb-listener (account-elb-listener account-number)]
     (merge-in
      (remote-state region bucket profile "vpc")
@@ -487,7 +489,7 @@
                    :alb [{:name "internal-tasks"
                           :internal true
                           :listeners (map #(assoc % :account-number account-number) slave-internal-alb-listeners)
-                          :subnets private-subnets
+                          :subnets elb-private-subnets
                           :security-groups (concat [(cluster-id-of "aws_security_group" "slave-alb-sg")]
                                                    remote-default-sgs)}] })
              (vpc/private_route53_record (str cluster-name "-slaves") vpc-name
