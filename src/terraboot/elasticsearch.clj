@@ -27,6 +27,21 @@
                                                       :permissions "644"
                                                       :content (snippet "vpc-logstash/basic-patterns")}]}))
 
+(defn elasticsearch-policy
+  []
+  (json/generate-string {"Version" "2012-10-17",
+                         "Statement" [{"Action" "es:*",
+                                       "Principal" "*",
+                                       "Resource" "$${es-arn}",
+                                       ;; There is currently a bug which means 'Resource' needs adding after the
+                                       ;; cluster is created or it will constantly say it needs to change.
+                                       ;; https://github.com/hashicorp/terraform/issues/5067
+                                       "Effect" "Allow",
+                                       "Condition"
+                                       {
+                                        "IpAddress"
+                                        {"aws:SourceIp" "$${allowed-ips}"}}}]}))
+
 (defn elasticsearch-cluster [name {:keys [vpc-name account-number region azs default-ami vpc-cidr-block cert-name] :as spec}]
   ;; http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs
   ;; See for what instance-types and storage is possible
@@ -35,26 +50,20 @@
         vpc-id-of (id-of-fn vpc-unique)
         vpc-output-of (output-of-fn vpc-unique)
         vpc-security-group (partial scoped-security-group vpc-unique)
-        elb-listener (account-elb-listener account-number)]
+        elb-listener (account-elb-listener account-number
+                                           )]
     (merge-in
+     (template-file (vpc-unique "elasticearch-policy")
+                    {:es-arn (str "arn:aws:es:" region ":" account-number ":domain/" vpc-name "-elasticsearch/*"),
+                     :allowed-ips  (concat
+                                    (mapv #(vpc-output-of "aws_eip" (stringify "public-" % "-nat") "public_ip") azs)
+                                    [(vpc-output-of "aws_eip" "logstash" "public_ip")])})
+
      (vpc-resource "aws_elasticsearch_domain" name
                    {:domain_name (vpc-unique name)
                     :advanced_options { "rest.action.multi.allow_explicit_index" true}
-                    :access_policies (json/generate-string {"Version" "2012-10-17",
-                                                            "Statement" [{"Action" "es:*",
-                                                                          "Principal" "*",
-                                                                          "Resource" (str "arn:aws:es:" region ":" account-number ":domain/" vpc-name "-elasticsearch/*"),
-                                                                          ;; There is currently a bug which means 'Resource' needs adding after the
-                                                                          ;; cluster is created or it will constantly say it needs to change.
-                                                                          ;; https://github.com/hashicorp/terraform/issues/5067
-                                                                          "Effect" "Allow",
-                                                                          "Condition"
-                                                                          {
-                                                                           "IpAddress"
-                                                                           {"aws:SourceIp" (concat
-                                                                                            (mapv #(vpc-output-of "aws_eip" (stringify "public-" % "-nat") "public_ip") azs)
-                                                                                            [(vpc-output-of "aws_eip" "logstash" "public_ip")])
-                                                                            }}}]})
+                    :access_policies (rendered-template-file (vpc-unique "elasticsearch-policy"))
+
                     :cluster_config {:instance_count 2,
                                      :instance_type "t2.small.elasticsearch"}
                     :ebs_options {:ebs_enabled true,
