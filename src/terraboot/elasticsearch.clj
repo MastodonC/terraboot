@@ -7,9 +7,9 @@
 (def logstash-user-data (cloud-config {:package_update true
                                        :bootcmd ["echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections"
                                                  "wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -" ]
-                                       :apt_mirror [{:source "deb ppa:webupd8team/java"}
-                                                    {:source "deb http://packages.elastic.co/logstash/2.3/debian stable main"
-                                                     :key (snippet "system-files/elasticsearch-apt.pem")                                                      }]
+                                       :apt_sources [{:source "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main"}
+                                                     {:source "deb http://packages.elastic.co/logstash/2.3/debian stable main"
+                                                      :key (snippet "system-files/elasticsearch-apt.pem")}]
                                        :packages ["oracle-java8-installer"
                                                   "oracle-java8-set-default"
                                                   "logstash"]
@@ -40,7 +40,7 @@
                                        "Condition"
                                        {
                                         "IpAddress"
-                                        {"aws:SourceIp" "$${allowed-ips}"}}}]}))
+                                        {"aws:SourceIp" ["$${allowed-ips}"]}}}]}))
 
 (defn elasticsearch-cluster [name {:keys [vpc-name account-number region azs default-ami vpc-cidr-block cert-name] :as spec}]
   ;; http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs
@@ -54,15 +54,14 @@
                                            )]
     (merge-in
      (template-file (vpc-unique "elasticearch-policy")
-                    {:es-arn (str "arn:aws:es:" region ":" account-number ":domain/" vpc-name "-elasticsearch/*"),
-                     :allowed-ips  (concat
-                                    (mapv #(vpc-output-of "aws_eip" (stringify "public-" % "-nat") "public_ip") azs)
-                                    [(vpc-output-of "aws_eip" "logstash" "public_ip")])})
+                    (elasticsearch-policy)
+                    {:es-arn (str "arn:aws:es:" region ":" account-number ":domain/" vpc-name "-elasticsearch/*")
+                     :allowed-ips  (vpc-output-of "aws_eip" "logstash" "public_ip")})
 
      (vpc-resource "aws_elasticsearch_domain" name
                    {:domain_name (vpc-unique name)
                     :advanced_options { "rest.action.multi.allow_explicit_index" true}
-                    :access_policies (rendered-template-file (vpc-unique "elasticsearch-policy"))
+                    :access_policies ""#_(rendered-template-file (vpc-unique "elasticsearch-policy"))
 
                     :cluster_config {:instance_count 2,
                                      :instance_type "t2.small.elasticsearch"}
