@@ -374,6 +374,7 @@
                    :elb [{:name "internal-lb"
                           :listeners [(elb-listener {:port 80 :protocol "HTTP"})
                                       (elb-listener {:port 2181 :protocol "TCP"})
+                                      (elb-listener {:port 8181 :protocol "TCP"})
                                       (elb-listener {:port 53 :protocol "TCP"})]
                           :health_check {:healthy_threshold 2
                                          :unhealthy_threshold 3

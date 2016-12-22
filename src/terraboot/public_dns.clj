@@ -17,7 +17,7 @@
   (let [route53-record (partial public-route53-record dns-zone dns-zone-id)
         vpc-output-of (core/output-of-fn (core/vpc-unique-fn vpc-name))]
     (utils/merge-in
-     (route53-record "vpn" {:records [(vpc-output-of "aws_instance" "vpn" "public_ip")]})
+     (route53-record "vpn" {:records [(vpc-output-of "aws_eip" "vpn" "public_ip")]})
      (route53-record "logstash" {:records [(vpc-output-of "aws_eip" "logstash" "public_ip")]})
      (route53-record "grafana" {:type "CNAME"
                                 :records [(core/output-of "aws_elb" "grafana" "dns_name")]})
