@@ -7,7 +7,7 @@
 (def logstash-user-data (cloud-config {:package_update true
                                        :bootcmd ["echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections"
                                                  "wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -" ]
-                                       :apt_sources [{:source "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main"}
+                                       :apt_sources [{:source "ppa:webupd8team/java"}
                                                      {:source "deb http://packages.elastic.co/logstash/2.3/debian stable main"
                                                       :key (snippet "system-files/elasticsearch-apt.pem")}]
                                        :packages ["oracle-java8-installer"
