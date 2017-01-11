@@ -4,6 +4,12 @@ echo "deb https://repos.influxdata.com/${DISTRIB_ID,,} ${DISTRIB_CODENAME} stabl
 sudo apt-get update && sudo apt-get install influxdb &&
 sudo service influxdb start
 
+Create htpasswd file:
+```
+apt-get install apache2-utils # to have htpasswd available
+htpasswd -bc /etc/nginx/htpasswd <user> <passwd>
+```
+
 
 apt-get install nginx
 
@@ -31,9 +37,19 @@ server {
         }
 }
 ```
+In nginx.conf (http section)
+```
+        map $http_x_forwarded_proto $real_scheme {
+          default $http_x_forwarded_proto;
+          ''      $scheme;
+        }
+```
 
-
-Note: databases shoudl be created manually.
+Note: databases shoudl be created manually in influxdb. using `influx` cli:
+```
 create database cadvisor_staging
+```
 !! Add a retention policy otherwise they will fill up quickly
+```
 create retention policy one_week on cadvisor_staging duration 1w replication 1 default;
+```
