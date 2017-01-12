@@ -156,16 +156,21 @@
                                                      :target "HTTP:80/status"
                                                      :timeout 5
                                                      :interval 30}
+                                      :internal true
                                       :listeners [(elb-listener (if cert-name
                                                                   {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name cert-name}
                                                                   {:port 80 :protocol "http"}))]
                                       :instances [(id-of "aws_instance" "influxdb")]
                                       :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
-                                      :security-groups (mapv #(id-of "aws_security_group" %) [(vpc-unique "all-servers")
+                                      :security-groups (mapv #(id-of "aws_security_group" %) ["allow_outbound"
                                                                                               "allow_external_http_https"
                                                                                               (vpc-unique "elb_grafana")])
                                       })
-
+             (private_route53_record "grafana" vpc-name {:zone_id  (vpc-id-of "aws_route53_zone" "mesos")
+                                                         :name "grafana"
+                                                         :alias {:name (output-of "aws_elb" "grafana" "dns_name")
+                                                                 :zone_id (output-of "aws_elb" "grafana" "zone_id")
+                                                                 :evaluate_target_health true}})
              (private_route53_record "influxdb" vpc-name {:records [(output-of "aws_instance" "influxdb" "private_ip")]})
 
              (private_route53_record "logstash" vpc-name {:records [(vpc-output-of "aws_eip" "logstash" "private_ip")]})
