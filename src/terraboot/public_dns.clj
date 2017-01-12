@@ -19,9 +19,6 @@
     (utils/merge-in
      (route53-record "vpn" {:records [(vpc-output-of "aws_eip" "vpn" "public_ip")]})
      (route53-record "logstash" {:records [(vpc-output-of "aws_eip" "logstash" "public_ip")]})
-     (route53-record "grafana" {:type "CNAME"
-                                :records [(core/output-of "aws_elb" "grafana" "dns_name")]})
-     (route53-record "influxdb" {:records [(core/output-of "aws_eip" "influxdb" "public_ip")]})
      (route53-record "alerts" {:type "CNAME"
                                :records [(core/output-of "aws_elb" "alerts" "dns_name")]}))))
 
