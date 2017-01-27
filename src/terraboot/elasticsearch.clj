@@ -118,6 +118,7 @@
                                                                            (vpc-id-of "aws_security_group" "sends_influx")
                                                                            (vpc-id-of "aws_security_group" "all-servers")]
                                                   :subnet_id (vpc-id-of "aws_subnet" "private-a")
+                                                  :associate_public_ip_address true
                                                   })
 
 
