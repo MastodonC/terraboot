@@ -87,10 +87,10 @@
 (defn add-key-name-to-instances
   [key-name & resources]
   (apply merge-in
-         (map (fn [resources]
-                (if (get-in resources [:resource "aws_instance"])
-                  (update-in resources [:resource "aws_instance"] (fn [spec] (add-to-every-value-map :key_name key-name)))
-                  resources)))))
+         (map (fn [res]
+                (if (get-in res [:resource "aws_instance"])
+                  (update-in res [:resource "aws_instance"] (fn [spec] (add-to-every-value-map spec :key_name key-name)))
+                  res)) resources)))
 
 (defn in-vpc
   [vpc-id & resources]
