@@ -104,6 +104,7 @@
 
      (elasticsearch-cluster "elasticsearch" {:vpc-name vpc-name
                                              :account-number account-number
+                                             :key-name key-name
                                              :region region
                                              :azs azs
                                              :default-ami default-ami
