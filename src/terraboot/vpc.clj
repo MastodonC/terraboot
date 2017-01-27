@@ -5,8 +5,6 @@
             [terraboot.elasticsearch :refer [elasticsearch-cluster]]
             [clojure.string :as string]))
 
-(def vpc-name "sandpit")
-
 (defn cidr-start
   [cidr-block]
   (first (string/split cidr-block #"/")))
@@ -27,14 +25,6 @@
     (reconstitute-ip (conj (vec (drop-last parsed-ip)) second))))
 
 (def subnet-types [:public :private])
-
-(def cidr-block {:public {:a "172.20.0.0/24"
-                          :b "172.20.1.0/24"
-                          :c "172.20.2.0/24"}
-                 :private {:a "172.20.8.0/24"
-                           :b "172.20.9.0/24"
-                           :c "172.20.10.0/24"}
-                 })
 
 (defn vpn-user-data [vars]
   (cloud-config {:package_update true
