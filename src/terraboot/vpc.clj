@@ -5,8 +5,6 @@
             [terraboot.elasticsearch :refer [elasticsearch-cluster]]
             [clojure.string :as string]))
 
-(def vpc-name "sandpit")
-
 (defn cidr-start
   [cidr-block]
   (first (string/split cidr-block #"/")))
@@ -27,14 +25,6 @@
     (reconstitute-ip (conj (vec (drop-last parsed-ip)) second))))
 
 (def subnet-types [:public :private])
-
-(def cidr-block {:public {:a "172.20.0.0/24"
-                          :b "172.20.1.0/24"
-                          :c "172.20.2.0/24"}
-                 :private {:a "172.20.8.0/24"
-                           :b "172.20.9.0/24"
-                           :c "172.20.10.0/24"}
-                 })
 
 (defn vpn-user-data [vars]
   (cloud-config {:package_update true
@@ -94,6 +84,7 @@
   [{:keys [vpc-name
            account-number
            region
+           key-name
            azs
            subnet-cidr-blocks
            default-ami
@@ -113,170 +104,173 @@
 
      (elasticsearch-cluster "elasticsearch" {:vpc-name vpc-name
                                              :account-number account-number
+                                             :key-name key-name
                                              :region region
                                              :azs azs
                                              :default-ami default-ami
                                              :vpc-cidr-block vpc-cidr-block
                                              :cert-name cert-name})
 
-     (in-vpc (id-of "aws_vpc" vpc-name)
-             (aws-instance (vpc-unique "vpn") {
-                                               :user_data (vpn-user-data {:range-start (cidr-start vpc-cidr-block)
-                                                                          :fallback-dns (fallback-dns vpc-cidr-block)})
-                                               :subnet_id (vpc-id-of "aws_subnet" (stringify "public-" (first azs)))
-                                               :ami default-ami
-                                               :vpc_security_group_ids [(vpc-id-of "aws_security_group" "vpn")
-                                                                        (vpc-id-of "aws_security_group" "sends_influx")
-                                                                        (vpc-id-of "aws_security_group" "all-servers")
-                                                                        ]
-                                               :associate_public_ip_address true
-                                               })
+     (add-key-name-to-instances
+      key-name
+      (in-vpc (id-of "aws_vpc" vpc-name)
+              (aws-instance (vpc-unique "vpn") {
+                                                :user_data (vpn-user-data {:range-start (cidr-start vpc-cidr-block)
+                                                                           :fallback-dns (fallback-dns vpc-cidr-block)})
+                                                :subnet_id (vpc-id-of "aws_subnet" (stringify "public-" (first azs)))
+                                                :ami default-ami
+                                                :vpc_security_group_ids [(vpc-id-of "aws_security_group" "vpn")
+                                                                         (vpc-id-of "aws_security_group" "sends_influx")
+                                                                         (vpc-id-of "aws_security_group" "all-servers")
+                                                                         ]
+                                                :associate_public_ip_address true
+                                                })
 
-             (vpc-resource "aws_ebs_volume" "influxdb"
-                           {:availability_zone (stringify region (first azs))
-                            :size 20})
+              (vpc-resource "aws_ebs_volume" "influxdb"
+                            {:availability_zone (stringify region (first azs))
+                             :size 20})
 
-             (aws-instance "influxdb" {:ami default-ami
-                                       :instance_type "m4.large"
-                                       :vpc_security_group_ids [(vpc-id-of "aws_security_group" "influxdb")
-                                                                (id-of "aws_security_group" "allow_ssh")
-                                                                (vpc-id-of "aws_security_group" "allow_elb_grafana")
-                                                                (vpc-id-of "aws_security_group" "all-servers")
-                                                                ]
-                                       :subnet_id (vpc-id-of "aws_subnet" (stringify "public-" (first azs)))})
+              (aws-instance "influxdb" {:ami default-ami
+                                        :instance_type "m4.large"
+                                        :vpc_security_group_ids [(vpc-id-of "aws_security_group" "influxdb")
+                                                                 (id-of "aws_security_group" "allow_ssh")
+                                                                 (vpc-id-of "aws_security_group" "allow_elb_grafana")
+                                                                 (vpc-id-of "aws_security_group" "all-servers")
+                                                                 ]
+                                        :subnet_id (vpc-id-of "aws_subnet" (stringify "public-" (first azs)))})
 
-             (vpc-resource "aws_volume_attachment" "influxdb_volume"
-                           {:device_name "/dev/xvdh"
-                            :instance_id (id-of "aws_instance" "influxdb")
-                            :volume_id (vpc-id-of "aws_ebs_volume" "influxdb")})
+              (vpc-resource "aws_volume_attachment" "influxdb_volume"
+                            {:device_name "/dev/xvdh"
+                             :instance_id (id-of "aws_instance" "influxdb")
+                             :volume_id (vpc-id-of "aws_ebs_volume" "influxdb")})
 
-             (elb "grafana" resource {:name "grafana"
-                                      :health_check {:healthy_threshold 2
-                                                     :unhealthy_threshold 3
-                                                     :target "HTTP:80/status"
-                                                     :timeout 5
-                                                     :interval 30}
-                                      :internal true
-                                      :listeners [(elb-listener (if cert-name
-                                                                  {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name cert-name}
-                                                                  {:port 80 :protocol "http"}))]
-                                      :instances [(id-of "aws_instance" "influxdb")]
-                                      :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
-                                      :security-groups (mapv #(id-of "aws_security_group" %) ["allow_outbound"
-                                                                                              "allow_external_http_https"
-                                                                                              (vpc-unique "elb_grafana")])
-                                      })
-             (private_route53_record "grafana" vpc-name {:zone_id  (vpc-id-of "aws_route53_zone" "mesos")
-                                                         :name "grafana"
-                                                         :alias {:name (output-of "aws_elb" "grafana" "dns_name")
-                                                                 :zone_id (output-of "aws_elb" "grafana" "zone_id")
-                                                                 :evaluate_target_health true}})
-             (private_route53_record "influxdb" vpc-name {:records [(output-of "aws_instance" "influxdb" "private_ip")]})
+              (elb "grafana" resource {:name "grafana"
+                                       :health_check {:healthy_threshold 2
+                                                      :unhealthy_threshold 3
+                                                      :target "HTTP:80/status"
+                                                      :timeout 5
+                                                      :interval 30}
+                                       :internal true
+                                       :listeners [(elb-listener (if cert-name
+                                                                   {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name cert-name}
+                                                                   {:port 80 :protocol "http"}))]
+                                       :instances [(id-of "aws_instance" "influxdb")]
+                                       :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
+                                       :security-groups (mapv #(id-of "aws_security_group" %) ["allow_outbound"
+                                                                                               "allow_external_http_https"
+                                                                                               (vpc-unique "elb_grafana")])
+                                       })
+              (private_route53_record "grafana" vpc-name {:zone_id  (vpc-id-of "aws_route53_zone" "mesos")
+                                                          :name "grafana"
+                                                          :alias {:name (output-of "aws_elb" "grafana" "dns_name")
+                                                                  :zone_id (output-of "aws_elb" "grafana" "zone_id")
+                                                                  :evaluate_target_health true}})
+              (private_route53_record "influxdb" vpc-name {:records [(output-of "aws_instance" "influxdb" "private_ip")]})
 
-             (private_route53_record "logstash" vpc-name {:records [(vpc-output-of "aws_eip" "logstash" "private_ip")]})
+              (private_route53_record "logstash" vpc-name {:records [(vpc-output-of "aws_eip" "logstash" "private_ip")]})
 
-             (private_route53_record "alerts" vpc-name {:records [(vpc-output-of "aws_instance" "alerts" "private_ip")]})
+              (private_route53_record "alerts" vpc-name {:records [(vpc-output-of "aws_instance" "alerts" "private_ip")]})
 
-             (vpc-security-group "elb_grafana" {})
-             (vpc-security-group "allow_elb_grafana" {}
-                                 {:port 80
-                                  :source_security_group_id (vpc-id-of "aws_security_group" "elb_grafana")})
+              (vpc-security-group "elb_grafana" {})
+              (vpc-security-group "allow_elb_grafana" {}
+                                  {:port 80
+                                   :source_security_group_id (vpc-id-of "aws_security_group" "elb_grafana")})
 
-             (vpc-security-group "influxdb" {}
-                                 {:port 222
-                                  :protocol "tcp"
-                                  :cidr_blocks [all-external]}
-                                 {:port 8086
-                                  :protocol "tcp"
-                                  :source_security_group_id (vpc-id-of "aws_security_group" "sends_influx")})
+              (vpc-security-group "influxdb" {}
+                                  {:port 222
+                                   :protocol "tcp"
+                                   :cidr_blocks [all-external]}
+                                  {:port 8086
+                                   :protocol "tcp"
+                                   :source_security_group_id (vpc-id-of "aws_security_group" "sends_influx")})
 
-             (vpc-security-group "sends_influx" {})
+              (vpc-security-group "sends_influx" {})
 
-             (resource "aws_eip" "influxdb"
-                       {:vpc true
-                        :instance (id-of "aws_instance" "influxdb")})
+              (resource "aws_eip" "influxdb"
+                        {:vpc true
+                         :instance (id-of "aws_instance" "influxdb")})
 
-             (vpc-resource "aws_eip" "vpn" {:instance (vpc-id-of "aws_instance" "vpn")
-                                            :vpc true})
+              (vpc-resource "aws_eip" "vpn" {:instance (vpc-id-of "aws_instance" "vpn")
+                                             :vpc true})
 
-             (vpc-resource "aws_route53_zone" "mesos"
-                           {:name "vpc.kixi"
-                            :comment "private routes within vpc"
-                            :vpc_id (id-of "aws_vpc" vpc-name)})
+              (vpc-resource "aws_route53_zone" "mesos"
+                            {:name "vpc.kixi"
+                             :comment "private routes within vpc"
+                             :vpc_id (id-of "aws_vpc" vpc-name)})
 
-             (security-group "allow_outbound" {}
-                             {:type "egress"
-                              :from_port 0
-                              :to_port 0
-                              :protocol -1
-                              :cidr_blocks [all-external]
-                              })
+              (security-group "allow_outbound" {}
+                              {:type "egress"
+                               :from_port 0
+                               :to_port 0
+                               :protocol -1
+                               :cidr_blocks [all-external]
+                               })
 
-             (vpc-security-group "all-servers" {}
-                                 {:port 5666
-                                  :source_security_group_id (vpc-id-of "aws_security_group" "nrpe")}
-                                 {:type "egress"
-                                  :from_port 0
-                                  :to_port 0
-                                  :protocol -1
-                                  :cidr_blocks [all-external]})
+              (vpc-security-group "all-servers" {}
+                                  {:port 5666
+                                   :source_security_group_id (vpc-id-of "aws_security_group" "nrpe")}
+                                  {:type "egress"
+                                   :from_port 0
+                                   :to_port 0
+                                   :protocol -1
+                                   :cidr_blocks [all-external]})
 
-             (security-group "allow_ssh" {}
-                             {:port 22
-                              :cidr_blocks [vpc-cidr-block]
-                              })
+              (security-group "allow_ssh" {}
+                              {:port 22
+                               :cidr_blocks [vpc-cidr-block]
+                               })
 
-             (security-group "allow_external_http_https" {}
-                             {:from_port 80
-                              :to_port 80
-                              :cidr_blocks [all-external]
-                              }
-                             {:from_port 443
-                              :to_port 443
-                              :cidr_blocks [all-external]})
+              (security-group "allow_external_http_https" {}
+                              {:from_port 80
+                               :to_port 80
+                               :cidr_blocks [all-external]
+                               }
+                              {:from_port 443
+                               :to_port 443
+                               :cidr_blocks [all-external]})
 
-             (vpc-security-group "vpn" {}
-                                 {:from_port 22
-                                  :to_port 22
-                                  :cidr_blocks [all-external]}
-                                 {:from_port 1194
-                                  :to_port 1194
-                                  :protocol "udp"
-                                  :cidr_blocks [all-external]})
-
-
-             (resource "aws_internet_gateway" vpc-name
-                       {:tags {:Name "main"}})
-
-             (vpc-resource "aws_route_table" "public" {:tags { :Name "public"}
-                                                       :route { :cidr_block all-external
-                                                               :gateway_id (id-of "aws_internet_gateway" vpc-name)}
-                                                       :vpc_id (id-of "aws_vpc" vpc-name)})
+              (vpc-security-group "vpn" {}
+                                  {:from_port 22
+                                   :to_port 22
+                                   :cidr_blocks [all-external]}
+                                  {:from_port 1194
+                                   :to_port 1194
+                                   :protocol "udp"
+                                   :cidr_blocks [all-external]})
 
 
-             (resource "aws_db_subnet_group" vpc-name
-                       {:name vpc-name
-                        :subnet_ids (map #(id-of "aws_subnet" (stringify vpc-name "-private-" %)) azs)
-                        :description "subnet for dbs"})
+              (resource "aws_internet_gateway" vpc-name
+                        {:tags {:Name "main"}})
+
+              (vpc-resource "aws_route_table" "public" {:tags { :Name "public"}
+                                                        :route { :cidr_block all-external
+                                                                :gateway_id (id-of "aws_internet_gateway" vpc-name)}
+                                                        :vpc_id (id-of "aws_vpc" vpc-name)})
 
 
-             ;; all the subnets
-             (apply merge-in (mapv #(private-public-subnets {:naming-fn vpc-unique
-                                                             :az %
-                                                             :cidr-blocks (% subnet-cidr-blocks)
-                                                             :public-route-table (vpc-id-of "aws_route_table" "public")
-                                                             :region region}) azs))
-             (apply merge-in (for [az azs
-                                   name [:public :private]]
-                               (output (stringify "subnet-" name "-" az "-id") "aws_subnet" (vpc-unique (stringify name "-" az)) "id")))
-             (output "sg-all-servers" "aws_security_group" (vpc-unique "all-servers") "id")
-             (output "sg-allow-ssh" "aws_security_group" "allow_ssh" "id")
-             (output "sg-allow-outbound" "aws_security_group" "allow_outbound" "id")
-             (output "sg-allow-http-https" "aws_security_group" "allow_external_http_https" "id")
-             (output "vpc-id" "aws_vpc" vpc-name  "id")
-             (output "sg-sends-influx" "aws_security_group" (vpc-unique "sends_influx") "id")
-             (output "sg-sends-gelf" "aws_security_group" (vpc-unique "sends_gelf") "id")
-             (output "private-dns-zone" "aws_route53_zone" (vpc-unique "mesos") "id")
-             (output "public-route-table" "aws_route_table" (vpc-unique "public") "id")
-             (output "logstash-ip" "aws_eip" (vpc-unique "logstash") "private_ip")
-             ))))
+              (resource "aws_db_subnet_group" vpc-name
+                        {:name vpc-name
+                         :subnet_ids (map #(id-of "aws_subnet" (stringify vpc-name "-private-" %)) azs)
+                         :description "subnet for dbs"})
+
+
+              ;; all the subnets
+              (apply merge-in (mapv #(private-public-subnets {:naming-fn vpc-unique
+                                                              :az %
+                                                              :cidr-blocks (% subnet-cidr-blocks)
+                                                              :public-route-table (vpc-id-of "aws_route_table" "public")
+                                                              :region region}) azs))
+              (apply merge-in (for [az azs
+                                    name [:public :private]]
+                                (output (stringify "subnet-" name "-" az "-id") "aws_subnet" (vpc-unique (stringify name "-" az)) "id")))
+              (output "sg-all-servers" "aws_security_group" (vpc-unique "all-servers") "id")
+              (output "sg-allow-ssh" "aws_security_group" "allow_ssh" "id")
+              (output "sg-allow-outbound" "aws_security_group" "allow_outbound" "id")
+              (output "sg-allow-http-https" "aws_security_group" "allow_external_http_https" "id")
+              (output "vpc-id" "aws_vpc" vpc-name  "id")
+              (output "sg-sends-influx" "aws_security_group" (vpc-unique "sends_influx") "id")
+              (output "sg-sends-gelf" "aws_security_group" (vpc-unique "sends_gelf") "id")
+              (output "private-dns-zone" "aws_route53_zone" (vpc-unique "mesos") "id")
+              (output "public-route-table" "aws_route_table" (vpc-unique "public") "id")
+              (output "logstash-ip" "aws_eip" (vpc-unique "logstash") "private_ip")
+              )))))
