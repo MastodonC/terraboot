@@ -84,12 +84,21 @@
   (reduce-kv (fn [m k v]
                (assoc m k (assoc v key value))) {} map))
 
+(defn add-key-name-to-instances
+  [key-name & resources]
+  (apply merge-in
+         (map (fn [resources]
+                (if (get-in resources [:resource "aws_instance"])
+                  (update-in resources [:resource "aws_instance"] (fn [spec] (add-to-every-value-map :key_name key-name)))
+                  resources)))))
+
 (defn in-vpc
   [vpc-id & resources]
   (let [add-to-resources-if-present (fn [type resources]
                                       (if (get-in resources [:resource type])
                                         (update-in resources [:resource type] (fn [spec] (add-to-every-value-map spec :vpc_id vpc-id)))
-                                        resources))]
+                                        resources))
+        ]
     (apply merge-in
            (map (comp (partial add-to-resources-if-present "aws_security_group")
                       (partial add-to-resources-if-present "aws_internet_gateway")
@@ -158,7 +167,6 @@
   (let [default-sg-ids (map (partial id-of "aws_security_group") default-sgs)]
     (resource "aws_instance" name (-> {:tags {:Name name}
                                        :instance_type "t2.micro"
-                                       :key_name "ops-terraboot"
                                        :monitoring true
                                        :subnet_id (id-of "aws_subnet" "private-a")}
                                       (merge-in spec)
@@ -316,7 +324,7 @@
                                                   :iam_instance_profile (cluster-id-of "aws_iam_instance_profile" name)
                                                   :user_data user_data
                                                   :lifecycle { :create_before_destroy true }
-                                                  :key_name (get spec :key_name "ops-terraboot")
+                                                  :key_name (get spec :key_name)
                                                   :security_groups sgs
                                                   :associate_public_ip_address (or public_ip false)}
 
