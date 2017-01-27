@@ -162,7 +162,7 @@
                                                     :timeout 5
                                                     :interval 30}
                                      :listeners [(elb-listener (if cert-name
-                                                                 {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name "StartMastodoncNet"}
+                                                                 {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name cert-name}
                                                                  {:port 80 :protocol "http"}))]
                                      :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
                                      :instances [(id-of "aws_instance" (vpc-unique "alerts"))]
