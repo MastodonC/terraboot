@@ -126,10 +126,6 @@
                                                 :associate_public_ip_address true
                                                 })
 
-              (vpc-resource "aws_ebs_volume" "influxdb"
-                            {:availability_zone (stringify region (first azs))
-                             :size 20})
-
               (aws-instance "influxdb" {:ami default-ami
                                         :instance_type "m4.large"
                                         :vpc_security_group_ids [(vpc-id-of "aws_security_group" "influxdb")
@@ -137,12 +133,8 @@
                                                                  (vpc-id-of "aws_security_group" "allow_elb_grafana")
                                                                  (vpc-id-of "aws_security_group" "all-servers")
                                                                  ]
-                                        :subnet_id (vpc-id-of "aws_subnet" (stringify "public-" (first azs)))})
-
-              (vpc-resource "aws_volume_attachment" "influxdb_volume"
-                            {:device_name "/dev/xvdh"
-                             :instance_id (id-of "aws_instance" "influxdb")
-                             :volume_id (vpc-id-of "aws_ebs_volume" "influxdb")})
+                                        :subnet_id (vpc-id-of "aws_subnet" (stringify "public-" (first azs)))
+                                        :root_block_device {:volume_size 100}})
 
               (elb "grafana" resource {:name "grafana"
                                        :health_check {:healthy_threshold 2
