@@ -4,6 +4,7 @@ source /etc/lsb-release
 echo "deb https://repos.influxdata.com/${DISTRIB_ID,,} ${DISTRIB_CODENAME} stable" | sudo tee /etc/apt/sources.list.d/influxdb.list |
 sudo apt-get update && sudo apt-get install influxdb &&
 sudo service influxdb start
+sudo apt-get install nginx
 ```
 
 Create htpasswd file:
@@ -11,10 +12,6 @@ Create htpasswd file:
 apt-get install apache2-utils # to have htpasswd available
 htpasswd -bc /etc/nginx/htpasswd <user> <passwd>
 ```
-
-
-apt-get install nginx
-
 edit `/etc/nginx/sites-enabled/default`
 
 ```
