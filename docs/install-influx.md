@@ -44,8 +44,8 @@ create database metrics;
 ```
 !! Add a retention policy otherwise they will fill up quickly
 ```
-create retention policy one_week on cadvisor_staging duration 1w replication 1 default;
-create retention policy one_week on metrics duration 1w replication 1 default;
+create retention policy two_weeks on cadvisor_staging duration 2w replication 1 default;
+create retention policy two_weeks on metrics duration 2w replication 1 default;
 ```
 
 Install grafana
