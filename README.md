@@ -90,6 +90,7 @@ This should give an idea of which AWS entities will be created by applying the p
 terraform apply .
 ```
 Does the actual application.
+Same thing for the cluster, but in the staging/ directory.
 
 ## Credentials
 We use AWS profiles to deal with credentials, which saves us from having actual AWS creds anywhere near the repository.  To do this, add a creds.tf file in each terraform *.tf directory.
@@ -100,11 +101,11 @@ provider "aws" {
 }
 ```
 
-## How terraform work
+## How terraform works
 Explained in extensive detail in <https://www.terraform.io/>, but the cliff notes:
 terraform DSL or terraform json (*.tf) files -> terraform apply . -> AWS (or other) infrastructure and *.tfstate
 
-The Terraform state files (*.tfstate) reflect what the current state is in AWS, and establishes the mappings between the terraform names and the underlying AWS ids. When destroying or applying (or planning), the state is checked first to see where the deployment is at.
+The Terraform state files (\*.tfstate) reflect what the current state is in AWS, and establishes the mappings between the terraform names and the underlying AWS ids. When destroying or applying (or planning), the state is checked first to see where the deployment is at.
 
 
 ## Using terraform in a team
