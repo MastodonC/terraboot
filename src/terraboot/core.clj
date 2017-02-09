@@ -86,11 +86,13 @@
 
 (defn add-key-name-to-instances
   [key-name & resources]
-  (apply merge-in
-         (map (fn [res]
-                (if (get-in res [:resource "aws_instance"])
-                  (update-in res [:resource "aws_instance"] (fn [spec] (add-to-every-value-map spec :key_name key-name)))
-                  res)) resources)))
+  (let [add-to-resources-if-present (fn [type resources]
+                                      (if (get-in resources [:resource type])
+                                        (update-in resources [:resource type] (fn [spec] (add-to-every-value-map spec :key_name key-name)))
+                                        resources))]
+    (apply merge-in
+           (map (comp (partial add-to-resources-if-present "aws_instance")
+                      (partial add-to-resources-if-present "aws_launch_configuration")) resources))))
 
 (defn in-vpc
   [vpc-id & resources]
