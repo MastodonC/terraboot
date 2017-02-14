@@ -292,7 +292,7 @@
                     name-fn
                     (merge {:account-number account-number
                             :alb-name name}
-                           (select-keys % [:name :port :protocol :ssl-policy :cert]))) listeners)))))
+                           (select-keys % [:name :port :lb-port :protocol :ssl-policy :cert]))) listeners)))))
 
 (defn asg [name
            name-fn
