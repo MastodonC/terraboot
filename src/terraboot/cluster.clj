@@ -159,27 +159,6 @@
                                       (update-in [:vpc_security_group_ids] concat default-vpc-sgs)))))
 
 
-(defn logstash-user-data []
-  (cloud-config {:package_update true
-                 :packages ["oracle-java8-installer" "oracle-java8-set-default" "logstash" "dnsmasq"]
-                 :apt_sources
-                 [{:source "ppa:webupd8team/java"}
-                  {:source "deb http://packages.elastic.co/logstash/2.2/debian stable main"
-                   :key (snippet "system-files/elasticsearch-apt.pem")} ]
-                 :write_files
-                 [{:path "/etc/logstash/conf.d/in-gelf.conf"
-                   :content (snippet "vpc-logstash/in-gelf.conf")}
-                  {:path "/etc/logstash/conf.d/out-logstash.conf"
-                   :content (snippet "vpc-logstash/out-logstas.conf")}
-                  {:path "/etc/ssl/ca.cert"
-                   :content (snippet "vpn-keys/ca.crt")}
-                  {:path "/etc/dnsmasq.conf"
-                   :content (snippet "system-files/dnsmasq.conf")}]
-                 :bootcmd
-                 ["cloud-init-per once accepted-oracle-license-v1-1 echo \"oracle-java8-installer shared/accepted-oracle-license-v1-1 select true\" | debconf-set-selections"]
-                 :runcmd
-                 ["update-rc.d logstash defaults"]}))
-
 (defn open-elb-ports
   [listeners]
   (mapv #(assoc {} :port (or (:port %) (:lb_port %)) :cidr_blocks [all-external]) listeners))
