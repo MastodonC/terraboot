@@ -1,9 +1,6 @@
 filebeat:
   prospectors:
-    -
-      paths:
-        - /var/lib/mesos/slave/slaves/*/frameworks/*/executors/*/runs/latest/stdout
-        - /var/lib/mesos/slave/slaves/*/frameworks/*/executors/*/runs/latest/stderr
+    - input_type: stdin
 
 multiline:
     pattern: '^[[:space:]]+|^Caused by:'
