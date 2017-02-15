@@ -2,30 +2,66 @@
   (:require [terraboot.core :refer :all]
             [terraboot.utils :refer :all]
             [terraboot.cloud-config :refer [cloud-config]]
-            [cheshire.core :as json]))
+            [cheshire.core :as json]
+            [clojure.string :as str]
+            [clojure.core.strint :refer [<<]]))
 
-(def logstash-user-data (cloud-config {:package_update true
-                                       :bootcmd ["echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections"
-                                                 "wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -" ]
-                                       :apt_sources [{:source "ppa:webupd8team/java"}
-                                                     {:source "deb http://packages.elastic.co/logstash/2.3/debian stable main"
-                                                      :key (snippet "system-files/elasticsearch-apt.pem")}]
-                                       :packages ["oracle-java8-installer"
-                                                  "oracle-java8-set-default"
-                                                  "logstash"]
-                                       :runcmd ["update-rc.d logstash defaults"]
-                                       :write_files [{:path "/etc/logstash/conf.d/out-es.conf"
-                                                      :permissions "644"
-                                                      :content (snippet "vpc-logstash/out-es.conf")}
-                                                     {:path "/etc/logstash/conf.d/in-beats.conf"
-                                                      :permissions "644"
-                                                      :content (snippet "vpc-logstash/in-beats.conf")}
-                                                     {:path "/etc/logstash/conf.d/in-gelf.conf"
-                                                      :permissions "644"
-                                                      :content (snippet "vpc-logstash/in-gelf.conf")}
-                                                     {:path "/opt/logstash/patterns/basic-batterns"
-                                                      :permissions "644"
-                                                      :content (snippet "vpc-logstash/basic-patterns")}]}))
+(def logshipper "")
+
+(def stop-update-engine {:name "update-engine.service"
+                         :command "stop"})
+
+(def stop-locksmithd {:name "locksmithd.service"
+                      :command "stop"})
+
+(def common-coreos-units [stop-update-engine
+                          stop-locksmithd])
+
+(defn docker-systemd-unit
+  ([org-name image-name] (docker-systemd-unit org-name image-name {}))
+  ([org-name image-name {options :options
+                         entry-point :entry-point
+                         release :release
+                         :or {options []
+                              entry-point ""
+                              release "latest"}}]
+   (let [option-string (str/join " " options)
+         full-image-name (str org-name "/" image-name)]
+     {:name (str image-name ".service")
+      :command "start"
+      :enable true
+      :content (<<
+                "[Unit]
+Description=~{image-name}
+After=docker.service
+Requires=docker.service
+
+[Service]
+Slice=machine.slice
+TimeoutSec=600
+ExecStartPre=/usr/bin/docker pull ~{full-image-name}:~{release}
+ExecStartPre=-/usr/bin/docker kill ~{image-name}
+ExecStartPre=-/usr/bin/docker rm ~{image-name}
+ExecStart=/usr/bin/docker run --name ~{image-name} ~{option-string} ~{full-image-name}:~{release} ~{entry-point}
+ExecStop=/usr/bin/docker stop ~{image-name}
+
+[Install]
+WantedBy=multi-user.target")})))
+
+(defn cloud-config-coreos [units]
+  (cloud-config {:coreos {:update
+                          {:reboot-strategy "off"}
+                          :units (concat common-coreos-units
+                                         units)
+                          }}))
+
+(defn logstash-user-data-coreos [es-host]
+  (let [run-logstash (docker-systemd-unit "mastodonc" "logstash-ng"
+                                          {:options [(str "--env " "ES_HOST=" es-host)
+                                                     "--net=host"]
+                                           :entry-point "-f /etc/logstash/logstash.conf"}
+                                          )]
+    (cloud-config-coreos [run-logstash])))
 
 (defn elasticsearch-policy
   []
@@ -50,19 +86,21 @@
         vpc-id-of (id-of-fn vpc-unique)
         vpc-output-of (output-of-fn vpc-unique)
         vpc-security-group (partial scoped-security-group vpc-unique)
-        elb-listener (account-elb-listener account-number
-                                           )]
+        elb-listener (account-elb-listener account-number)
+        es-arn (str "arn:aws:es:" region ":" account-number ":domain/" vpc-name "-elasticsearch-5")
+        es-arn-* (str es-arn "/*")]
+
     (merge-in
-     (template-file (vpc-unique "elasticearch-policy")
+     (template-file (vpc-unique "elasticsearch-policy")
                     (elasticsearch-policy)
-                    {:es-arn (str "arn:aws:es:" region ":" account-number ":domain/" vpc-name "-elasticsearch/*")
-                     :allowed-ips  (vpc-output-of "aws_eip" "logstash" "public_ip")})
+                    {:es-arn es-arn-*
+                     :allowed-ips  (vpc-output-of "aws_eip" "vpn" "public_ip")})
 
-     (vpc-resource "aws_elasticsearch_domain" name
-                   {:domain_name (vpc-unique name)
-                    :advanced_options { "rest.action.multi.allow_explicit_index" true}
-                    :access_policies ""#_(rendered-template-file (vpc-unique "elasticsearch-policy"))
-
+     (vpc-resource "aws_elasticsearch_domain" (str (vpc-unique name) "-5")
+                   {:domain_name (str (vpc-unique name) "-5")
+                    :elasticsearch_version "5.1"
+                    :advanced_options { "rest.action.multi.allow_explicit_index" "true"}
+                    :access_policies (rendered-template-file (vpc-unique "elasticsearch-policy"))
                     :cluster_config {:instance_count 2,
                                      :instance_type "t2.small.elasticsearch"}
                     :ebs_options {:ebs_enabled true,
@@ -70,6 +108,41 @@
                                   :volume_size 35
                                   },
                     :snapshot_options { :automated_snapshot_start_hour 23}})
+
+     (vpc-resource "aws_iam_role" "logstash" {:name "logstash"
+                                              :assume_role_policy (json/generate-string {
+                                                                                         "Version" "2012-10-17",
+                                                                                         "Statement" [
+                                                                                                      {
+                                                                                                       "Action" "sts:AssumeRole",
+                                                                                                       "Principal" {
+                                                                                                                    "Service" "ec2.amazonaws.com"
+                                                                                                                    },
+                                                                                                       "Effect" "Allow",
+                                                                                                       "Sid" ""}]})})
+
+     (vpc-resource "aws_iam_role_policy" "logstash"
+                   {"name" "logstash"
+                    "role"  (vpc-id-of "aws_iam_role" "logstash")
+                    "policy" (json/generate-string {
+                                                    "Version" "2012-10-17"
+                                                    "Statement" [{
+                                                                  "Resource" es-arn-*,
+                                                                  "Action" ["es:*"],
+                                                                  "Effect" "Allow"
+                                                                  }
+                                                                 {
+                                                                  "Resource" es-arn,
+                                                                  "Action" ["es:*"],
+                                                                  "Effect" "Allow"
+                                                                  }
+                                                                 ]})})
+
+     (vpc-resource "aws_iam_instance_profile" "logstash" {
+                                                          :name "logstash"
+                                                          :roles  [(vpc-output-of "aws_iam_role" "logstash" "name")]
+                                                          })
+
      (add-key-name-to-instances
       key-name
       (in-vpc (id-of "aws_vpc" vpc-name)
@@ -91,26 +164,21 @@
                             {:vpc true
                              :instance (vpc-id-of "aws_instance" "logstash")})
 
-
               (vpc-security-group "sends_gelf" {})
 
               (vpc-security-group "sends_logstash" {})
 
-              (template-file (vpc-unique "logstash-user-data")
-                             logstash-user-data
-                             {:es-dns (vpc-output-of "aws_elasticsearch_domain" name "endpoint")})
-
-              (aws-instance (vpc-unique "logstash") {:ami default-ami
+              (aws-instance (vpc-unique "logstash") {:ami "ami-2cb14043"
                                                      :instance_type "m4.large"
                                                      :vpc_security_group_ids [(vpc-id-of "aws_security_group" "logstash")
                                                                               (id-of "aws_security_group" "allow_ssh")
                                                                               (vpc-id-of "aws_security_group" "sends_influx")
                                                                               (vpc-id-of "aws_security_group" "all-servers")
                                                                               ]
-                                                     :user_data (rendered-template-file (vpc-unique "logstash-user-data"))
+                                                     :user_data (logstash-user-data-coreos (vpc-output-of "aws_elasticsearch_domain" (str (vpc-unique name) "-5") "endpoint"))
                                                      :associate_public_ip_address true
                                                      :subnet_id (vpc-id-of "aws_subnet" "public-a")
-                                                     })
+                                                     :iam_instance_profile (vpc-id-of "aws_iam_instance_profile" "logstash")})
 
               (aws-instance (vpc-unique "kibana") {
                                                    :ami default-ami
@@ -121,7 +189,6 @@
                                                    :subnet_id (vpc-id-of "aws_subnet" "private-a")
                                                    :associate_public_ip_address true
                                                    })
-
 
               (elb "kibana" resource {:name "kibana"
                                       :health_check {:healthy_threshold 2
@@ -143,7 +210,6 @@
 
               ;; alerting server needs access to all servers
               (vpc-security-group "nrpe" {})
-
 
               (database {:name (vpc-unique "alerts")
                          :subnet vpc-name})
