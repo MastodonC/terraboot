@@ -198,7 +198,7 @@ WantedBy=multi-user.target")})))
                                       :listeners [(elb-listener (if cert-name
                                                                   {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name "StartMastodoncNet"}
                                                                   {:port 80 :protocol "http"}))]
-                                      :instances [(id-of "aws_instance" (vpc-unique "kibana"))]
+                                      :instances [(id-of "aws_instance" (vpc-unique "logstash"))]
                                       :security-groups (map #(id-of "aws_security_group" %)
                                                             ["allow_outbound"
                                                              "allow_external_http_https"
