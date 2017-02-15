@@ -62,7 +62,7 @@ WantedBy=multi-user.target")})))
         nginx (docker-systemd-unit "mastodonc" "kibana-nginx"
                                       {:options [(str "--env " "ES_HOST=" es-host)
                                                  "--net=host"]
-                                       :entry-point "/bin/bash -c \"envsubst < /etc/nginx/conf.d/mysite.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'\""}
+                                       }
                                       )]
     (cloud-config-coreos [logstash
                           nginx])))
