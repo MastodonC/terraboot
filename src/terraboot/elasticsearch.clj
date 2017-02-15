@@ -98,7 +98,7 @@ WantedBy=multi-user.target")})))
      (template-file (vpc-unique "elasticsearch-policy")
                     (elasticsearch-policy)
                     {:es-arn es-arn-*
-                     :allowed-ips  (vpc-output-of "aws_eip" "vpn" "public_ip")})
+                     :allowed-ips  (vpc-output-of "aws_eip" "logstash" "public_ip")})
 
      (vpc-resource "aws_elasticsearch_domain" (str (vpc-unique name) "-5")
                    {:domain_name (str (vpc-unique name) "-5")
