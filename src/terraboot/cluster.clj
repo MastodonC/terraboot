@@ -81,7 +81,7 @@
   {:coreos {:units [{:name "filebeat.service" :command "start" :content (snippet "systemd/filebeat.service")}]}
    :write_files [{:path "/home/core/install-filebeat.sh"
                   :content (snippet "system-files/install-filebeat.sh")
-                  :permissions "0644"}
+                  :permissions "0755"}
                  {:path "/etc/filebeat/filebeat.yml"
                   :content (snippet "system-files/filebeat.yml")}]})
 
