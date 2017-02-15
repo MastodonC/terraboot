@@ -178,6 +178,7 @@ WantedBy=multi-user.target")})))
                                                                               (id-of "aws_security_group" "allow_ssh")
                                                                               (vpc-id-of "aws_security_group" "sends_influx")
                                                                               (vpc-id-of "aws_security_group" "all-servers")
+                                                                              (vpc-id-of "aws_security_group" "elb-kibana")
                                                                               ]
                                                      :user_data (logstash-user-data-coreos "es.sandpit-vpc.kixi")
                                                      :associate_public_ip_address true
