@@ -179,7 +179,7 @@ WantedBy=multi-user.target")})))
                                                                               (vpc-id-of "aws_security_group" "sends_influx")
                                                                               (vpc-id-of "aws_security_group" "all-servers")
                                                                               ]
-                                                     :user_data (logstash-user-data-coreos (vpc-output-of "aws_elasticsearch_domain" (str (vpc-unique name) "-5") "endpoint"))
+                                                     :user_data (logstash-user-data-coreos "es.sandpit-vpc.kixi")
                                                      :associate_public_ip_address true
                                                      :subnet_id (vpc-id-of "aws_subnet" "public-a")
                                                      :iam_instance_profile (vpc-id-of "aws_iam_instance_profile" "logstash")})
