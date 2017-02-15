@@ -6,8 +6,6 @@
             [clojure.string :as str]
             [clojure.core.strint :refer [<<]]))
 
-(def logshipper "")
-
 (def stop-update-engine {:name "update-engine.service"
                          :command "stop"})
 
