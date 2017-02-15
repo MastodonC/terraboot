@@ -186,15 +186,6 @@ WantedBy=multi-user.target")})))
                                                      :subnet_id (vpc-id-of "aws_subnet" "public-a")
                                                      :iam_instance_profile (vpc-id-of "aws_iam_instance_profile" "logstash")})
 
-              (aws-instance (vpc-unique "kibana") {
-                                                   :ami default-ami
-                                                   :vpc_security_group_ids [(vpc-id-of "aws_security_group" "kibana")
-                                                                            (vpc-id-of "aws_security_group" "allow-elb-kibana")
-                                                                            (vpc-id-of "aws_security_group" "sends_influx")
-                                                                            (vpc-id-of "aws_security_group" "all-servers")]
-                                                   :subnet_id (vpc-id-of "aws_subnet" "private-a")
-                                                   :associate_public_ip_address true
-                                                   })
 
               (elb "kibana" resource {:name "kibana"
                                       :health_check {:healthy_threshold 2
