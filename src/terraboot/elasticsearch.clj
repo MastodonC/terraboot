@@ -56,12 +56,18 @@ WantedBy=multi-user.target")})))
                           }}))
 
 (defn logstash-user-data-coreos [es-host]
-  (let [run-logstash (docker-systemd-unit "mastodonc" "logstash-ng"
-                                          {:options [(str "--env " "ES_HOST=" es-host)
-                                                     "--net=host"]
-                                           :entry-point "-f /etc/logstash/logstash.conf"}
-                                          )]
-    (cloud-config-coreos [run-logstash])))
+  (let [logstash (docker-systemd-unit "mastodonc" "logstash-ng"
+                                      {:options [(str "--env " "ES_HOST=" es-host)
+                                                 "--net=host"]
+                                       :entry-point "-f /etc/logstash/logstash.conf"}
+                                      )
+        nginx (docker-systemd-unit "mastodonc" "kibana-nginx"
+                                      {:options [(str "--env " "ES_HOST=" es-host)
+                                                 "--net=host"]
+                                       :entry-point "/bin/bash -c \"envsubst < /etc/nginx/conf.d/mysite.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'\""}
+                                      )]
+    (cloud-config-coreos [logstash
+                          nginx])))
 
 (defn elasticsearch-policy
   []
