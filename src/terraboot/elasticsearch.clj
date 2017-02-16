@@ -183,25 +183,6 @@ WantedBy=multi-user.target")})))
                                                      :subnet_id (vpc-id-of "aws_subnet" "public-a")
                                                      :iam_instance_profile (vpc-id-of "aws_iam_instance_profile" "logstash")})
 
-
-              (elb "kibana" resource {:name "kibana"
-                                      :health_check {:healthy_threshold 2
-                                                     :unhealthy_threshold 3
-                                                     :target "HTTP:80/status"
-                                                     :timeout 5
-                                                     :interval 30}
-                                      :internal true
-                                      :subnets (mapv #(id-of "aws_subnet" (stringify vpc-name "-public-" %)) azs)
-                                      :listeners [(elb-listener (if cert-name
-                                                                  {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name "StartMastodoncNet"}
-                                                                  {:port 80 :protocol "http"}))]
-                                      :instances [(id-of "aws_instance" (vpc-unique "logstash"))]
-                                      :security-groups (map #(id-of "aws_security_group" %)
-                                                            ["allow_outbound"
-                                                             "allow_external_http_https"
-                                                             (vpc-unique "elb-kibana")
-                                                             ])})
-
               ;; alerting server needs access to all servers
               (vpc-security-group "nrpe" {})
 
