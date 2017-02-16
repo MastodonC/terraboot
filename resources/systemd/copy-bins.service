@@ -9,4 +9,4 @@ TimeoutStartSec=10
 StandardOutput=journal+console
 StandardError=journal+console
 ExecStartPre=/usr/bin/mkdir -p /opt/bin
-ExecStart=/bin/sh -c "/opt/mesosphere/bin/curl https://s3.eu-central-1.amazonaws.com/terraboot/bins.tgz | tar xz -C /opt/bin"
+ExecStart=/bin/sh -c "/bin/wget -O - --no-check-certificate https://s3.eu-central-1.amazonaws.com/terraboot/bins.tgz | tar xz -C /opt/bin"
