@@ -145,12 +145,12 @@
                                                       :timeout 5
                                                       :interval 30}
                                        :internal true
-                                       :listeners [(elb-listener (if cert-name
+                                       :listener [(elb-listener (if cert-name
                                                                    {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name cert-name}
                                                                    {:port 80 :protocol "http"}))]
                                        :instances [(id-of "aws_instance" "influxdb")]
                                        :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
-                                       :security-groups (mapv #(id-of "aws_security_group" %) ["allow_outbound"
+                                       :security_groups (mapv #(id-of "aws_security_group" %) ["allow_outbound"
                                                                                                "allow_external_http_https"
                                                                                                (vpc-unique "elb_grafana")])
                                        })

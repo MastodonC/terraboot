@@ -204,12 +204,12 @@ WantedBy=multi-user.target")})))
                                                      :target "HTTP:80/"
                                                      :timeout 5
                                                      :interval 30}
-                                      :listeners [(elb-listener (if cert-name
+                                      :listener [(elb-listener (if cert-name
                                                                   {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name cert-name}
                                                                   {:port 80 :protocol "http"}))]
                                       :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
                                       :instances [(id-of "aws_instance" (vpc-unique "alerts"))]
-                                      :security-groups (map #(id-of "aws_security_group" %)
+                                      :security_groups (map #(id-of "aws_security_group" %)
                                                             ["allow_outbound"
                                                              "allow_external_http_https"
                                                              (vpc-unique "elb-alerts")

@@ -218,30 +218,14 @@
                             :lb_protocol (or lb-protocol protocol)}))))
 
 (defn elb [name cluster-resource spec]
-  (let [defaults {:instances []
-                  :internal false}
-        spec (merge-in defaults spec)
-        {:keys [health_check
-                lb_protocol
-                instances
-                cert_name
-                subnets
-                security-groups
-                internal
-                account-number
-                listeners]} spec]
-    (cluster-resource "aws_elb" name {:name name
-                                      :subnets subnets
-                                      :security_groups security-groups
-                                      :listener listeners
-                                      :instances instances
-                                      :health_check health_check
-                                      :cross_zone_load_balancing true
-                                      :idle_timeout 60
-                                      :connection_draining true
-                                      :connection_draining_timeout 60
-                                      :internal internal
-                                      :tags {:Name name}})))
+  (let [defaults {:cross_zone_load_balancing true
+                  :internal false
+                  :idle_timeout 60
+                  :connection_draining true
+                  :connection_draining_timeout 60
+                  :tags {:Name name}
+                  :name name}]
+    (cluster-resource "aws_elb" name (merge-in defaults spec))))
 
 (defn alb-target-group
   [cluster-resource

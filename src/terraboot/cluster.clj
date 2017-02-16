@@ -361,10 +361,10 @@
                     :subnets public-subnets
                     :lifecycle {:create_before_destroy true}
                     :elb [{:name "internal-lb"
-                           :listeners [(elb-listener {:port 80 :protocol "HTTP"})
-                                       (elb-listener {:port 2181 :protocol "TCP"})
-                                       (elb-listener {:port 8181 :protocol "TCP"})
-                                       (elb-listener {:port 53 :protocol "TCP"})]
+                           :listener [(elb-listener {:port 80 :protocol "HTTP"})
+                                      (elb-listener {:port 2181 :protocol "TCP"})
+                                      (elb-listener {:port 8181 :protocol "TCP"})
+                                      (elb-listener {:port 53 :protocol "TCP"})]
                            :health_check {:healthy_threshold 2
                                           :unhealthy_threshold 3
                                           :target "HTTP:80/exhibitor/exhibitor/v1/cluster/status"
@@ -372,7 +372,7 @@
                                           :interval 30}
                            :subnets elb-subnets
                            :internal true
-                           :security-groups (concat (mapv #(cluster-id-of "aws_security_group" %)  ["lb-security-group"
+                           :security_groups (concat (mapv #(cluster-id-of "aws_security_group" %)  ["lb-security-group"
                                                                                                     "admin-security-group"
                                                                                                     "master-security-group"])
                                                     remote-default-sgs)}]})
