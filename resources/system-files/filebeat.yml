@@ -2,11 +2,6 @@ filebeat:
   prospectors:
     - input_type: stdin
 
-multiline:
-    pattern: '^[[:space:]]+|^Caused by:'
-    negate: false
-    match: after
-
 fields:
     tag: '%{cluster-name}'
 

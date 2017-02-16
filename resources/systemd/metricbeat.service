@@ -1,0 +1,9 @@
+[Unit]
+Description=Filebeat
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+TimeoutStartSec=15
+ExecStart=/opt/bin/metricbeat -c /etc/beats/metricbeat.yml
+Restart=always

@@ -77,13 +77,14 @@
                                            {:path "/etc/mesosphere/roles/aws"
                                             :content ""}]})))
 
-(def filebeat-user-data
-  {:coreos {:units [{:name "filebeat.service" :command "start" :content (snippet "systemd/filebeat.service")}]}
-   :write_files [{:path "/home/core/install-filebeat.sh"
-                  :content (snippet "system-files/install-filebeat.sh")
-                  :permissions "0755"}
-                 {:path "/etc/filebeat/filebeat.yml"
-                  :content (snippet "system-files/filebeat.yml")}]})
+(def beats-user-data
+  {:coreos {:units [{:name "filebeat.service" :command "start" :content (snippet "systemd/filebeat.service")}
+                    {:name "metricbeat.service" :command "start" :content (snippet "systemd/metricbeat.service")}
+                    {:name "copy-bins.service" :command "start" :content (snippet "systemd/copy-bins.service")}]}
+   :write_files [{:path "/etc/beats/filebeat.yml"
+                  :content (snippet "system-files/filebeat.yml")}
+                 {:path "/etc/beats/metricbeat.yml"
+                  :content (snippet "system-files/metricbeat.yml")}]})
 
 (def dockerd-logging
   {:write_files [{:path "/etc/systemd/system/docker.service.d/journald-logging.conf"
@@ -103,7 +104,7 @@
                                                  :permissions "0744"}]
                                   :coreos {:units [{:name "backup.service" :content (snippet "systemd/backup.service")}
                                                    {:name "backup.timer" :command "start" :content (snippet "systemd/backup.timer")}]}}
-                                 filebeat-user-data
+                                 beats-user-data
                                  dockerd-logging)))
 
 (defn mesos-public-slave-user-data
@@ -114,7 +115,7 @@
                                                  :content ""}
                                                 {:path "/etc/mesosphere/roles/aws"
                                                  :content ""}]}
-                                 filebeat-user-data
+                                 beats-user-data
                                  dockerd-logging)))
 
 ;; arn:aws:s3:::my_corporate_bucket/exampleobject.png
@@ -165,7 +166,6 @@
                                        :subnet_id (id-of "aws_subnet" "private-a")}
                                       (merge-in spec)
                                       (update-in [:vpc_security_group_ids] concat default-vpc-sgs)))))
-
 
 (defn open-elb-ports
   [listeners]

@@ -5,6 +5,5 @@ After=network-online.target
 
 [Service]
 TimeoutStartSec=15
-ExecStartPre=/home/core/install-filebeat.sh >> /home/core/filebeat-install.log 2>&1
-ExecStart=/bin/sh -c "/usr/bin/journalctl -b -o json -f | /opt/bin/filebeat -c /etc/filebeat/filebeat.yml"
+ExecStart=/bin/sh -c "/usr/bin/journalctl -b -o json -f | /opt/bin/filebeat -c /etc/beats/filebeat.yml"
 Restart=always
