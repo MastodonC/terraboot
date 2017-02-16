@@ -53,17 +53,15 @@ WantedBy=multi-user.target")})))
                                          units)
                           }}))
 
-(defn logstash-user-data-coreos [es-host]
+(defn logstash-user-data-coreos [es-endpoint]
   (let [logstash (docker-systemd-unit "mastodonc" "logstash-ng"
-                                      {:options [(str "--env " "ES_HOST=" es-host)
+                                      {:options [(str "--env " "ES_HOST=" es-endpoint)
                                                  "--net=host"]
-                                       :entry-point "-f /etc/logstash/logstash.conf"}
-                                      )
+                                       :entry-point "-f /etc/logstash/logstash.conf"})
         nginx (docker-systemd-unit "mastodonc" "kibana-nginx"
-                                      {:options [(str "--env " "ES_HOST=" es-host)
-                                                 "--net=host"]
-                                       }
-                                      )]
+                                      {:options [(str "--env " "ES_HOST=" es-endpoint)
+                                                 "--net=host"]})
+        ]
     (cloud-config-coreos [logstash
                           nginx])))
 
@@ -82,7 +80,7 @@ WantedBy=multi-user.target")})))
                                         "IpAddress"
                                         {"aws:SourceIp" ["$${allowed-ips}"]}}}]}))
 
-(defn elasticsearch-cluster [name {:keys [vpc-name account-number region azs default-ami vpc-cidr-block cert-name key-name] :as spec}]
+(defn elasticsearch-cluster [name {:keys [es-endpoint vpc-name account-number region azs default-ami vpc-cidr-block cert-name key-name] :as spec}]
   ;; http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs
   ;; See for what instance-types and storage is possible
   (let [vpc-unique (vpc-unique-fn vpc-name)
@@ -180,7 +178,7 @@ WantedBy=multi-user.target")})))
                                                                               (vpc-id-of "aws_security_group" "all-servers")
                                                                               (vpc-id-of "aws_security_group" "elb-kibana")
                                                                               ]
-                                                     :user_data (logstash-user-data-coreos "es.sandpit-vpc.kixi")
+                                                     :user_data (logstash-user-data-coreos es-endpoint)
                                                      :associate_public_ip_address true
                                                      :subnet_id (vpc-id-of "aws_subnet" "public-a")
                                                      :iam_instance_profile (vpc-id-of "aws_iam_instance_profile" "logstash")})

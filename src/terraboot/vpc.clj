@@ -81,7 +81,8 @@
                      spec))))
 
 (defn vpc-vpn-infra
-  [{:keys [vpc-name
+  [{:keys [es-endpoint
+           vpc-name
            account-number
            region
            key-name
@@ -102,7 +103,8 @@
                 :cidr_block vpc-cidr-block
                 :enable_dns_hostnames true})
 
-     (elasticsearch-cluster "elasticsearch" {:vpc-name vpc-name
+     (elasticsearch-cluster "elasticsearch" {:es-endpoint es-endpoint ; Horrible, just to break a cycle in Terraform
+                                             :vpc-name vpc-name
                                              :account-number account-number
                                              :key-name key-name
                                              :region region
