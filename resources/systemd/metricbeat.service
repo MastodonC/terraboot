@@ -5,5 +5,6 @@ After=network-online.target
 
 [Service]
 TimeoutStartSec=15
+StartLimitInterval=0
 ExecStart=/opt/bin/metricbeat -c /etc/beats/metricbeat.yml
 Restart=always

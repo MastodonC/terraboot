@@ -5,5 +5,6 @@ After=network-online.target
 
 [Service]
 TimeoutStartSec=15
+StartLimitInterval=0
 ExecStart=/bin/sh -c "/usr/bin/journalctl -b -o json -f | /opt/bin/filebeat -c /etc/beats/filebeat.yml"
 Restart=always
