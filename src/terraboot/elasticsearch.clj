@@ -89,7 +89,7 @@ WantedBy=multi-user.target")})))
         vpc-output-of (output-of-fn vpc-unique)
         vpc-security-group (partial scoped-security-group vpc-unique)
         elb-listener (account-elb-listener account-number)
-        es-arn (str "arn:aws:es:" region ":" account-number ":domain/" vpc-name "-elasticsearch-5")
+        es-arn (str "arn:aws:es:" region ":" account-number ":domain/" name)
         es-arn-* (str es-arn "/*")]
 
     (merge-in
@@ -98,18 +98,18 @@ WantedBy=multi-user.target")})))
                     {:es-arn es-arn-*
                      :allowed-ips  (vpc-output-of "aws_eip" "logstash" "public_ip")})
 
-     (vpc-resource "aws_elasticsearch_domain" (str (vpc-unique name) "-5")
-                   {:domain_name (str (vpc-unique name) "-5")
-                    :elasticsearch_version "5.1"
-                    :advanced_options { "rest.action.multi.allow_explicit_index" "true"}
-                    :access_policies (rendered-template-file (vpc-unique "elasticsearch-policy"))
-                    :cluster_config {:instance_count 2,
-                                     :instance_type "t2.small.elasticsearch"}
-                    :ebs_options {:ebs_enabled true,
-                                  :volume_type "gp2",
-                                  :volume_size 35
-                                  },
-                    :snapshot_options { :automated_snapshot_start_hour 23}})
+     (resource "aws_elasticsearch_domain" name
+               {:domain_name name
+                :elasticsearch_version "5.1"
+                :advanced_options { "rest.action.multi.allow_explicit_index" "true"}
+                :access_policies (rendered-template-file (vpc-unique "elasticsearch-policy"))
+                :cluster_config {:instance_count 2,
+                                 :instance_type "t2.small.elasticsearch"}
+                :ebs_options {:ebs_enabled true,
+                              :volume_type "gp2",
+                              :volume_size 35
+                              },
+                :snapshot_options { :automated_snapshot_start_hour 23}})
 
      (vpc-resource "aws_iam_role" "logstash" {:name "logstash"
                                               :assume_role_policy (json/generate-string {

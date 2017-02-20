@@ -103,15 +103,15 @@
                 :cidr_block vpc-cidr-block
                 :enable_dns_hostnames true})
 
-     (elasticsearch-cluster "elasticsearch" {:es-endpoint es-endpoint ; Horrible, just to break a cycle in Terraform
-                                             :vpc-name vpc-name
-                                             :account-number account-number
-                                             :key-name key-name
-                                             :region region
-                                             :azs azs
-                                             :default-ami default-ami
-                                             :vpc-cidr-block vpc-cidr-block
-                                             :cert-name cert-name})
+     (elasticsearch-cluster (vpc-unique "monitoring") {:es-endpoint es-endpoint ; Horrible, just to break a cycle in Terraform
+                                                       :vpc-name vpc-name
+                                                       :account-number account-number
+                                                       :key-name key-name
+                                                       :region region
+                                                       :azs azs
+                                                       :default-ami default-ami
+                                                       :vpc-cidr-block vpc-cidr-block
+                                                       :cert-name cert-name})
 
      (add-key-name-to-instances
       key-name
