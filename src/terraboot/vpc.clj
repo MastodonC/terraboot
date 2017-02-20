@@ -162,7 +162,7 @@
               (private_route53_record "influxdb" vpc-name {:records [(output-of "aws_instance" "influxdb" "private_ip")]})
 
               (private_route53_record "kibana" vpc-name {:records [(vpc-output-of "aws_instance" "logstash" "private_ip")]})
-
+              (private_route53_record "logstash" vpc-name {:records [(vpc-output-of "aws_instance" "logstash" "private_ip")]})
 
               (private_route53_record "alerts" vpc-name {:records [(vpc-output-of "aws_instance" "alerts" "private_ip")]})
 
