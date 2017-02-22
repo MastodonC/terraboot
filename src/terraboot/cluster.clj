@@ -18,7 +18,6 @@
                     {:name "dcos-link-env.service" :command "start" :content (snippet "systemd/dcos-link-env.service")}
                     {:name "dcos-download.service" :content (snippet "systemd/dcos-download.service")}
                     {:name "dcos-setup.service" :command "start" :content (clojure.string/trim-newline (snippet "systemd/dcos-setup.service")) :enable true}
-                    {:name "cadvisor.service" :command "start" :content (snippet "systemd/cadvisor.service") :enable true}
                     {:name "docker-cleanup.service" :content (snippet "systemd/docker-cleanup.service")}
                     {:name "docker-cleanup.timer" :command "start" :content (snippet "systemd/docker-cleanup.timer")}
                     {:name "install-confd.service" :command "start" :content (snippet "systemd/install-confd.service")}
