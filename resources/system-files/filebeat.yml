@@ -3,7 +3,7 @@ filebeat:
     - input_type: stdin
 
 fields:
-    tag: '%{cluster-name}'
+    tag: '$${cluster-name}'
 
 output:
   logstash:
