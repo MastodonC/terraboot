@@ -12,4 +12,12 @@
   :repositories [["releases" {:url "https://clojars.org/repo"
                               :creds :gpg}]
                  ["snapshots" {:url "https://clojars.org/repo"
-                               :creds :gpg}]])
+                               :creds :gpg}]]
+  :release-tasks [["vcs" "assert-committed"]
+                  ["change" "version"
+                   "leiningen.release/bump-version" "release"]
+                  ["vcs" "commit"]
+                  ["vcs" "tag"]
+                  ["change" "version" "leiningen.release/bump-version"]
+                  ["vcs" "commit"]
+                  ["vcs" "push"]])
