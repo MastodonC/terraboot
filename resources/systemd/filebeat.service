@@ -6,5 +6,5 @@ After=network-online.target
 [Service]
 TimeoutStartSec=15
 StartLimitInterval=0
-ExecStart=/bin/sh -c "/usr/bin/journalctl -b -o json -f | /opt/bin/filebeat -c /etc/beats/filebeat.yml"
+ExecStart=/bin/sh -c "/usr/bin/journalctl -b -u docker.service -u dcos-cluster-id.service -u dcos-ddt.service -u dcos-exhibitor.service -u dcos-marathon.service -u dcos-mesos-dns.service -u dcos-mesos-master.service -u dcos-mesos-slave-public.service -u dcos-mesos-slave.service -u dcos-signal.service -u dcos-spartan-watchdog.service -o json -f | /opt/bin/filebeat -c /etc/beats/filebeat.yml"
 Restart=always
