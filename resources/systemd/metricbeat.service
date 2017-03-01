@@ -1,5 +1,5 @@
 [Unit]
-Description=Filebeat
+Description=Metricbeat
 Wants=network-online.target
 After=network-online.target
 
