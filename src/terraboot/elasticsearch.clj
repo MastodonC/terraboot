@@ -59,8 +59,8 @@ WantedBy=multi-user.target")})))
                                                  "--net=host"]
                                        :entry-point "-f /etc/logstash/logstash.conf"})
         nginx (docker-systemd-unit "mastodonc" "kibana-nginx"
-                                      {:options [(str "--env " "ES_HOST=" es-endpoint)
-                                                 "--net=host"]})
+                                   {:options [(str "--env " "ES_HOST=" es-endpoint)
+                                              "--net=host"]})
         ]
     (cloud-config-coreos [logstash
                           nginx])))
