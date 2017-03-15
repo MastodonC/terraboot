@@ -371,7 +371,10 @@
   (mustache/render-file template-name vars))
 
 (defn snippet [path]
-  (slurp (clojure.java.io/resource path)))
+  (let [snippet-file (clojure.java.io/resource path)]
+    (if (nil? snippet-file)
+      (throw (Exception. (str "No resource found: " path)))
+      (slurp snippet-file))))
 
 (defn database [{:keys [name subnet] :as spec}]
   (merge-in
