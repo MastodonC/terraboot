@@ -2,6 +2,27 @@
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
 ## [Unreleased][unreleased]
+
+## [0.4.6] - 2017-03-22
+
+- BREAKING CHANGE: Removed hardcoded Logstash AMI (it breaks things in
+  different regions) and replaced with mesos-ami (not ideally named).  Your projects `terraboot-$name` will have to update it's `infra.clj` or equivalent with any calls made to `(vpc-vpn-infra ..)` now to include in the argument hash`:mesos-ami mesos-ami`.
+
+```
+(condp = target
+      "vpc"  (do
+               (to-file
+                (vpc-vpn-infra
+                 {
+                  :vpc-name vpc-name
+                  :region region
+                  :azs [:a :b]
+                  :default-ami default-ami
+                  :mesos-ami mesos-ami
+                  ...
+```
+
+## Unknown
 ### Changed
 - Add a new arity to `make-widget-async` to provide a different widget shape.
 

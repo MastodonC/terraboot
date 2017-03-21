@@ -89,6 +89,7 @@
            azs
            subnet-cidr-blocks
            default-ami
+           mesos-ami
            vpc-cidr-block
            cert-name]}]
   (let [vpc-unique (vpc-unique-fn vpc-name)
@@ -110,6 +111,7 @@
                                                        :region region
                                                        :azs azs
                                                        :default-ami default-ami
+                                                       :mesos-ami mesos-ami
                                                        :vpc-cidr-block vpc-cidr-block
                                                        :cert-name cert-name})
 
