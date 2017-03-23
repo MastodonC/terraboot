@@ -21,7 +21,7 @@ metricbeat.modules:
     - process
     - socket
   enabled: true
-  period: 60s
+  period: 300s
   processes: ['.*']
 
 #------------------------------- Docker Module -------------------------------
@@ -29,4 +29,4 @@ metricbeat.modules:
   metricsets: ["cpu", "info", "memory", "network", "diskio", "container"]
   hosts: ["unix:///var/run/docker.sock"]
   enabled: true
-  period: 60s
+  period: 300s
