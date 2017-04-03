@@ -104,10 +104,10 @@ WantedBy=multi-user.target")})))
                 :advanced_options { "rest.action.multi.allow_explicit_index" "true"}
                 :access_policies (rendered-template-file (vpc-unique "elasticsearch-policy"))
                 :cluster_config {:instance_count 2,
-                                 :instance_type "t2.small.elasticsearch"}
+                                 :instance_type "m4.large.elasticsearch"}
                 :ebs_options {:ebs_enabled true,
                               :volume_type "gp2",
-                              :volume_size 35
+                              :volume_size 100
                               },
                 :snapshot_options { :automated_snapshot_start_hour 23}})
 
