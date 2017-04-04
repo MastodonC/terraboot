@@ -66,18 +66,19 @@ WantedBy=multi-user.target")})))
                           nginx])))
 
 (defn elasticsearch-policy
-  [iam-root es-arn-*]
-  (json/generate-string
-   {
-    "Statement" [
-                 {
-                  "Action" "es:*"
-                  "Effect" "Allow"
-                  "Principal" {
-                                 "AWS" iam-root
-                                 }
-                   "Resource" es-arn-*}]
-    "Version" "2012-10-17"}))
+  []
+  (json/generate-string {"Version" "2012-10-17",
+                         "Statement" [{"Action" "es:*",
+                                       "Principal" "*",
+                                       "Resource" "$${es-arn}",
+                                       ;; There is currently a bug which means 'Resource' needs adding after the
+                                       ;; cluster is created or it will constantly say it needs to change.
+                                       ;; https://github.com/hashicorp/terraform/issues/5067
+                                       "Effect" "Allow",
+                                       "Condition"
+                                       {
+                                        "IpAddress"
+                                        {"aws:SourceIp" ["$${allowed-ips}"]}}}]}))
 
 (defn elasticsearch-cluster [name {:keys [es-endpoint vpc-name account-number region azs default-ami mesos-ami vpc-cidr-block cert-name key-name] :as spec}]
   ;; http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs
@@ -89,12 +90,11 @@ WantedBy=multi-user.target")})))
         vpc-security-group (partial scoped-security-group vpc-unique)
         elb-listener (account-elb-listener account-number)
         es-arn (str "arn:aws:es:" region ":" account-number ":domain/" name)
-        iam-root (str "arn:aws:iam::" account-number ":root")
         es-arn-* (str es-arn "/*")]
 
     (merge-in
      (template-file (vpc-unique "elasticsearch-policy")
-                    (elasticsearch-policy iam-root es-arn-*)
+                    (elasticsearch-policy)
                     {:es-arn es-arn-*
                      :allowed-ips  (vpc-output-of "aws_eip" "logstash" "public_ip")})
 
