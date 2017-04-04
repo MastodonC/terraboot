@@ -66,20 +66,21 @@ WantedBy=multi-user.target")})))
                           nginx])))
 
 (defn elasticsearch-policy
-  [iam-root es-arn-*]
-  (json/generate-string
-   {
-    "Statement" [
-                 {
-                  "Action" "es:*"
-                  "Effect" "Allow"
-                  "Principal" {
-                                 "AWS" iam-root
-                                 }
-                   "Resource" es-arn-*}]
-    "Version" "2012-10-17"}))
+  [es-allowed-ips]
+  (json/generate-string {"Version" "2012-10-17",
+                         "Statement" [{"Action" "es:*",
+                                       "Principal" "*",
+                                       "Resource" "$${es-arn}",
+                                       ;; There is currently a bug which means 'Resource' needs adding after the
+                                       ;; cluster is created or it will constantly say it needs to change.
+                                       ;; https://github.com/hashicorp/terraform/issues/5067
+                                       "Effect" "Allow",
+                                       "Condition"
+                                       {
+                                        "IpAddress"
+                                        {"aws:SourceIp" (into ["$${allowed-ips}"] es-allowed-ips)}}}]}))
 
-(defn elasticsearch-cluster [name {:keys [es-endpoint vpc-name account-number region azs default-ami mesos-ami vpc-cidr-block cert-name key-name] :as spec}]
+(defn elasticsearch-cluster [name {:keys [es-endpoint vpc-name account-number region azs default-ami mesos-ami vpc-cidr-block cert-name key-name es-allowed-ips] :as spec}]
   ;; http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs
   ;; See for what instance-types and storage is possible
   (let [vpc-unique (vpc-unique-fn vpc-name)
@@ -89,14 +90,13 @@ WantedBy=multi-user.target")})))
         vpc-security-group (partial scoped-security-group vpc-unique)
         elb-listener (account-elb-listener account-number)
         es-arn (str "arn:aws:es:" region ":" account-number ":domain/" name)
-        iam-root (str "arn:aws:iam::" account-number ":root")
         es-arn-* (str es-arn "/*")]
 
     (merge-in
      (template-file (vpc-unique "elasticsearch-policy")
-                    (elasticsearch-policy iam-root es-arn-*)
+                    (elasticsearch-policy es-allowed-ips)
                     {:es-arn es-arn-*
-                     :allowed-ips  (vpc-output-of "aws_eip" "logstash" "public_ip")})
+                     :allowed-ips (vpc-output-of "aws_eip" "logstash" "public_ip")})
 
      (resource "aws_elasticsearch_domain" name
                {:domain_name name
@@ -205,8 +205,8 @@ WantedBy=multi-user.target")})))
                                                      :timeout 5
                                                      :interval 30}
                                       :listener [(elb-listener (if cert-name
-                                                                  {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name cert-name}
-                                                                  {:port 80 :protocol "http"}))]
+                                                                 {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name cert-name}
+                                                                 {:port 80 :protocol "http"}))]
                                       :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
                                       :instances [(id-of "aws_instance" (vpc-unique "alerts"))]
                                       :security_groups (map #(id-of "aws_security_group" %)
