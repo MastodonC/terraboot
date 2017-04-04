@@ -91,7 +91,8 @@
            default-ami
            mesos-ami
            vpc-cidr-block
-           cert-name]}]
+           cert-name
+           es-allowed-ips] :as opts}]
   (let [vpc-unique (vpc-unique-fn vpc-name)
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (id-of-fn vpc-unique)
@@ -104,16 +105,9 @@
                 :cidr_block vpc-cidr-block
                 :enable_dns_hostnames true})
 
-     (elasticsearch-cluster (vpc-unique "monitoring") {:es-endpoint es-endpoint ; Horrible, just to break a cycle in Terraform
-                                                       :vpc-name vpc-name
-                                                       :account-number account-number
-                                                       :key-name key-name
-                                                       :region region
-                                                       :azs azs
-                                                       :default-ami default-ami
-                                                       :mesos-ami mesos-ami
-                                                       :vpc-cidr-block vpc-cidr-block
-                                                       :cert-name cert-name})
+     (elasticsearch-cluster (vpc-unique "monitoring") (select-keys opts [:es-endpoint :vpc-name :account-number :key-name
+                                                                         :region :azs :default-ami :mesos-ami :vpc-cidr-block
+                                                                         :cert-name :es-allowed-ips]))
 
      (add-key-name-to-instances
       key-name
@@ -148,8 +142,8 @@
                                                       :interval 30}
                                        :internal true
                                        :listener [(elb-listener (if cert-name
-                                                                   {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name cert-name}
-                                                                   {:port 80 :protocol "http"}))]
+                                                                  {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name cert-name}
+                                                                  {:port 80 :protocol "http"}))]
                                        :instances [(id-of "aws_instance" "influxdb")]
                                        :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
                                        :security_groups (mapv #(id-of "aws_security_group" %) ["allow_outbound"
