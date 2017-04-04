@@ -443,12 +443,12 @@
 (defn remote-state [region bucket profile name]
   (data "terraform_remote_state" name
         {:backend "s3"
-         :config {:bucket bucket
-                  :profile profile
-                  :encrypt true
-                  :key (str name ".tfstate")
-                  :region region
-                  :endpoint (get s3-endpoints region)}}))
+         :config (merge {:bucket bucket
+                         :encrypt true
+                         :key (str name ".tfstate")
+                         :region region
+                         :endpoint (get s3-endpoints region)}
+                        (when profile {:profile profile}))}))
 
 (defn remote-output-of [module name]
   (str "${" (clojure.string/join "." ["data"  "terraform_remote_state" module name]) "}"))
