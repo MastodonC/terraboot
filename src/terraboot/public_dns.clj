@@ -29,7 +29,7 @@
                             root-dns-zone-id
                             (string/join "." [environment project])
                             {:type "NS"
-                             :records (mapv #(core/output-of "aws_route53_zone" environment-dns-identifier (string/join  "." ["name_server" %])) (range 0 4))})
+                             :records (mapv #(core/output-of "aws_route53_zone" environment-dns-identifier (string/join  "." ["name_servers" %])) (range 0 4))})
      (public-route53-record environment-dns
                             (core/id-of "aws_route53_zone" environment-dns-identifier)
                             "vpn"
