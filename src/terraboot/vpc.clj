@@ -70,11 +70,17 @@
 (defn vpc-dns-zone-id [name]
   (str name "-mesos"))
 
-(defn private_route53_record [prefix vpc-name spec]
-  (let [dns-zone (vpc-dns-zone vpc-name)
-        name (str prefix "." dns-zone)]
+(defn private-dns-zone
+  [environment-dns environment-dns-identifier vpc-name]
+  (resource "aws_route53_zone" environment-dns-identifier
+            {:name environment-dns
+             :comment (str "private routes for " environment-dns)
+             :vpc_id (id-of "aws_vpc" vpc-name)}))
+
+(defn private-route53-record [prefix environment-dns environment-dns-identifier spec]
+  (let [name (str prefix "." environment-dns)]
     (resource "aws_route53_record" (safe-name name)
-              (merge {:zone_id (id-of "aws_route53_zone" (vpc-dns-zone-id vpc-name))
+              (merge {:zone_id (id-of "aws_route53_zone" environment-dns-identifier)
                       :name prefix
                       :type "A" }
                      (if (:alias spec) {} {:ttl "300"})
@@ -92,13 +98,18 @@
            mesos-ami
            vpc-cidr-block
            cert-name
-           es-allowed-ips] :as opts}]
+           es-allowed-ips
+           root-dns
+           environment
+           project] :as opts}]
   (let [vpc-unique (vpc-unique-fn vpc-name)
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (id-of-fn vpc-unique)
         vpc-output-of (output-of-fn vpc-unique)
         vpc-security-group (partial scoped-security-group vpc-unique)
-        elb-listener (account-elb-listener account-number)]
+        elb-listener (account-elb-listener account-number)
+        environment-dns (environment-dns environment project root-dns)
+        environment-dns-identifier (environment-dns-identifier environment-dns "private")]
     (merge-in
      (resource "aws_vpc" vpc-name
                {:tags {:Name vpc-name}
@@ -126,10 +137,19 @@
                                                 })
 
 
-              (private_route53_record "kibana" vpc-name {:records [(vpc-output-of "aws_instance" "logstash" "private_ip")]})
-              (private_route53_record "logstash" vpc-name {:records [(vpc-output-of "aws_instance" "logstash" "private_ip")]})
+              (private-route53-record "kibana"
+                                      environment-dns
+                                      environment-dns-identifier
+                                      {:records [(vpc-output-of "aws_instance" "logstash" "private_ip")]})
+              (private-route53-record "logstash"
+                                      environment-dns
+                                      environment-dns-identifier
+                                      {:records [(vpc-output-of "aws_instance" "logstash" "private_ip")]})
 
-              (private_route53_record "alerts" vpc-name {:records [(vpc-output-of "aws_instance" "alerts" "private_ip")]})
+              (private-route53-record "alerts"
+                                      environment-dns
+                                      environment-dns-identifier
+                                      {:records [(vpc-output-of "aws_instance" "alerts" "private_ip")]})
 
               (vpc-security-group "elb_grafana" {})
               (vpc-security-group "allow_elb_grafana" {}
@@ -149,10 +169,7 @@
               (vpc-resource "aws_eip" "vpn" {:instance (vpc-id-of "aws_instance" "vpn")
                                              :vpc true})
 
-              (vpc-resource "aws_route53_zone" "mesos"
-                            {:name "vpc.kixi"
-                             :comment "private routes within vpc"
-                             :vpc_id (id-of "aws_vpc" vpc-name)})
+              (private-dns-zone environment-dns environment-dns-identifier vpc-name)
 
               (security-group "allow_outbound" {}
                               {:type "egress"
@@ -226,7 +243,7 @@
               (output "vpc-id" "aws_vpc" vpc-name  "id")
               (output "sg-sends-influx" "aws_security_group" (vpc-unique "sends_influx") "id")
               (output "sg-sends-gelf" "aws_security_group" (vpc-unique "sends_gelf") "id")
-              (output "private-dns-zone" "aws_route53_zone" (vpc-unique "mesos") "id")
+              (output "private-dns-zone" "aws_route53_zone" environment-dns-identifier "id")
               (output "public-route-table" "aws_route_table" (vpc-unique "public") "id")
               (output "logstash-ip" "aws_eip" (vpc-unique "logstash") "private_ip")
               (output "es-endpoint" "aws_elasticsearch_domain" (vpc-unique "monitoring") "endpoint")

@@ -163,7 +163,13 @@
 (defn safe-name [s]
   (string/replace s #"\." "__"))
 
+(defn environment-dns
+  [environment project root-dns]
+  (string/join "." [environment project root-dns]))
 
+(defn environment-dns-identifier
+  [environment-dns type]
+  (safe-name (str environment-dns "_" type)))
 
 (defn aws-instance [name spec]
   (let [default-sg-ids (map (partial id-of "aws_security_group") default-sgs)]

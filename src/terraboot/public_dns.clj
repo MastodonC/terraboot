@@ -21,15 +21,16 @@
 
 (defn vpc-public-dns
   [{:keys [root-dns root-dns-zone-id environment project vpc-name]}]
-  (let [environment-dns (string/join "." [environment project root-dns])
-        environment-dns-identifier (string/replace environment-dns #"\." "_")]
+  (let [environment-dns (core/environment-dns environment project root-dns)
+        environment-dns-identifier (core/environment-dns-identifier environment-dns "public")]
     (utils/merge-in
      (public-dns-zone environment-dns environment-dns-identifier)
-     (public-route53-record root-dns
-                            root-dns-zone-id
-                            (string/join "." [environment project])
-                            {:type "NS"
-                             :records (mapv #(core/output-of "aws_route53_zone" environment-dns-identifier (string/join  "." ["name_servers" %])) (range 0 4))})
+     ;; TODO: smart step to add delegation in root account
+     #_(public-route53-record root-dns
+                              root-dns-zone-id
+                              (string/join "." [environment project])
+                              {:type "NS"
+                               :records (mapv #(core/output-of "aws_route53_zone" environment-dns-identifier (string/join  "." ["name_servers" %])) (range 0 4))})
      (public-route53-record environment-dns
                             (core/id-of "aws_route53_zone" environment-dns-identifier)
                             "vpn"
