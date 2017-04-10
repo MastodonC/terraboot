@@ -64,8 +64,8 @@
                                 :permissions "744"}]
                  }))
 
-(defn vpc-dns-zone [name]
-  (str name "-vpc.kixi" ))
+;;(defn vpc-dns-zone [name]
+;;  (str name environment-dns)
 
 (defn vpc-dns-zone-id [name]
   (str name "-mesos"))

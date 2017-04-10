@@ -336,10 +336,9 @@
                               :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                               :fallback-dns (vpc/fallback-dns vpc-cidr-block)
                               :number-of-masters min-number-of-masters
-                              :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                               :mesos-dns "127.0.0.1"
-                              :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
-                              :logstash-dns (str "logstash." (vpc/vpc-dns-zone vpc-name))})
+                              :alerts-server (str "alerts." environment-dns)
+                              :logstash-dns (str "logstash." environment-dns)})
 
               (asg "masters"
                    cluster-unique
@@ -395,11 +394,10 @@
                               :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                               :fallback-dns (vpc/fallback-dns vpc-cidr-block)
                               :number-of-masters min-number-of-masters
-                              :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                               :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                              :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
+                              :alerts-server (str "alerts." environment-dns)
                               :logstash-ip (remote-output-of "vpc" "logstash-ip")
-                              :logstash-dns (str "logstash." (vpc/vpc-dns-zone vpc-name))})
+                              :logstash-dns (str "logstash." environment-dns)})
 
               (vpc/private-route53-record "masters"
                                           environment-dns
@@ -454,11 +452,10 @@
                               :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                               :fallback-dns (vpc/fallback-dns vpc-cidr-block)
                               :number-of-masters min-number-of-masters
-                              :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                               :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                              :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
+                              :alerts-server (str "alerts." environment-dns)
                               :logstash-ip (remote-output-of "vpc" "logstash-ip")
-                              :logstash-dns (str "logstash." (vpc/vpc-dns-zone vpc-name))})
+                              :logstash-dns (str "logstash." environment-dns)})
 
               (asg "slaves"
                    cluster-unique
