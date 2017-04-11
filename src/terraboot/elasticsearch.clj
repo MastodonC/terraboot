@@ -53,7 +53,7 @@ WantedBy=multi-user.target")})))
                                          units)
                           }}))
 
-(defn logstash-user-data-coreos [es-endpoint]
+(defn logstash-user-data-coreos [es-endpoint region]
   (let [logstash (docker-systemd-unit "mastodonc" "logstash-ng"
                                       {:options [(str "--env " "ES_HOST=" es-endpoint)
                                                  (str "--env " "REGION=" region)
@@ -179,7 +179,7 @@ WantedBy=multi-user.target")})))
                                                                               (vpc-id-of "aws_security_group" "all-servers")
                                                                               (vpc-id-of "aws_security_group" "elb-kibana")
                                                                               ]
-                                                     :user_data (logstash-user-data-coreos es-endpoint)
+                                                     :user_data (logstash-user-data-coreos es-endpoint region)
                                                      :associate_public_ip_address true
                                                      :subnet_id (vpc-id-of "aws_subnet" "public-a")
                                                      :iam_instance_profile (vpc-id-of "aws_iam_instance_profile" "logstash")})
