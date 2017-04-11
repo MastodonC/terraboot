@@ -56,6 +56,7 @@ WantedBy=multi-user.target")})))
 (defn logstash-user-data-coreos [es-endpoint]
   (let [logstash (docker-systemd-unit "mastodonc" "logstash-ng"
                                       {:options [(str "--env " "ES_HOST=" es-endpoint)
+                                                 (str "--env " "REGION=" region)
                                                  "--net=host"]
                                        :entry-point "-f /etc/logstash/logstash.conf"})
         nginx (docker-systemd-unit "mastodonc" "kibana-nginx"
