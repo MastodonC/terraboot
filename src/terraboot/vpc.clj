@@ -114,7 +114,8 @@
       (in-vpc (id-of "aws_vpc" vpc-name)
               (aws-instance (vpc-unique "vpn") {
                                                 :user_data (vpn-user-data {:range-start (cidr-start vpc-cidr-block)
-                                                                           :fallback-dns (fallback-dns vpc-cidr-block)})
+                                                                           :fallback-dns (fallback-dns vpc-cidr-block)
+                                                                           :region region})
                                                 :subnet_id (vpc-id-of "aws_subnet" (stringify "public-" (first azs)))
                                                 :ami default-ami
                                                 :vpc_security_group_ids [(vpc-id-of "aws_security_group" "vpn")
