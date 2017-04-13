@@ -229,4 +229,5 @@
               (output "private-dns-zone" "aws_route53_zone" (vpc-unique "mesos") "id")
               (output "public-route-table" "aws_route_table" (vpc-unique "public") "id")
               (output "logstash-ip" "aws_eip" (vpc-unique "logstash") "private_ip")
+              (output "es-endpoint" "aws_elasticsearch_domain" (vpc-unique "monitoring") "endpoint")
               )))))
