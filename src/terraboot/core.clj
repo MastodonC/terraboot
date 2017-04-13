@@ -337,19 +337,24 @@
               (apply merge-in (map #(elb (:name %) cluster-resource %) (spec :elb)))
               (apply merge-in (map #(alb name-fn %) (spec :alb))))))
 
-(def default-assume-policy
+
+(defn assume-policy
+  [principals]
   (to-json {"Statement" [{"Action" ["sts:AssumeRole"]
                           "Effect" "Allow"
-                          "Principal" {"Service" ["ec2.amazonaws.com"]}}]
+                          "Principal" {"Service" principals}}]
             "Version" "2012-10-17" }))
+
+(def default-assume-policy (assume-policy ["ec2.amazonaws.com"]))
 
 (defn iam-role [name name-fn & policies]
   (let [cluster-resource (partial resource name-fn)
-        cluster-id-of (fn [type name] (id-of type (name-fn name)))]
+        cluster-id-of (fn [type name] (id-of type (name-fn name)))
+        principals (distinct (mapv #(:principal % "ec2.amazonaws.com") policies))]
     (merge-in
      (cluster-resource "aws_iam_role" name
                        {:name name
-                        :assume_role_policy default-assume-policy
+                        :assume_role_policy (assume-policy principals)
                         :path "/"})
      (apply merge-in (mapv
                       #(cond
@@ -357,9 +362,8 @@
                                                        (assoc % :role (cluster-id-of "aws_iam_role" name)))
                          (:policy_arn %) (cluster-resource "aws_iam_policy_attachment" (:name %)
                                                            (assoc % :roles [(cluster-id-of "aws_iam_role" name)])))
-                      policies)))
+                      (map #(dissoc % :principal) policies))))))
 
-    ))
 (defn policy [statement]
   (let [default-policy {"Version" "2012-10-17"
                         "Statement" {"Effect" "Allow"
