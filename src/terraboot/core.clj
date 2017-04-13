@@ -244,16 +244,16 @@
 ;; health_check https://www.terraform.io/docs/providers/aws/r/alb_target_group.html# sensible defaults
 
 (defn alb-listener
-  [name-fn {:keys [account-number protocol lb-port port alb-name name ssl-policy cert]}]
+  [name-fn {:keys [account-number lb-protocol protocol lb-port port alb-name name ssl-policy cert]}]
   (let [cluster-resource (partial resource name-fn)
         cluster-output-of (fn [type name output] (output-of type (name-fn name) output))
-        ssl-cert-arn (str "arn:aws:iam::" account-number ":server-certificate/" cert)
-        add-cert-if-present #(if cert (assoc % :certificate_arn ssl-cert-arn) %)
+        ssl-cert-arn cert
+        add-cert-if-present #(if cert (assoc % :certificate_arn ssl-cert-arn :ssl_policy ssl-policy) %)
         alb-arn (cluster-output-of "aws_alb" alb-name "arn")]
     (cluster-resource "aws_alb_listener" name
                       (add-cert-if-present {:load_balancer_arn alb-arn
                                             :port (or lb-port port) ;; lb-port is optional
-                                            :protocol protocol
+                                            :protocol (or lb-protocol protocol)
                                             :default_action {:target_group_arn (cluster-output-of "aws_alb_target_group" name "arn")
                                                              :type "forward"}}))))
 
@@ -282,7 +282,7 @@
                     name-fn
                     (merge {:account-number account-number
                             :alb-name name}
-                           (select-keys % [:name :port :lb-port :protocol :ssl-policy :cert]))) listeners)))))
+                           (select-keys % [:name :port :lb-port :lb-protocol :protocol :ssl-policy :cert]))) listeners)))))
 
 (defn asg [name
            name-fn
