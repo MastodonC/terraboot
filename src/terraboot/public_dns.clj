@@ -1,9 +1,10 @@
 (ns terraboot.public-dns
   (:require [terraboot.core :as core]
-            [terraboot.utils :as utils]))
+            [terraboot.utils :as utils]
+            [clojure.string :as string :refer [join replace]]))
 
-(defn public-route53-record [dns-zone dns-zone-id prefix spec]
-  (let [name (str prefix "." dns-zone)]
+(defn public-route53-record [root-dns dns-zone-id prefix spec]
+  (let [name (str prefix "." root-dns)]
     (core/resource "aws_route53_record" (core/safe-name name)
                    (merge
                     {:zone_id dns-zone-id
@@ -12,28 +13,25 @@
                     (if (:alias spec) {} {:ttl "300"})
                     spec))))
 
-(defn vpc-public-dns
-  [dns-zone dns-zone-id vpc-name]
-  (let [route53-record (partial public-route53-record dns-zone dns-zone-id)
-        vpc-output-of (core/output-of-fn (core/vpc-unique-fn vpc-name))]
-    (utils/merge-in
-     (route53-record "vpn" {:records [(vpc-output-of "aws_eip" "vpn" "public_ip")]})
-     (route53-record "logstash" {:records [(vpc-output-of "aws_eip" "logstash" "public_ip")]})
-     (route53-record "alerts" {:type "CNAME"
-                               :records [(core/output-of "aws_elb" "alerts" "dns_name")]}))))
+(defn public-dns-zone
+  [environment-dns environment-dns-identifier]
+  (core/resource "aws_route53_zone" environment-dns-identifier
+                 {:name environment-dns
+                  :comment (str "public routes for " environment-dns)}))
 
-(defn cluster-public-dns
-  [dns-zone dns-zone-id vpc-name cluster-name]
-  (let [route53-record (partial public-route53-record dns-zone dns-zone-id)
-        cluster-identifier (core/cluster-identifier vpc-name cluster-name)
-        cluster-unique (core/cluster-unique-fn vpc-name cluster-name)
-        cluster-output-of (core/output-of-fn cluster-unique)]
+(defn vpc-public-dns
+  [{:keys [root-dns root-dns-zone-id environment project vpc-name]}]
+  (let [environment-dns (core/environment-dns environment project root-dns)
+        environment-dns-identifier (core/environment-dns-identifier environment-dns "public")]
     (utils/merge-in
-     (route53-record (cluster-unique "deploy")
-                     {:alias {:name (cluster-output-of "aws_alb" "public-apps" "dns_name")
-                              :zone_id (cluster-output-of "aws_alb" "public-apps" "zone_id")
-                              :evaluate_target_health true}})
-     (route53-record cluster-identifier
-                     {:alias {:name (cluster-output-of "aws_alb" "public-apps" "dns_name")
-                              :zone_id (cluster-output-of "aws_alb" "public-apps" "zone_id")
-                              :evaluate_target_health true}}))))
+     (public-dns-zone environment-dns environment-dns-identifier)
+     ;; TODO: smart step to add delegation in root account
+     #_(public-route53-record root-dns
+                              root-dns-zone-id
+                              (string/join "." [environment project])
+                              {:type "NS"
+                               :records (mapv #(core/output-of "aws_route53_zone" environment-dns-identifier (string/join  "." ["name_servers" %])) (range 0 4))})
+     (public-route53-record environment-dns
+                            (core/id-of "aws_route53_zone" environment-dns-identifier)
+                            "vpn"
+                            {:records [(core/output-of "aws_eip" (str vpc-name "-vpn") "public_ip")]}))))

@@ -200,7 +200,10 @@
            slave-alb-listeners
            slave-alb-sg
            slave-sg
-           account-number]}]
+           account-number
+           root-dns
+           environment
+           project]}]
   (let [vpc-unique (vpc-unique-fn vpc-name)
         vpc-id-of (id-of-fn vpc-unique)
         vpc-output-of (output-of-fn vpc-unique)
@@ -215,7 +218,9 @@
         ;; these subnets are both slightly artificial hacks to put different azs under load balancers
         elb-subnets (mapv #(remote-output-of "vpc" (stringify "subnet-public-" % "-id")) elb-azs)
         elb-private-subnets (mapv #(remote-output-of "vpc" (stringify "subnet-private-" % "-id")) elb-azs)
-        elb-listener (account-elb-listener account-number)]
+        elb-listener (account-elb-listener account-number)
+        environment-dns (environment-dns environment project root-dns)
+        environment-dns-identifier (environment-dns-identifier environment-dns "private")]
     (merge-in
      (remote-state region bucket profile "vpc")
      (add-key-name-to-instances
@@ -331,10 +336,9 @@
                               :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                               :fallback-dns (vpc/fallback-dns vpc-cidr-block)
                               :number-of-masters min-number-of-masters
-                              :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                               :mesos-dns "127.0.0.1"
-                              :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
-                              :logstash-dns (str "logstash." (vpc/vpc-dns-zone vpc-name))})
+                              :alerts-server (str "alerts." environment-dns)
+                              :logstash-dns (str "logstash." environment-dns)})
 
               (asg "masters"
                    cluster-unique
@@ -390,13 +394,14 @@
                               :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                               :fallback-dns (vpc/fallback-dns vpc-cidr-block)
                               :number-of-masters min-number-of-masters
-                              :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                               :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                              :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
+                              :alerts-server (str "alerts." environment-dns)
                               :logstash-ip (remote-output-of "vpc" "logstash-ip")
-                              :logstash-dns (str "logstash." (vpc/vpc-dns-zone vpc-name))})
+                              :logstash-dns (str "logstash." environment-dns)})
 
-              (vpc/private_route53_record (str cluster-name "-masters") vpc-name
+              (vpc/private-route53-record "masters"
+                                          environment-dns
+                                          environment-dns-identifier
                                           {:zone_id (remote-output-of "vpc" "private-dns-zone")
                                            :alias {:name (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                                                    :zone_id (cluster-output-of "aws_elb" "internal-lb" "zone_id")
@@ -447,11 +452,10 @@
                               :internal-lb-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
                               :fallback-dns (vpc/fallback-dns vpc-cidr-block)
                               :number-of-masters min-number-of-masters
-                              :influxdb-dns (str "influxdb." (vpc/vpc-dns-zone vpc-name))
                               :mesos-dns (cluster-output-of "aws_elb" "internal-lb" "dns_name")
-                              :alerts-server (str "alerts." (vpc/vpc-dns-zone vpc-name))
+                              :alerts-server (str "alerts." environment-dns)
                               :logstash-ip (remote-output-of "vpc" "logstash-ip")
-                              :logstash-dns (str "logstash." (vpc/vpc-dns-zone vpc-name))})
+                              :logstash-dns (str "logstash." environment-dns)})
 
               (asg "slaves"
                    cluster-unique
@@ -481,7 +485,9 @@
                            :subnets elb-private-subnets
                            :security-groups (concat [(cluster-id-of "aws_security_group" "slave-alb-sg")]
                                                     remote-default-sgs)}] })
-              (vpc/private_route53_record (str cluster-name "-slaves") vpc-name
+              (vpc/private-route53-record "slaves"
+                                          environment-dns
+                                          environment-dns-identifier
                                           {:zone_id (remote-output-of "vpc" "private-dns-zone")
                                            :alias {:name (cluster-output-of "aws_alb" "internal-tasks" "dns_name")
                                                    :zone_id (cluster-output-of "aws_alb" "internal-tasks" "zone_id")
