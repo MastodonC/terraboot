@@ -40,7 +40,7 @@ TimeoutSec=600
 ExecStartPre=/usr/bin/docker pull ~{full-image-name}:~{release}
 ExecStartPre=-/usr/bin/docker kill ~{image-name}
 ExecStartPre=-/usr/bin/docker rm ~{image-name}
-ExecStart=/usr/bin/docker run --name ~{image-name} ~{option-string} ~{full-image-name}:~{release} ~{entry-point}
+ExecStart=/usr/bin/docker run --log-driver journald --name ~{image-name} ~{option-string} ~{full-image-name}:~{release} ~{entry-point}
 ExecStop=/usr/bin/docker stop ~{image-name}
 
 [Install]
