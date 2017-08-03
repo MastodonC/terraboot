@@ -1,9 +1,19 @@
-filebeat:
-  prospectors:
-    - input_type: stdin
+filebeat.prospectors:
+- input_type: log
+  paths:
+    - /var/lib/mesos/slave/slaves/*/frameworks/*/executors/*/runs/latest/stdout
+    - /var/lib/mesos/slave/slaves/*/frameworks/*/executors/*/runs/latest/stderr
+    - /var/log/mesos/*.log
+    - /var/log/dcos/dcos.log
+  json.keys_under_root: true
+tail_files: true
 
 fields:
     tag: '$${cluster-name}'
+
+processors:
+  -decode_json_fields:
+     fields: ["message"]
 
 output:
   logstash:
