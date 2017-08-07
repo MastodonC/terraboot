@@ -79,6 +79,7 @@
 (def beats-user-data
   {:coreos {:units [{:name "filebeat.service" :command "start" :content (snippet "systemd/filebeat.service")}
                     {:name "metricbeat.service" :command "start" :content (snippet "systemd/metricbeat.service")}
+                    {:name "dcos-journalctl-file.service" :command "start" :content (snippet "systemd/dcos-journalctl-file.service")}
                     {:name "copy-bins.service" :command "start" :content (snippet "systemd/copy-bins.service")}]}
    :write_files [{:path "/etc/beats/filebeat.yml"
                   :content (snippet "system-files/filebeat.yml")}

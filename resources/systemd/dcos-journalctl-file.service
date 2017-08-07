@@ -1,0 +1,12 @@
+[Unit]
+Description=DCOS journalctl to file
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+TimeoutStartSec=15
+StartLimitInterval=0
+ExecStart=/bin/sh -c "/usr/bin/journalctl --no-tail -f -u dcos-cluster-id.service -u dcos-ddt.service -u dcos-exhibitor.service -u dcos-marathon.service -u dcos-mesos-dns.service -u dcos-mesos-master.service -u dcos-mesos-slave-public.service -u dcos-mesos-slave.service -u dcos-signal.service -u dcos-spartan-watchdog.service > /var/log/mesos/dcos.log 2>&1"
+RestartSec=5
+Restart=always
+ExecStartPre=/usr/bin/journalctl --vacuum-size=10M
