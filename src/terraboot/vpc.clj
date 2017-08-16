@@ -146,11 +146,6 @@
                                       environment-dns-identifier
                                       {:records [(vpc-output-of "aws_instance" "logstash" "private_ip")]})
 
-              (private-route53-record "alerts"
-                                      environment-dns
-                                      environment-dns-identifier
-                                      {:records [(vpc-output-of "aws_instance" "alerts" "private_ip")]})
-
               (vpc-security-group "elb_grafana" {})
               (vpc-security-group "allow_elb_grafana" {}
                                   {:port 80

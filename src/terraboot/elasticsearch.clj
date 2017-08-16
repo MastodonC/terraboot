@@ -187,40 +187,6 @@ WantedBy=multi-user.target")})))
               ;; alerting server needs access to all servers
               (vpc-security-group "nrpe" {})
 
-              (database {:name (vpc-unique "alerts")
-                         :subnet vpc-name})
-
-              (aws-instance (vpc-unique "alerts")
-                            {:ami default-ami
-                             :subnet_id (vpc-id-of "aws_subnet" "private-a")
-                             :vpc_security_group_ids [(vpc-id-of "aws_security_group" "nrpe")
-                                                      (id-of "aws_security_group" (str "uses-db-" (vpc-unique "alerts")))
-                                                      (vpc-id-of "aws_security_group" "allow-elb-alerts")
-                                                      (vpc-id-of "aws_security_group" "all-servers")
-                                                      (vpc-id-of "aws_security_group" "sends_influx")]})
-
-              (elb "alerts" resource {:name "alerts"
-                                      :health_check {:healthy_threshold 2
-                                                     :unhealthy_threshold 3
-                                                     :target "HTTP:80/"
-                                                     :timeout 5
-                                                     :interval 30}
-                                      :listener [(elb-listener (if cert-name
-                                                                 {:lb-port 443 :lb-protocol "https" :port 80 :protocol "http" :cert-name cert-name}
-                                                                 {:port 80 :protocol "http"}))]
-                                      :subnets (mapv #(id-of "aws_subnet" (stringify  vpc-name "-public-" %)) azs)
-                                      :instances [(id-of "aws_instance" (vpc-unique "alerts"))]
-                                      :security_groups (map #(id-of "aws_security_group" %)
-                                                            ["allow_outbound"
-                                                             "allow_external_http_https"
-                                                             (vpc-unique "elb-alerts")
-                                                             ])})
-
-              (vpc-security-group "elb-alerts" {})
-              (vpc-security-group "allow-elb-alerts" {}
-                                  {:port 80
-                                   :source_security_group_id (vpc-id-of "aws_security_group" "elb-alerts")})
-
               (vpc-security-group "elb-kibana" {}
                                   {:port 80
                                    :cidr_blocks [vpc-cidr-block]}
