@@ -480,21 +480,19 @@
                     :subnets private-subnets
                     :lifecycle {:create_before_destroy true}
                     :elb []
-                    :alb (let [listeners (map #(assoc % :account-number account-number) slave-alb-listeners)]
-                           (if (seq listeners)
-                             [{:name "internal-tasks"
-                               :internal true
-                               :listeners listeners
-                               :subnets elb-private-subnets
-                               :security-groups (concat [(cluster-id-of "aws_security_group" "slave-alb-sg")]
-                                                        remote-default-sgs)}]
-                             []))})
-              (let [listeners (map #(assoc % :account-number account-number) slave-alb-listeners)]
-                (if (seq listeners)
-                  (vpc/private-route53-record "slaves"
-                                              environment-dns
-                                              environment-dns-identifier
-                                              {:zone_id (remote-output-of "vpc" "private-dns-zone")
-                                               :alias {:name (cluster-output-of "aws_alb" "internal-tasks" "dns_name")
-                                                       :zone_id (cluster-output-of "aws_alb" "internal-tasks" "zone_id")
-                                                       :evaluate_target_health true}}))))))))
+                    :alb (if (seq slave-alb-listeners)
+                           [{:name "internal-tasks"
+                             :internal true
+                             :listeners (map #(assoc % :account-number account-number) slave-alb-listeners)
+                             :subnets elb-private-subnets
+                             :security-groups (concat [(cluster-id-of "aws_security_group" "slave-alb-sg")]
+                                                      remote-default-sgs)}]
+                           [])})
+              (if (seq slave-alb-listeners)
+                (vpc/private-route53-record "slaves"
+                                            environment-dns
+                                            environment-dns-identifier
+                                            {:zone_id (remote-output-of "vpc" "private-dns-zone")
+                                             :alias {:name (cluster-output-of "aws_alb" "internal-tasks" "dns_name")
+                                                     :zone_id (cluster-output-of "aws_alb" "internal-tasks" "zone_id")
+                                                       :evaluate_target_health true}})))))))
