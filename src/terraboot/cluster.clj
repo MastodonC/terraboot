@@ -488,7 +488,7 @@
                              :security-groups (concat [(cluster-id-of "aws_security_group" "slave-alb-sg")]
                                                       remote-default-sgs)}]
                            [])})
-              (if (seq slave-alb-listeners)
+              (when (seq slave-alb-listeners)
                 (vpc/private-route53-record "slaves"
                                             environment-dns
                                             environment-dns-identifier
