@@ -372,7 +372,11 @@
                             :launch_configuration (cluster-output-of "aws_launch_configuration" name "name")
                             :lifecycle { :create_before_destroy true }
                             :load_balancers (mapv #(cluster-output-of "aws_elb" (:name %) "name") (:elb spec))
-                            :target_group_arns (mapv #(cluster-output-of "aws_alb_target_group" (:name %) "arn") (mapcat :listeners (:alb spec)))
+                            :target_group_arns (let [listeners (mapcat :listeners (:alb spec))
+                                                     target-groups (mapcat :target-groups listeners)
+                                                     names (concat (map :name listeners)
+                                                                   (map :name target-groups))]
+                                                 (mapv #(cluster-output-of "aws_alb_target_group" % "arn") names))
                             :tag {:key "Name"
                                   :value (name-fn name)
                                   :propagate_at_launch true
