@@ -257,6 +257,20 @@
                                             :default_action {:target_group_arn (cluster-output-of "aws_alb_target_group" name "arn")
                                                              :type "forward"}}))))
 
+(defn alb-listener-rule
+  [name-fn {:keys [name alb-listener-name target-group priority cond-field cond-values]}]
+  (let [cluster-resource (partial resource name-fn)
+        cluster-output-of (fn [type name output] (output-of type (name-fn name) output))
+        listener-arn (cluster-output-of "aws_alb_listener" alb-listener-name "arn")
+        target-group-arn (cluster-output-of "aws_alb_target_group" target-group "arn")]
+    (cluster-resource "aws_alb_listener_rule" name
+                      {:listener_arn listener-arn
+                       :priority priority
+                       :condition {:field cond-field
+                                   :values cond-values}
+                       :action {:target_group_arn target-group-arn
+                                :type "forward"}})))
+
 (defn alb
   [name-fn
    {:keys [account-number
@@ -282,7 +296,32 @@
                     name-fn
                     (merge {:account-number account-number
                             :alb-name name}
-                           (select-keys % [:name :port :lb-port :lb-protocol :protocol :ssl-policy :cert]))) listeners)))))
+                           (select-keys % [:name :port :lb-port :lb-protocol :protocol :ssl-policy :cert]))) listeners))
+
+     (apply merge-in (mapv
+                (fn [listener]
+                  (apply merge-in
+                         (mapv #(alb-target-group
+                                 cluster-resource
+                                 (select-keys % [:name
+                                                 :port
+                                                 :protocol
+                                                 :health_check]))
+                               (:target-groups listener)))) listeners))
+
+     (apply merge-in (mapv
+                      (fn [listener]
+                        (apply merge-in
+                               (mapv #(alb-listener-rule
+                                       name-fn
+                                       (merge
+                                        {:alb-listener-name (:name listener)}
+                                        (select-keys % [:name
+                                                        :target-group
+                                                        :priority
+                                                        :cond-field
+                                                        :cond-values])))
+                                     (:rules listener)))) listeners)))))
 
 (defn asg [name
            name-fn
