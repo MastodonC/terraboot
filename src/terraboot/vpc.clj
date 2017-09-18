@@ -223,7 +223,6 @@
               (output "sg-allow-outbound" "aws_security_group" "allow_outbound" "id")
               (output "sg-allow-http-https" "aws_security_group" "allow_external_http_https" "id")
               (output "vpc-id" "aws_vpc" vpc-name  "id")
-              (output "sg-sends-gelf" "aws_security_group" (vpc-unique "sends_gelf") "id")
               (output "private-dns-zone" "aws_route53_zone" environment-dns-identifier "id")
               (output "public-route-table" "aws_route_table" (vpc-unique "public") "id")
               (output "logstash-ip" "aws_eip" (vpc-unique "logstash") "private_ip")
