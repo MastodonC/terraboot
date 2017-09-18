@@ -175,7 +175,6 @@ WantedBy=multi-user.target")})))
                                                      :instance_type "m4.large"
                                                      :vpc_security_group_ids [(vpc-id-of "aws_security_group" "logstash")
                                                                               (id-of "aws_security_group" "allow_ssh")
-                                                                              (vpc-id-of "aws_security_group" "sends_influx")
                                                                               (vpc-id-of "aws_security_group" "all-servers")
                                                                               (vpc-id-of "aws_security_group" "elb-kibana")
                                                                               ]

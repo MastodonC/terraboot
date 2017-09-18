@@ -347,7 +347,6 @@
                     :instance_type master-instance-type
                     :sgs (concat [(cluster-id-of "aws_security_group" "master-security-group")
                                   (cluster-id-of "aws_security_group" "admin-security-group")
-                                  (remote-output-of "vpc" "sg-sends-influx")
                                   (remote-output-of "vpc" "sg-sends-gelf")
                                   (remote-output-of "vpc" "sg-all-servers")]
                                  remote-default-sgs)
@@ -413,7 +412,6 @@
                    {:image_id mesos-ami
                     :instance_type public-slave-instance-type
                     :sgs [(cluster-id-of "aws_security_group" "public-slave-security-group")
-                          (remote-output-of "vpc" "sg-sends-influx")
                           (remote-output-of "vpc" "sg-sends-gelf")
                           (remote-output-of "vpc" "sg-all-servers")
                           (remote-output-of "vpc" "sg-allow-ssh")]
@@ -464,7 +462,6 @@
                     :instance_type slave-instance-type
                     :sgs (concat [(cluster-id-of "aws_security_group" "slave-security-group")
                                   (remote-output-of "vpc" "sg-all-servers")
-                                  (remote-output-of "vpc" "sg-sends-influx")
                                   (remote-output-of "vpc" "sg-sends-gelf")]
                                  remote-default-sgs)
                     :role (cluster-unique "slave-role")

@@ -130,7 +130,6 @@
                                                 :subnet_id (vpc-id-of "aws_subnet" (stringify "public-" (first azs)))
                                                 :ami default-ami
                                                 :vpc_security_group_ids [(vpc-id-of "aws_security_group" "vpn")
-                                                                         ;;(vpc-id-of "aws_security_group" "sends_influx")
                                                                          (vpc-id-of "aws_security_group" "all-servers")
                                                                          ]
                                                 :associate_public_ip_address true
@@ -150,16 +149,6 @@
               (vpc-security-group "allow_elb_grafana" {}
                                   {:port 80
                                    :source_security_group_id (vpc-id-of "aws_security_group" "elb_grafana")})
-
-              (vpc-security-group "influxdb" {}
-                                  {:port 222
-                                   :protocol "tcp"
-                                   :cidr_blocks [all-external]}
-                                  {:port 8086
-                                   :protocol "tcp"
-                                   :source_security_group_id (vpc-id-of "aws_security_group" "sends_influx")})
-
-              (vpc-security-group "sends_influx" {})
 
               (vpc-resource "aws_eip" "vpn" {:instance (vpc-id-of "aws_instance" "vpn")
                                              :vpc true})
@@ -236,7 +225,6 @@
               (output "sg-allow-outbound" "aws_security_group" "allow_outbound" "id")
               (output "sg-allow-http-https" "aws_security_group" "allow_external_http_https" "id")
               (output "vpc-id" "aws_vpc" vpc-name  "id")
-              (output "sg-sends-influx" "aws_security_group" (vpc-unique "sends_influx") "id")
               (output "sg-sends-gelf" "aws_security_group" (vpc-unique "sends_gelf") "id")
               (output "private-dns-zone" "aws_route53_zone" environment-dns-identifier "id")
               (output "public-route-table" "aws_route_table" (vpc-unique "public") "id")
