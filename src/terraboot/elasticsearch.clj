@@ -183,9 +183,6 @@ WantedBy=multi-user.target")})))
                                                      :subnet_id (vpc-id-of "aws_subnet" "public-a")
                                                      :iam_instance_profile (vpc-id-of "aws_iam_instance_profile" "logstash")})
 
-              ;; alerting server needs access to all servers
-              (vpc-security-group "nrpe" {})
-
               (vpc-security-group "elb-kibana" {}
                                   {:port 80
                                    :cidr_blocks [vpc-cidr-block]}

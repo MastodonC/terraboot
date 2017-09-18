@@ -22,8 +22,7 @@
                     {:name "docker-cleanup.timer" :command "start" :content (snippet "systemd/docker-cleanup.timer")}
                     {:name "install-confd.service" :command "start" :content (snippet "systemd/install-confd.service")}
                     {:name "confd.service" :command "start" :content (snippet "systemd/confd.service") :enable true}
-                    {:name "install-awscli.service" :command "start" :content (snippet "systemd/install-awscli.service") :enable true}
-                    {:name "nrpe.service" :command "start" :content (snippet "systemd/nrpe.service") :enable true}]
+                    {:name "install-awscli.service" :command "start" :content (snippet "systemd/install-awscli.service") :enable true}]
             :update {:reboot-strategy "off"}}
    :write_files [{:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json"
                   :content "{}\n"}

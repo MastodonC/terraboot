@@ -164,8 +164,6 @@
                                })
 
               (vpc-security-group "all-servers" {}
-                                  {:port 5666
-                                   :source_security_group_id (vpc-id-of "aws_security_group" "nrpe")}
                                   {:type "egress"
                                    :from_port 0
                                    :to_port 0
