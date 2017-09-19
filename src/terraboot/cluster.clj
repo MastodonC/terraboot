@@ -204,7 +204,8 @@
            account-number
            root-dns
            environment
-           project]}]
+           project
+           vpc-remote-state-backend-key]}]
   (let [vpc-unique (vpc-unique-fn vpc-name)
         vpc-id-of (id-of-fn vpc-unique)
         vpc-output-of (output-of-fn vpc-unique)
@@ -223,7 +224,7 @@
         environment-dns (environment-dns environment project root-dns)
         environment-dns-identifier (environment-dns-identifier environment-dns "private")]
     (merge-in
-     (remote-state region bucket profile "vpc")
+     (remote-state region bucket profile (or vpc-remote-state-backend-key "vpc.tfstate") "vpc")
      (add-key-name-to-instances
       key-name
       (in-vpc (remote-output-of "vpc" "vpc-id")

@@ -493,12 +493,12 @@
    "eu-west-1"      "s3-eu-west-1.amazonaws.com"
    "sa-east-1"      "s3-sa-east-1.amazonaws.com"})
 
-(defn remote-state [region bucket profile name]
+(defn remote-state [region bucket profile remote-state-backend-key name]
   (data "terraform_remote_state" name
         {:backend "s3"
          :config (merge {:bucket bucket
                          :encrypt true
-                         :key (str name ".tfstate")
+                         :key remote-state-backend-key
                          :region region
                          :endpoint (get s3-endpoints region)}
                         (when profile {:profile profile}))}))
