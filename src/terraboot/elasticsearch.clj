@@ -150,15 +150,6 @@ WantedBy=multi-user.target")})))
       key-name
       (in-vpc (id-of "aws_vpc" vpc-name)
               (vpc-security-group "logstash" {}
-                                  {:port 12201
-                                   :protocol "udp"
-                                   :source_security_group_id (vpc-id-of "aws_security_group" "sends_gelf")}
-                                  {:port 12201
-                                   :protocol "udp"
-                                   :cidr_blocks (mapv #(str (vpc-output-of "aws_eip" (stringify "public-" % "-nat") "public_ip") "/32") azs)}
-                                  {:port 12201
-                                   :protocol "udp"
-                                   :cidr_blocks [vpc-cidr-block]}
                                   {:port 9200
                                    :protocol "tcp"
                                    :cidr_blocks [vpc-cidr-block]})
@@ -166,8 +157,6 @@ WantedBy=multi-user.target")})))
               (vpc-resource "aws_eip" "logstash"
                             {:vpc true
                              :instance (vpc-id-of "aws_instance" "logstash")})
-
-              (vpc-security-group "sends_gelf" {})
 
               (vpc-security-group "sends_logstash" {})
 
@@ -182,9 +171,6 @@ WantedBy=multi-user.target")})))
                                                      :associate_public_ip_address true
                                                      :subnet_id (vpc-id-of "aws_subnet" "public-a")
                                                      :iam_instance_profile (vpc-id-of "aws_iam_instance_profile" "logstash")})
-
-              ;; alerting server needs access to all servers
-              (vpc-security-group "nrpe" {})
 
               (vpc-security-group "elb-kibana" {}
                                   {:port 80

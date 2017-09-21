@@ -22,8 +22,7 @@
                     {:name "docker-cleanup.timer" :command "start" :content (snippet "systemd/docker-cleanup.timer")}
                     {:name "install-confd.service" :command "start" :content (snippet "systemd/install-confd.service")}
                     {:name "confd.service" :command "start" :content (snippet "systemd/confd.service") :enable true}
-                    {:name "install-awscli.service" :command "start" :content (snippet "systemd/install-awscli.service") :enable true}
-                    {:name "nrpe.service" :command "start" :content (snippet "systemd/nrpe.service") :enable true}]
+                    {:name "install-awscli.service" :command "start" :content (snippet "systemd/install-awscli.service") :enable true}]
             :update {:reboot-strategy "off"}}
    :write_files [{:path "/etc/mesosphere/setup-packages/dcos-provider-aws--setup/pkginfo.json"
                   :content "{}\n"}
@@ -348,7 +347,6 @@
                     :instance_type master-instance-type
                     :sgs (concat [(cluster-id-of "aws_security_group" "master-security-group")
                                   (cluster-id-of "aws_security_group" "admin-security-group")
-                                  (remote-output-of "vpc" "sg-sends-gelf")
                                   (remote-output-of "vpc" "sg-all-servers")]
                                  remote-default-sgs)
                     :role (cluster-unique "master-role")
@@ -413,7 +411,6 @@
                    {:image_id mesos-ami
                     :instance_type public-slave-instance-type
                     :sgs [(cluster-id-of "aws_security_group" "public-slave-security-group")
-                          (remote-output-of "vpc" "sg-sends-gelf")
                           (remote-output-of "vpc" "sg-all-servers")
                           (remote-output-of "vpc" "sg-allow-ssh")]
                     :role (cluster-unique "slave-role")
@@ -462,8 +459,7 @@
                    {:image_id mesos-ami
                     :instance_type slave-instance-type
                     :sgs (concat [(cluster-id-of "aws_security_group" "slave-security-group")
-                                  (remote-output-of "vpc" "sg-all-servers")
-                                  (remote-output-of "vpc" "sg-sends-gelf")]
+                                  (remote-output-of "vpc" "sg-all-servers")]
                                  remote-default-sgs)
                     :role (cluster-unique "slave-role")
                     :tags {:Key "role"
