@@ -118,21 +118,25 @@
                                  dockerd-logging)))
 
 ;; arn:aws:s3:::my_corporate_bucket/exampleobject.png
-(defn bucket-policy [bucket-name]
-  (let [bucket-arn (str "arn:aws:s3:::" bucket-name)]
-    (policy {"Action" ["s3:AbortMultipartUpload",
-                       "s3:DeleteObject",
-                       "s3:GetBucketAcl",
-                       "s3:GetBucketPolicy",
-                       "s3:GetObject",
-                       "s3:GetObjectAcl",
-                       "s3:ListBucket",
-                       "s3:ListBucketMultipartUploads",
-                       "s3:ListMultipartUploadParts",
-                       "s3:PutObject",
+(defn bucket-policy
+  [bucket-names]
+  (let [bucket-arn #(str "arn:aws:s3:::" %)
+        resources (reduce (fn [a n]
+                            (into a [(bucket-arn n) (bucket-arn (str n "/*"))]))
+                          []
+                          bucket-names)]
+    (policy {"Action" ["s3:AbortMultipartUpload"
+                       "s3:DeleteObject"
+                       "s3:GetBucketAcl"
+                       "s3:GetBucketPolicy"
+                       "s3:GetObject"
+                       "s3:GetObjectAcl"
+                       "s3:ListBucket"
+                       "s3:ListBucketMultipartUploads"
+                       "s3:ListMultipartUploadParts"
+                       "s3:PutObject"
                        "s3:PutObjectAcl"]
-             "Resource" [bucket-arn
-                         (str bucket-arn "/*")]})))
+             "Resource" resources})))
 
 (def auto-scaling-policy
   (policy {"Action" ["ec2:DescribeKeyPairs",
@@ -295,14 +299,14 @@
               (cluster-resource "aws_iam_user_policy" "mesos-user-policy-s3"
                                 {:name "mesos-user-policy-s3"
                                  :user (cluster-id-of "aws_iam_user" "mesos-user")
-                                 :policy (bucket-policy (cluster-unique "exhibitor-s3-bucket"))})
+                                 :policy (bucket-policy [(cluster-unique "exhibitor-s3-bucket")])})
               (cluster-resource "aws_iam_access_key" "host-key" {:user (cluster-id-of "aws_iam_user" "mesos-user")})
 
 
               (iam-role "master-role"
                         cluster-unique
                         {:name "master-s3"
-                         :policy (bucket-policy (cluster-unique "exhibitor-s3-bucket"))}
+                         :policy (bucket-policy [(cluster-unique "exhibitor-s3-bucket")])}
                         {:name "master-auto-scaling-policy"
                          :policy auto-scaling-policy}                       )
 
