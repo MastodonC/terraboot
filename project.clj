@@ -7,7 +7,6 @@
                  [cheshire "5.5.0"]
                  [stencil "0.5.0"]
                  [clj-yaml "0.4.0"]
-                 [expectations "2.0.9"]
                  [org.clojure/core.incubator "0.1.4"]]
   :repositories [["releases" {:url "https://clojars.org/repo"
                               :creds :gpg}]
