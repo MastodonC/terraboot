@@ -81,7 +81,16 @@ WantedBy=multi-user.target")})))
                                         "IpAddress"
                                         {"aws:SourceIp" (into ["$${allowed-ips}"] es-allowed-ips)}}}]}))
 
-(defn elasticsearch-cluster [name {:keys [es-endpoint vpc-name account-number region azs default-ami mesos-ami vpc-cidr-block cert-name key-name es-allowed-ips] :as spec}]
+(defn elasticsearch-cluster [name {:keys [es-endpoint
+                                          vpc-name
+                                          account-number
+                                          region azs
+                                          default-ami
+                                          logstash-ami
+                                          vpc-cidr-block
+                                          cert-name
+                                          key-name
+                                          es-allowed-ips] :as spec}]
   ;; http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs
   ;; See for what instance-types and storage is possible
   (let [vpc-unique (vpc-unique-fn vpc-name)
@@ -160,7 +169,7 @@ WantedBy=multi-user.target")})))
 
               (vpc-security-group "sends_logstash" {})
 
-              (aws-instance (vpc-unique "logstash") {:ami mesos-ami
+              (aws-instance (vpc-unique "logstash") {:ami logstash-ami
                                                      :instance_type "m4.large"
                                                      :vpc_security_group_ids [(vpc-id-of "aws_security_group" "logstash")
                                                                               (id-of "aws_security_group" "allow_ssh")
