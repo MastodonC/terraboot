@@ -71,7 +71,7 @@ WantedBy=multi-user.target")})))
   (json/generate-string {"Version" "2012-10-17",
                          "Statement" [{"Action" "es:*",
                                        "Principal" "*",
-                                       "Resource" (output-of "aws_elasticsearch_domain" name :arn),
+                                       "Resource" (str (output-of "aws_elasticsearch_domain" name :arn) "/*"),
                                        "Effect" "Allow",
                                        "Condition"
                                        {
@@ -177,7 +177,7 @@ WantedBy=multi-user.target")})))
                                                                               (vpc-id-of "aws_security_group" "all-servers")
                                                                               (vpc-id-of "aws_security_group" "elb-kibana")
                                                                               ]
-                                                     :user_data (logstash-user-data-coreos (output-of "aws_elasticsearch_domain" name :domain_name) region)
+                                                     :user_data (logstash-user-data-coreos (output-of "aws_elasticsearch_domain" name :endpoint) region)
                                                      :associate_public_ip_address true
                                                      :subnet_id (vpc-id-of "aws_subnet" "public-a")
                                                      :iam_instance_profile (vpc-id-of "aws_iam_instance_profile" "logstash")})
