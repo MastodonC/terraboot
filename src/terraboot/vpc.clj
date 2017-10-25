@@ -87,18 +87,15 @@
                      spec))))
 
 (defn vpc-vpn-infra
-  [{:keys [es-endpoint
-           vpc-name
+  [{:keys [vpc-name
            account-number
            region
            key-name
            azs
            subnet-cidr-blocks
            default-ami
-           mesos-ami
            vpc-cidr-block
            cert-name
-           es-allowed-ips
            root-dns
            environment
            project] :as opts}]
@@ -116,9 +113,12 @@
                 :cidr_block vpc-cidr-block
                 :enable_dns_hostnames true})
 
-     (elasticsearch-cluster (vpc-unique "monitoring") (select-keys opts [:es-endpoint :vpc-name :account-number :key-name
-                                                                         :region :azs :default-ami :mesos-ami :vpc-cidr-block
-                                                                         :cert-name :es-allowed-ips]))
+     (elasticsearch-cluster
+      (vpc-unique "monitoring")
+      (select-keys opts [:vpc-name :account-number :key-name
+                         :region :azs :default-ami :logstash-ami :vpc-cidr-block
+                         :cert-name :es-allowed-ips
+                         :es-instance-type :es-instance-count :es-ebs-volume-size]))
 
      (add-key-name-to-instances
       key-name
