@@ -67,32 +67,30 @@ WantedBy=multi-user.target")})))
                           nginx])))
 
 (defn elasticsearch-policy
-  [es-allowed-ips]
+  [name es-allowed-ips]
   (json/generate-string {"Version" "2012-10-17",
                          "Statement" [{"Action" "es:*",
                                        "Principal" "*",
-                                       "Resource" "$${es-arn}",
-                                       ;; There is currently a bug which means 'Resource' needs adding after the
-                                       ;; cluster is created or it will constantly say it needs to change.
-                                       ;; https://github.com/hashicorp/terraform/issues/5067
+                                       "Resource" (output-of "aws_elasticsearch_domain" name :arn),
                                        "Effect" "Allow",
                                        "Condition"
                                        {
                                         "IpAddress"
                                         {"aws:SourceIp" (into ["$${allowed-ips}"] es-allowed-ips)}}}]}))
 
-(defn elasticsearch-cluster [name {:keys [es-endpoint
-                                          vpc-name
-                                          account-number
-                                          region azs
-                                          default-ami
-                                          logstash-ami
-                                          vpc-cidr-block
+(defn elasticsearch-cluster [name {:keys [account-number
                                           cert-name
+                                          default-ami
+                                          es-allowed-ips
+                                          es-ebs-volume-size
+                                          es-endpoint
+                                          es-instance-count
+                                          es-instance-type
                                           key-name
-                                          es-allowed-ips] :as spec}]
-  ;; http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs
-  ;; See for what instance-types and storage is possible
+                                          logstash-ami
+                                          region azs
+                                          vpc-cidr-block
+                                          vpc-name] :as spec}]
   (let [vpc-unique (vpc-unique-fn vpc-name)
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (id-of-fn vpc-unique)
@@ -104,7 +102,7 @@ WantedBy=multi-user.target")})))
 
     (merge-in
      (template-file (vpc-unique "elasticsearch-policy")
-                    (elasticsearch-policy es-allowed-ips)
+                    (elasticsearch-policy name es-allowed-ips)
                     {:es-arn es-arn-*
                      :allowed-ips (vpc-output-of "aws_eip" "logstash" "public_ip")})
 
@@ -112,14 +110,17 @@ WantedBy=multi-user.target")})))
                {:domain_name name
                 :elasticsearch_version "5.1"
                 :advanced_options { "rest.action.multi.allow_explicit_index" "true"}
-                :access_policies (rendered-template-file (vpc-unique "elasticsearch-policy"))
-                :cluster_config {:instance_count 2,
-                                 :instance_type "m4.large.elasticsearch"}
+                :cluster_config {:instance_count (or es-instance-count 2),
+                                 :instance_type (or es-instance-type "m4.large.elasticsearch")}
                 :ebs_options {:ebs_enabled true,
                               :volume_type "gp2",
-                              :volume_size 100
+                              :volume_size (or es-ebs-volume-size 100)
                               },
                 :snapshot_options { :automated_snapshot_start_hour 23}})
+
+     (resource "aws_elasticsearch_domain_policy" (str name "-policy")
+               {:domain_name (output-of "aws_elasticsearch_domain" name :domain_name)
+                :access_policies (rendered-template-file (vpc-unique "elasticsearch-policy"))})
 
      (vpc-resource "aws_iam_role" "logstash" {:name "logstash"
                                               :assume_role_policy (json/generate-string {
@@ -176,7 +177,7 @@ WantedBy=multi-user.target")})))
                                                                               (vpc-id-of "aws_security_group" "all-servers")
                                                                               (vpc-id-of "aws_security_group" "elb-kibana")
                                                                               ]
-                                                     :user_data (logstash-user-data-coreos es-endpoint region)
+                                                     :user_data (logstash-user-data-coreos (output-of "aws_elasticsearch_domain" name :domain_name) region)
                                                      :associate_public_ip_address true
                                                      :subnet_id (vpc-id-of "aws_subnet" "public-a")
                                                      :iam_instance_profile (vpc-id-of "aws_iam_instance_profile" "logstash")})
