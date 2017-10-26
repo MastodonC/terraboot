@@ -138,6 +138,22 @@
                        "s3:PutObjectAcl"]
              "Resource" resources})))
 
+(defn bucket-readonly-policy
+  [bucket-names]
+  (let [bucket-arn #(str "arn:aws:s3:::" %)
+        resources (reduce (fn [a n]
+                            (into a [(bucket-arn n) (bucket-arn (str n "/*"))]))
+                          []
+                          bucket-names)]
+    (policy {"Action" ["s3:GetBucketAcl"
+                       "s3:GetBucketPolicy"
+                       "s3:GetObject"
+                       "s3:GetObjectAcl"
+                       "s3:ListBucket"
+                       "s3:ListBucketMultipartUploads"
+                       "s3:ListMultipartUploadParts"]
+             "Resource" resources})))
+
 (def auto-scaling-policy
   (policy {"Action" ["ec2:DescribeKeyPairs",
                      "ec2:DescribeSubnets",
