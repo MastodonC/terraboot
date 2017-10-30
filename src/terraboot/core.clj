@@ -222,13 +222,13 @@
                :route-table-id (id-of "aws_route_table" nat-name)
                :region         region}))))
 
-(defn private-public-subnets-remote-nat [{:keys [naming-fn az cidr-blocks public-route-table region remote-state]}]
+(defn private-public-subnets-remote-nat [{:keys [naming-fn remote-naming-fn az cidr-blocks public-route-table region remote-state]}]
   "Set-up public & private subnets, route_tables and associations and
    use NAT/Internet gateways and related route tables from a previous Terraform
    run via's it's remote-state output e.g a VPC infrastructure"
   (let [public-subnet-name (naming-fn (stringify "public-" az))
         private-subnet-name (naming-fn (stringify "private-" az))
-        nat-name (naming-fn (stringify "nat-" az))]
+        nat-name (remote-naming-fn (stringify "nat-" az))]
     (merge-in
       (subnet {:name           public-subnet-name
                :az             az

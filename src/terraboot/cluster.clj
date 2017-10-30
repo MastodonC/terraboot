@@ -249,6 +249,7 @@
         (in-vpc (remote-output-of "vpc" "vpc-id")
                 (apply merge-in (map #(private-public-subnets-remote-nat
                                         {:naming-fn          cluster-unique
+                                         :remote-naming-fn   vpc-unique
                                          :region             region
                                          :az                 %
                                          :cidr-blocks        (% subnet-cidr-blocks)
