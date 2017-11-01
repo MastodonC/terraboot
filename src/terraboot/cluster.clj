@@ -154,6 +154,26 @@
                          "s3:ListMultipartUploadParts"]
              "Resource" resources})))
 
+(defn bucket-cross-account-readonly-policy
+  [owner-account-id cross-account-id bucket-name]
+  (let [bucket-arn #(str "arn:aws:s3:::" %)
+        resources [(bucket-arn bucket-name) (bucket-arn (str bucket-name "/*"))]]
+    (to-json {"Version"   "2012-10-17"
+              "Statement" [{"Principal" {"AWS" [(str "arn:aws:iam::" owner-account-id ":root")]}
+                            "Effect" "Allow"
+                            "Action"    "s3:*"
+                            "Resource" resources}
+                           {"Principal" {"AWS" [(str "arn:aws:iam::" cross-account-id ":root")]}
+                            "Effect" "Allow"
+                            "Action"   ["s3:GetBucketAcl"
+                                        "s3:GetBucketPolicy"
+                                        "s3:GetObject"
+                                        "s3:GetObjectAcl"
+                                        "s3:ListBucket"
+                                        "s3:ListBucketMultipartUploads"
+                                        "s3:ListMultipartUploadParts"]
+                            "Resource" resources}]})))
+
 (def auto-scaling-policy
   (policy {"Action" ["ec2:DescribeKeyPairs",
                      "ec2:DescribeSubnets",
