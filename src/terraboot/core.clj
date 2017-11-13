@@ -21,7 +21,7 @@
   (output-of type name "id"))
 
 (defn arn-of [type name]
-  (output-of type name "arn"))
+  (output-of type name "arn"))ı
 
 (defn data
   ([type name spec]
@@ -130,33 +130,31 @@
     (resource "aws_security_group" (name-fn name)
               (merge {:name (name-fn name)
                       :tags {:Name (name-fn name)}}
-                     spec))
-    (resource-seq
-      (for [rule rules]
-        (let [defaults {:protocol          "tcp"
-                        :type              "ingress"
-                        :security_group_id (id-of "aws_security_group" (name-fn name))}
+                     spec
+                     (for [rule rules]
+                       (let [defaults {:protocol          "tcp"
+                                       :type              "ingress"
+                                       :security_group_id (id-of "aws_security_group" (name-fn name))}
 
-              port-to-port-range (fn [rule] (if-let [port (:port rule)]
-                                              (-> rule
-                                                  (assoc :from_port port :to_port port)
-                                                  (dissoc :port))
-                                              rule))
+                             port-to-port-range (fn [rule] (if-let [port (:port rule)]
+                                                             (-> rule
+                                                                 (assoc :from_port port :to_port port)
+                                                                 (dissoc :port))
+                                                             rule))
 
-              allow-all-sg (fn [rule] (if-let [allow-all-sg-id (:allow-all-sg rule)]
-                                        (-> rule
-                                            (assoc :from_port 0 :to_port 0)
-                                            (assoc :protocol -1)
-                                            (assoc :source_security_group_id allow-all-sg-id)
-                                            (dissoc :allow-all-sg))
-                                        rule))
-              rule (-> (merge defaults rule)
-                       port-to-port-range
-                       allow-all-sg)
-              suffix (str (hash rule))]
-          ["aws_security_group_rule"
-           (stringify (name-fn name) "-" suffix)
-           rule])))))
+                             allow-all-sg (fn [rule] (if-let [allow-all-sg-id (:allow-all-sg rule)]
+                                                       (-> rule
+                                                           (assoc :from_port 0 :to_port 0)
+                                                           (assoc :protocol -1)
+                                                           (assoc :source_security_group_id allow-all-sg-id)
+                                                           (dissoc :allow-all-sg))
+                                                       rule))
+                             rule (-> (merge defaults rule)
+                                      port-to-port-range
+                                      allow-all-sg)]
+                         (case (:type rule)
+                           "ingress" {:ingress (dissoc rule :type)}
+                           "egress" {:egress (dissoc rule :type)})))))))
 
 (def security-group
   (partial scoped-security-group identity))
