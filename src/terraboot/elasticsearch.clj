@@ -153,7 +153,7 @@ WantedBy=multi-user.target")})))
 
      (vpc-resource "aws_iam_instance_profile" "logstash" {
                                                           :name "logstash"
-                                                          :roles  [(vpc-output-of "aws_iam_role" "logstash" "name")]
+                                                          :role (vpc-output-of "aws_iam_role" "logstash" "name")
                                                           })
 
      (add-key-name-to-instances
