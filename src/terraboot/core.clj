@@ -372,8 +372,8 @@
         asg-config
         (merge-in
           (cluster-resource "aws_iam_instance_profile" name
-                            {:name  (str name "-profile")
-                             :roles [(id-of "aws_iam_role" role)]})
+                            {:name (str name "-profile")
+                             :role (id-of "aws_iam_role" role)})
 
           (cluster-resource "aws_launch_configuration" name
                             (size-disk-if-present root_block_device_size
@@ -438,7 +438,7 @@
                            (:policy %) (cluster-resource "aws_iam_role_policy" (:name %)
                                                          (assoc % :role (cluster-id-of "aws_iam_role" name)))
                            (:policy_arn %) (cluster-resource "aws_iam_policy_attachment" (:name %)
-                                                             (assoc % :roles [(cluster-id-of "aws_iam_role" name)])))
+                                                             (assoc % :role (cluster-id-of "aws_iam_role" name))))
                         (map #(dissoc % :principal) policies))))))
 
 (defn policy [statement]
