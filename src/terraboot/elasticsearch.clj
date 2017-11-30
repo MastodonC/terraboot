@@ -4,7 +4,8 @@
             [terraboot.cloud-config :refer [cloud-config]]
             [cheshire.core :as json]
             [clojure.string :as str]
-            [clojure.core.strint :refer [<<]]))
+            [clojure.core.strint :refer [<<]]
+            [terraboot.user-data :refer :all]))
 
 (def stop-update-engine {:name "update-engine.service"
                          :command "stop"})
@@ -47,11 +48,13 @@ ExecStop=/usr/bin/docker stop ~{image-name}
 WantedBy=multi-user.target")})))
 
 (defn cloud-config-coreos [units]
-  (cloud-config {:coreos {:update
-                          {:reboot-strategy "off"}
-                          :units (concat common-coreos-units
-                                         units)
-                          }}))
+  (cloud-config (deep-merge-with (comp vec concat)
+                                 {:coreos {:update
+                                                  {:reboot-strategy "off"}
+                                           :units (concat common-coreos-units
+                                                          units)}}
+                                 beats-user-data
+                                 dockerd-logging)))
 
 (defn logstash-user-data-coreos [es-endpoint region]
   (let [logstash (docker-systemd-unit "mastodonc" "logstash-ng"
