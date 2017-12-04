@@ -64,7 +64,7 @@
                                                    {:path        "/etc/openvpn/up.sh"
                                                     :content     (snippet "system-files/up.sh")
                                                     :permissions "744"}]}
-                                  )))
+                                  beats-user-data-ubuntu)))
 
 ;;(defn vpc-dns-zone [name]
 ;;  (str name environment-dns)
