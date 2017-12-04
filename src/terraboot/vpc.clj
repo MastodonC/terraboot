@@ -3,6 +3,7 @@
             [terraboot.utils :refer :all]
             [terraboot.cloud-config :refer [cloud-config]]
             [terraboot.elasticsearch :refer [elasticsearch-cluster]]
+            [terraboot.user-data :refer :all]
             [clojure.string :as string]))
 
 (defn cidr-start
@@ -27,42 +28,43 @@
 (def subnet-types [:public :private])
 
 (defn vpn-user-data [vars]
-  (cloud-config {:package_update true
-                 :packages       ["openvpn"]
-                 :users          ["default"]
-                 :output         {:all "| tee -a /var/log/cloud-init-output.log"}
-                 :runcmd         ["sysctl -p"
-                                  "sysctl -w net.ipv4.ip_forward=1"
-                                  "iptables -t nat -A POSTROUTING -s 10.20.0.0/24 -o eth0 -j MASQUERADE"
-                                  "service openvpn restart"]
-                 :write_files    [{:path        "/etc/openvpn/ta.key"
-                                   :content     (snippet "vpn-keys/ta.key")
-                                   :permissions "600"}
-                                  {:path        "/etc/openvpn/ca.crt"
-                                   :content     (snippet "vpn-keys/ca.crt")
-                                   :permissions "644"}
-                                  {:path        "/etc/openvpn/mesos-vpn-gw.key"
-                                   :content     (snippet "vpn-keys/mesos-vpn-gw.key")
-                                   :permissions "600"}
-                                  {:path        "/etc/openvpn/mesos-vpn-gw.crt"
-                                   :content     (snippet "vpn-keys/mesos-vpn-gw.crt")
-                                   :permissions "644"}
-                                  {:path        "/etc/openvpn/dh2048.pem"
-                                   :content     (snippet "vpn-keys/dh2048.pem")
-                                   :permissions "600"}
-                                  {:path        "/etc/openvpn/server.conf"
-                                   :content     (from-template "system-files/server.conf" vars)
-                                   :permissions "644"}
-                                  {:path        "/etc/openvpn/crl.pem"
-                                   :content     (snippet "vpn-keys/crl.pem")
-                                   :permissions "644"}
-                                  {:path        "/etc/sysctl.d/99-ip-forwarding.conf"
-                                   :content     "net.ipv4.ip_forward = 1\n"
-                                   :permissions "644"}
-                                  {:path        "/etc/openvpn/up.sh"
-                                   :content     (snippet "system-files/up.sh")
-                                   :permissions "744"}]
-                 }))
+  (cloud-config (deep-merge-with (comp vec concat)
+                                 {:package_update true
+                                  :packages       ["openvpn"]
+                                  :users          ["default"]
+                                  :output         {:all "| tee -a /var/log/cloud-init-output.log"}
+                                  :runcmd         ["sysctl -p"
+                                                   "sysctl -w net.ipv4.ip_forward=1"
+                                                   "iptables -t nat -A POSTROUTING -s 10.20.0.0/24 -o eth0 -j MASQUERADE"
+                                                   "service openvpn restart"]
+                                  :write_files    [{:path        "/etc/openvpn/ta.key"
+                                                    :content     (snippet "vpn-keys/ta.key")
+                                                    :permissions "600"}
+                                                   {:path        "/etc/openvpn/ca.crt"
+                                                    :content     (snippet "vpn-keys/ca.crt")
+                                                    :permissions "644"}
+                                                   {:path        "/etc/openvpn/mesos-vpn-gw.key"
+                                                    :content     (snippet "vpn-keys/mesos-vpn-gw.key")
+                                                    :permissions "600"}
+                                                   {:path        "/etc/openvpn/mesos-vpn-gw.crt"
+                                                    :content     (snippet "vpn-keys/mesos-vpn-gw.crt")
+                                                    :permissions "644"}
+                                                   {:path        "/etc/openvpn/dh2048.pem"
+                                                    :content     (snippet "vpn-keys/dh2048.pem")
+                                                    :permissions "600"}
+                                                   {:path        "/etc/openvpn/server.conf"
+                                                    :content     (from-template "system-files/server.conf" vars)
+                                                    :permissions "644"}
+                                                   {:path        "/etc/openvpn/crl.pem"
+                                                    :content     (snippet "vpn-keys/crl.pem")
+                                                    :permissions "644"}
+                                                   {:path        "/etc/sysctl.d/99-ip-forwarding.conf"
+                                                    :content     "net.ipv4.ip_forward = 1\n"
+                                                    :permissions "644"}
+                                                   {:path        "/etc/openvpn/up.sh"
+                                                    :content     (snippet "system-files/up.sh")
+                                                    :permissions "744"}]}
+                                  beats-user-data-ubuntu)))
 
 ;;(defn vpc-dns-zone [name]
 ;;  (str name environment-dns)

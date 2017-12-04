@@ -2,7 +2,8 @@
   (:require [terraboot.core :refer :all]
             [terraboot.vpc :as vpc]
             [terraboot.cloud-config :refer [cloud-config]]
-            [terraboot.utils :refer :all]))
+            [terraboot.utils :refer :all]
+            [terraboot.user-data :refer :all]))
 
 ;; reflects default-sgs but uses the vpc remote output
 (def remote-default-sgs [(remote-output-of "vpc" "sg-allow-ssh")
@@ -66,29 +67,16 @@
                   :content (snippet "system-files/ssh-authorized-keys.tmpl")}]})
 
 (defn mesos-master-user-data []
-  (cloud-config (merge-with (comp vec concat)
-                            (mesos-instance-user-data)
-                            {:write_files [{:path    "/etc/mesosphere/roles/master"
-                                            :content ""}
-                                           {:path    "/etc/mesosphere/roles/aws_master"
-                                            :content ""}
-                                           {:path    "/etc/mesosphere/roles/aws"
-                                            :content ""}]})))
-
-(def beats-user-data
-  {:coreos      {:units [{:name "filebeat.service" :command "start" :content (snippet "systemd/filebeat.service")}
-                         {:name "metricbeat.service" :command "start" :content (snippet "systemd/metricbeat.service")}
-                         {:name "dcos-journalctl-file.service" :command "start" :content (snippet "systemd/dcos-journalctl-file.service")}
-                         {:name "copy-bins.service" :command "start" :content (snippet "systemd/copy-bins.service")}]}
-   :write_files [{:path    "/etc/beats/filebeat.yml"
-                  :content (snippet "system-files/filebeat.yml")}
-                 {:path    "/etc/beats/metricbeat.yml"
-                  :content (snippet "system-files/metricbeat.yml")}]})
-
-(def dockerd-logging
-  {:write_files [{:path        "/etc/systemd/system/docker.service.d/journald-logging.conf"
-                  :content     (snippet "system-files/dockerd-journald-logging.conf")
-                  :permissions "0655"}]})
+  (cloud-config (deep-merge-with (comp vec concat)
+                                 (mesos-instance-user-data)
+                                 {:write_files [{:path    "/etc/mesosphere/roles/master"
+                                                 :content ""}
+                                                {:path    "/etc/mesosphere/roles/aws_master"
+                                                 :content ""}
+                                                {:path    "/etc/mesosphere/roles/aws"
+                                                 :content ""}]}
+                                 beats-user-data
+                                 dockerd-logging)))
 
 (defn mesos-slave-user-data
   []
@@ -248,12 +236,12 @@
         key-name
         (in-vpc (remote-output-of "vpc" "vpc-id")
                 (apply merge-in (map #(private-public-subnets-remote-nat
-                                        {:naming-fn          cluster-unique
-                                         :remote-naming-fn   vpc-unique
-                                         :region             region
-                                         :az                 %
-                                         :cidr-blocks        (% subnet-cidr-blocks)
-                                         :remote-state       "vpc"}) azs))
+                                        {:naming-fn        cluster-unique
+                                         :remote-naming-fn vpc-unique
+                                         :region           region
+                                         :az               %
+                                         :cidr-blocks      (% subnet-cidr-blocks)
+                                         :remote-state     "vpc"}) azs))
 
                 (cluster-security-group "admin-security-group" {}
                                         {:from_port   0
