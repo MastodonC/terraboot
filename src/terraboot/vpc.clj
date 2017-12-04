@@ -100,7 +100,8 @@
            cert-name
            root-dns
            environment
-           project] :as opts}]
+           project
+           cluster-name] :as opts}]
   (let [vpc-unique (vpc-unique-fn vpc-name)
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (id-of-fn vpc-unique)
@@ -108,7 +109,8 @@
         vpc-security-group (partial scoped-security-group vpc-unique)
         elb-listener (account-elb-listener account-number)
         environment-dns (environment-dns environment project root-dns)
-        environment-dns-identifier (environment-dns-identifier environment-dns "private")]
+        environment-dns-identifier (environment-dns-identifier environment-dns "private")
+        cluster-unique (cluster-unique-fn vpc-name cluster-name)]
     (merge-in
       (resource "aws_vpc" vpc-name
                 {:tags                 {:Name vpc-name}
@@ -126,10 +128,14 @@
       (add-key-name-to-instances
         key-name
         (in-vpc (id-of "aws_vpc" vpc-name)
+                (template-file (cluster-unique "vpn-user-data")
+                               (vpn-user-data {:range-start  (cidr-start vpc-cidr-block)
+                                               :fallback-dns (fallback-dns vpc-cidr-block)
+                                               :region       region})
+                               {:cluster-name          cluster-name
+                                :logstash-dns          (str "logstash." environment-dns)})
                 (aws-instance (vpc-unique "vpn") {
-                                                  :user_data                   (vpn-user-data {:range-start  (cidr-start vpc-cidr-block)
-                                                                                               :fallback-dns (fallback-dns vpc-cidr-block)
-                                                                                               :region       region})
+                                                  :user_data                   (rendered-template-file (cluster-unique "vpn-user-data"))
                                                   :subnet_id                   (vpc-id-of "aws_subnet" (stringify "public-" (first azs)))
                                                   :ami                         default-ami
                                                   :vpc_security_group_ids      [(vpc-id-of "aws_security_group" "vpn")
