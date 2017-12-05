@@ -93,7 +93,11 @@ WantedBy=multi-user.target")})))
                                           logstash-ami
                                           region azs
                                           vpc-cidr-block
-                                          vpc-name] :as spec}]
+                                          vpc-name
+                                          environment
+                                          project
+                                          root-dns
+                                          cluster-name] :as spec}]
   (let [vpc-unique (vpc-unique-fn vpc-name)
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (id-of-fn vpc-unique)
@@ -101,7 +105,9 @@ WantedBy=multi-user.target")})))
         vpc-security-group (partial scoped-security-group vpc-unique)
         elb-listener (account-elb-listener account-number)
         es-arn (str "arn:aws:es:" region ":" account-number ":domain/" name)
-        es-arn-* (str es-arn "/*")]
+        es-arn-* (str es-arn "/*")
+        environment-dns (environment-dns environment project root-dns)
+        cluster-unique (cluster-unique-fn vpc-name cluster-name)]
 
     (merge-in
      (template-file (vpc-unique "elasticsearch-policy")
@@ -173,6 +179,11 @@ WantedBy=multi-user.target")})))
 
               (vpc-security-group "sends_logstash" {})
 
+              (template-file (cluster-unique "logstash-user-data")
+                             (logstash-user-data-coreos (output-of "aws_elasticsearch_domain" name :endpoint) region)
+                             {:cluster-name          cluster-name
+                              :logstash-dns          (str "logstash." environment-dns)})
+
               (aws-instance (vpc-unique "logstash") {:ami logstash-ami
                                                      :instance_type "m4.large"
                                                      :vpc_security_group_ids [(vpc-id-of "aws_security_group" "logstash")
@@ -180,7 +191,7 @@ WantedBy=multi-user.target")})))
                                                                               (vpc-id-of "aws_security_group" "all-servers")
                                                                               (vpc-id-of "aws_security_group" "elb-kibana")
                                                                               ]
-                                                     :user_data (logstash-user-data-coreos (output-of "aws_elasticsearch_domain" name :endpoint) region)
+                                                     :user_data (rendered-template-file (cluster-unique "logstash-user-data"))
                                                      :associate_public_ip_address true
                                                      :subnet_id (vpc-id-of "aws_subnet" "public-a")
                                                      :iam_instance_profile (vpc-id-of "aws_iam_instance_profile" "logstash")})

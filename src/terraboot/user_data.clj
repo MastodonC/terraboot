@@ -17,18 +17,11 @@
                   :content (snippet "system-files/filebeat.yml")}
                  {:path    "/etc/beats/metricbeat.yml"
                   :content (snippet "system-files/metricbeat.yml")}
-                 {:path    "/etc/systemd/system/copy-bins.service"
-                  :content (snippet "systemd/copy-bins.service")}
-                 {:path    "/etc/systemd/system/filebeat.service"
-                  :content (snippet "systemd/filebeat.service")}
-                 {:path    "/etc/systemd/system/metricbeat.service"
-                  :content (snippet "systemd/metricbeat.service")}]
-   :runcmd      ["systemctl daemon-reload"
-                 "systemctl start copy-bins.service"
-                 "systemctl enable metricbeat.service"
-                 "systemctl enable filebeat.service"
-                 "systemctl start metricbeat.service"
-                 "systemctl start filebeat.service"]})
+                 {:path    "/etc/init/metricbeat.conf"
+                  :content (snippet "upstart/metricbeat.conf")}]
+   :runcmd      ["mkdir /opt/bin"
+                 "curl -s https://s3.eu-central-1.amazonaws.com/terraboot/bins.tgz | tar xz -C /opt/bin"
+                 "service metricbeat start"]})
 
 (def dockerd-logging
   {:write_files [{:path        "/etc/systemd/system/docker.service.d/journald-logging.conf"
