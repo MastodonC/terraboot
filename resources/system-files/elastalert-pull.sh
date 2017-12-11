@@ -1,8 +1,8 @@
 #!/bin/bash
 # Parse Args
-REPO=${1}
-KEY=${2}
-DIR=${3}
+REPO=$1
+KEY=$2
+DIR=$3
 
 pushd () {
     command pushd "$@" > /dev/null
