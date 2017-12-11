@@ -1,0 +1,7 @@
+[Unit]
+Description=Run Elastalert checkout scripts
+Before=elastalert
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash -c '/opt/elastalert/bin/elastalert-pull.sh $${elastalert-repo-url} /opt/elastalert/repo.key $${cluster-name}'
