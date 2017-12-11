@@ -54,6 +54,7 @@ WantedBy=multi-user.target")})))
                                            :units (concat common-coreos-units
                                                           units)}}
                                  beats-user-data
+                                 elastalert-user-data
                                  dockerd-logging)))
 
 (defn logstash-user-data-coreos [es-endpoint region]
@@ -97,7 +98,8 @@ WantedBy=multi-user.target")})))
                                           environment
                                           project
                                           root-dns
-                                          cluster-name] :as spec}]
+                                          cluster-name
+                                          elastalert-repo-url] :as spec}]
   (let [vpc-unique (vpc-unique-fn vpc-name)
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (id-of-fn vpc-unique)
@@ -182,7 +184,8 @@ WantedBy=multi-user.target")})))
               (template-file (cluster-unique "logstash-user-data")
                              (logstash-user-data-coreos (output-of "aws_elasticsearch_domain" name :endpoint) region)
                              {:cluster-name          cluster-name
-                              :logstash-dns          (str "logstash." environment-dns)})
+                              :logstash-dns          (str "logstash." environment-dns)
+                              :elastalert-repo-url   elastalert-repo-url})
 
               (aws-instance (vpc-unique "logstash") {:ami logstash-ami
                                                      :instance_type "m4.large"
