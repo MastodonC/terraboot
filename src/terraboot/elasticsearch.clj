@@ -66,9 +66,15 @@ WantedBy=multi-user.target")})))
         nginx (docker-systemd-unit "mastodonc" "kibana-nginx"
                                    {:options [(str "--env " "ES_HOST=" es-endpoint)
                                               "--net=host"]})
+        elastalert (docker-systemd-unit "bitsensor" "elastalert"
+                                       {:options ["-v /opt/elastalert/config.yaml:/opt/elastalert/config.yaml"
+                                                  "-v /opt/elastalert/config.json:/opt/elastalert-server/config/config.sjon"
+                                                  "-v /opt/elastalert/rules:/opt/elastalert/rules"
+                                                  "--net=host"]})
         ]
     (cloud-config-coreos [logstash
-                          nginx])))
+                          nginx
+                          elastalert])))
 
 (defn elasticsearch-policy
   [name es-allowed-ips]
