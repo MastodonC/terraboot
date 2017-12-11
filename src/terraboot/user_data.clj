@@ -25,10 +25,14 @@
 
 (def elastalert-user-data
   {:coreos      {:units [{:name "elastalert.service" :command "start" :content (snippet "systemd/elastalert.service")}
-                         {:name "elastalert.timer"   :command "start" :content (snippet "systemd/elastalert.timer")}]}
+                         {:name "elastalert.timer" :command "start" :content (snippet "systemd/elastalert.timer")}]}
    :write_files [{:path        "/opt/elastalert/repo.key"
                   :content     (snippet "ssh-keys/witan-elastalert.pem")
-                  :permissions "600"}]})
+                  :permissions "600"}
+                 {:path        "/opt/elastalert/bin/elastalert-pull.sh"
+                  :content     (snippet "system-files/elastalert-pull.sh")
+                  :permissions "744"}
+                 ]})
 
 (def dockerd-logging
   {:write_files [{:path        "/etc/systemd/system/docker.service.d/journald-logging.conf"
