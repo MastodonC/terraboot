@@ -19,13 +19,8 @@ run_every:
 buffer_time:
   minutes: 10
 
-# If the time between subsequent alerts is less than double the realert value, then double realert.
-# If an instance goes down then an alert at 10m, 20m, 40m, 60m, 60min, 60min,...
 realert:
   minutes: 10
-
-exponential_realert:
-  hours: 1
 
 # Optional URL prefix for elasticsearch
 #es_url_prefix: elasticsearch
