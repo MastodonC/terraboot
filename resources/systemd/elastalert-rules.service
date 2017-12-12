@@ -1,6 +1,5 @@
 [Unit]
 Description=Run Elastalert checkout scripts
-Before=elastalert
 
 [Service]
 Type=oneshot

@@ -3,3 +3,7 @@ Description=Run Elastalert rule repo github pull every 5minutes
 
 [Timer]
 OnCalendar=*:0/2
+
+[Install]
+WantedBy=timers.target
+

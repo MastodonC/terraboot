@@ -21,9 +21,11 @@
   ([org-name image-name {options     :options
                          entry-point :entry-point
                          release     :release
+                         requires    :requires
                          :or         {options     []
                                       entry-point ""
-                                      release     "latest"}}]
+                                      release     "latest"
+                                      requires ""}}]
    (let [option-string (str/join " " options)
          full-image-name (str org-name "/" image-name)]
      {:name    (str image-name ".service")
@@ -33,7 +35,7 @@
                  "[Unit]
  Description=~{image-name}
  After=docker.service
- Requires=docker.service
+ Requires=docker.service ~{requires}
 
  [Service]
  Slice=machine.slice
@@ -67,11 +69,11 @@
                                    {:options [(str "--env " "ES_HOST=" es-endpoint)
                                               "--net=host"]})
         elastalert (docker-systemd-unit "bitsensor" "elastalert"
-                                        {:options ["-v /opt/elastalert/config.yaml:/opt/elastalert/config.yaml"
-                                                   "-v /opt/elastalert/config.json:/opt/elastalert-server/config/config.sjon"
+                                        {:requires "elastalert-rules-init.service"
+                                         :options ["-v /opt/elastalert/config.yaml:/opt/elastalert/config.yaml"
+                                                   "-v /opt/elastalert/config.json:/opt/elastalert-server/config/config.json"
                                                    "-v /opt/elastalert/rules:/opt/elastalert/rules"
-                                                   "--net=host"]})
-        ]
+                                                   "--net=host"]})]
     (cloud-config-coreos [logstash
                           nginx
                           elastalert])))

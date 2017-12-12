@@ -24,8 +24,9 @@
                  "service metricbeat start"]})
 
 (def elastalert-user-data
-  {:coreos      {:units [{:name "elastalert-rules.service" :command "start" :content (snippet "systemd/elastalert-rules.service")}
-                         {:name "elastalert-rules.timer" :command "start" :content (snippet "systemd/elastalert-rules.timer")}]}
+  {:coreos      {:units [{:name "elastalert-rules.service" :content (snippet "systemd/elastalert-rules.service")}
+                         {:name "elastalert-rules.timer" :command "start" :enable true :content (snippet "systemd/elastalert-rules.timer")}
+                         {:name "elastalert-rules-init.service" :command "start" :enable true :content (snippet "systemd/elastalert-rules-init.service")}]}
    :write_files [{:path "/opt/elastalert/config.yaml"
                   :content (snippet "system-files/elastalert-config.yaml")
                   :permissions "644"}
