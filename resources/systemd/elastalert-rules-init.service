@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Elastalert rules init
+Before=elastalert.service
+Requires=elastalert.service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash -c '/opt/elastalert/bin/elastalert-pull.sh $${elastalert-repo-url} /opt/elastalert/repo.key $${cluster-name}'
+RemainAfterExit=yes

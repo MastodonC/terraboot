@@ -23,6 +23,24 @@
                  "curl -s https://s3.eu-central-1.amazonaws.com/terraboot/bins.tgz | tar xz -C /opt/bin"
                  "service metricbeat start"]})
 
+(def elastalert-user-data
+  {:coreos      {:units [{:name "elastalert-rules.service" :content (snippet "systemd/elastalert-rules.service")}
+                         {:name "elastalert-rules.timer" :command "start" :enable true :content (snippet "systemd/elastalert-rules.timer")}
+                         {:name "elastalert-rules-init.service" :command "start" :enable true :content (snippet "systemd/elastalert-rules-init.service")}]}
+   :write_files [{:path "/opt/elastalert/config.yaml"
+                  :content (snippet "system-files/elastalert-config.yaml")
+                  :permissions "644"}
+                 {:path "/opt/elastalert/config.json"
+                  :content (snippet "system-files/elastalert-config.json")
+                  :permissions "644"}
+                 {:path        "/opt/elastalert/repo.key"
+                  :content     (snippet "ssh-keys/witan-elastalert.pem")
+                  :permissions "600"}
+                 {:path        "/opt/elastalert/bin/elastalert-pull.sh"
+                  :content     (snippet "system-files/elastalert-pull.sh")
+                  :permissions "744"}
+                 ]})
+
 (def dockerd-logging
   {:write_files [{:path        "/etc/systemd/system/docker.service.d/journald-logging.conf"
                   :content     (snippet "system-files/dockerd-journald-logging.conf")

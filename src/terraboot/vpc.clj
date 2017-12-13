@@ -123,7 +123,7 @@
                            :region :azs :default-ami :logstash-ami :vpc-cidr-block
                            :cert-name :es-allowed-ips
                            :es-instance-type :es-instance-count :es-ebs-volume-size
-                           :environment :root-dns :project :cluster-name]))
+                           :environment :root-dns :project :cluster-name :elastalert-repo-url]))
 
       (add-key-name-to-instances
         key-name
