@@ -41,7 +41,7 @@
                   :owner       "root"
                   :permissions "0644"}
                  {:path        "/etc/mesosphere/setup-flags/bootstrap-id"
-                  :content     "BOOTSTRAP_ID=5b4aa43610c57ee1d60b4aa0751a1fb75824c083"
+                  :content     "BOOTSTRAP_ID=5b4aa43610c57ee1d60b4aa0751a1fb75824c083\nBOOTSTRAP_URL=https://s3.eu-central-1.amazonaws.com/kixi-artifacts"
                   :owner       "root"
                   :permissions 420}
                  {:path        "/etc/mesosphere/setup-flags/cluster-packages.json"
