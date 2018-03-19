@@ -35,7 +35,7 @@
                                   :output         {:all "| tee -a /var/log/cloud-init-output.log"}
                                   :runcmd         ["sysctl -p"
                                                    "sysctl -w net.ipv4.ip_forward=1"
-                                                   "iptables -t nat -A POSTROUTING -s 10.20.0.0/24 -o eth0 -j MASQUERADE"
+                                                   (str "iptables -t nat -A POSTROUTING -s " (:vpn-subnet vars) " -o eth0 -j MASQUERADE")
                                                    "service openvpn restart"]
                                   :write_files    [{:path        "/etc/openvpn/ta.key"
                                                     :content     (snippet "vpn-keys/ta.key")
@@ -62,7 +62,7 @@
                                                     :content     "net.ipv4.ip_forward = 1\n"
                                                     :permissions "644"}
                                                    {:path        "/etc/openvpn/up.sh"
-                                                    :content     (snippet "system-files/up.sh")
+                                                    :content     (from-template "system-files/up.sh" vars)
                                                     :permissions "744"}]}
                                   beats-user-data-ubuntu)))
 
@@ -101,7 +101,9 @@
            root-dns
            environment
            project
-           cluster-name] :as opts}]
+           cluster-name
+           vpn-subnet
+           vpn-server-config] :as opts}]
   (let [vpc-unique (vpc-unique-fn vpc-name)
         vpc-resource (partial resource vpc-unique)
         vpc-id-of (id-of-fn vpc-unique)
@@ -131,7 +133,9 @@
                 (template-file (cluster-unique "vpn-user-data")
                                (vpn-user-data {:range-start  (cidr-start vpc-cidr-block)
                                                :fallback-dns (fallback-dns vpc-cidr-block)
-                                               :region       region})
+                                               :region       region
+                                               :vpn-subnet   vpn-subnet
+                                               :vpn-server-config vpn-server-config})
                                {:cluster-name          cluster-name
                                 :logstash-dns          (str "logstash." environment-dns)})
                 (aws-instance (vpc-unique "vpn") {
